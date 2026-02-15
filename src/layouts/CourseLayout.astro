@@ -1,0 +1,141 @@
+---
+import Layout from './Layout.astro';
+import ProgressTracker from '../components/ProgressTracker';
+
+interface Props {
+  title: string;
+  description?: string;
+  moduleId: string;
+  domain: string;
+}
+
+const { title, description, moduleId, domain } = Astro.props;
+
+// COF-C02 Exam Domains Structure
+const allModules = [
+  // Domain 1: Snowflake Data Cloud Features & Architecture (25%)
+  { id: 'intro', title: 'Introduction to Snowflake', slug: 'fundamentals/intro', domain: 'Architecture' },
+  { id: 'architecture', title: 'Snowflake Architecture', slug: 'architecture/overview', domain: 'Architecture' },
+  { id: 'databases-schemas', title: 'Databases, Schemas & Tables', slug: 'architecture/databases', domain: 'Architecture' },
+  { id: 'virtual-warehouses', title: 'Virtual Warehouses', slug: 'architecture/warehouses', domain: 'Architecture' },
+  { id: 'data-storage', title: 'Data Storage & Clustering', slug: 'storage/overview', domain: 'Architecture' },
+
+  // Domain 2: Account Access & Security (20%)
+  { id: 'user-management', title: 'User & Role Management', slug: 'security/users-roles', domain: 'Security' },
+  { id: 'rbac', title: 'Role-Based Access Control', slug: 'security/rbac', domain: 'Security' },
+  { id: 'network-security', title: 'Network Policies & Security', slug: 'security/network', domain: 'Security' },
+  { id: 'authentication', title: 'Authentication & SSO', slug: 'security/authentication', domain: 'Security' },
+
+  // Domain 3: Performance Concepts (15%)
+  { id: 'query-optimization', title: 'Query Performance & Optimization', slug: 'performance/queries', domain: 'Performance' },
+  { id: 'caching', title: 'Caching Mechanisms', slug: 'performance/caching', domain: 'Performance' },
+  { id: 'clustering-keys', title: 'Clustering Keys', slug: 'performance/clustering', domain: 'Performance' },
+  { id: 'search-optimization', title: 'Search Optimization Service', slug: 'performance/search', domain: 'Performance' },
+
+  // Domain 4: Data Loading & Unloading (15%)
+  { id: 'bulk-loading', title: 'Bulk Data Loading', slug: 'data-loading/bulk', domain: 'Data Loading' },
+  { id: 'snowpipe', title: 'Snowpipe & Continuous Loading', slug: 'data-loading/snowpipe', domain: 'Data Loading' },
+  { id: 'external-stages', title: 'Stages & File Formats', slug: 'data-loading/stages', domain: 'Data Loading' },
+  { id: 'unloading', title: 'Data Unloading', slug: 'data-loading/unloading', domain: 'Data Loading' },
+
+  // Domain 5: Data Transformations (15%)
+  { id: 'sql-basics', title: 'Snowflake SQL Essentials', slug: 'data-transformations/sql-basics', domain: 'Transformations' },
+  { id: 'functions', title: 'Functions & Procedures', slug: 'data-transformations/functions', domain: 'Transformations' },
+  { id: 'streams-tasks', title: 'Streams & Tasks', slug: 'data-transformations/streams-tasks', domain: 'Transformations' },
+
+  // Domain 6: Data Protection & Sharing (10%)
+  { id: 'time-travel', title: 'Time Travel & Fail-safe', slug: 'data-protection/time-travel', domain: 'Data Protection' },
+  { id: 'cloning', title: 'Zero-Copy Cloning', slug: 'data-protection/cloning', domain: 'Data Protection' },
+  { id: 'data-sharing', title: 'Secure Data Sharing', slug: 'data-protection/sharing', domain: 'Data Protection' },
+];
+---
+
+<Layout title={title} description={description}>
+  <div class="bg-gradient-to-b from-slate-50 to-white py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- Breadcrumb -->
+      <nav class="mb-6 text-sm">
+        <a href="/" class="text-slate-500 hover:text-primary no-underline">Home</a>
+        <span class="mx-2 text-slate-400">/</span>
+        <a href="/modules" class="text-slate-500 hover:text-primary no-underline">Modules</a>
+        <span class="mx-2 text-slate-400">/</span>
+        <span class="text-slate-700 font-medium">{domain}</span>
+      </nav>
+
+      <!-- Domain Badge -->
+      <div class="mb-4">
+        <span class="exam-badge">{domain}</span>
+      </div>
+
+      <!-- Page Title -->
+      <h1 class="mb-4">{title}</h1>
+      {description && <p class="text-xl text-slate-600 max-w-3xl">{description}</p>}
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="grid lg:grid-cols-[1fr_300px] gap-12">
+      <!-- Main Content -->
+      <article class="prose prose-slate max-w-none">
+        <slot />
+      </article>
+
+      <!-- Sidebar with Progress Tracker -->
+      <aside class="hidden lg:block">
+        <ProgressTracker client:load modules={allModules} currentModuleId={moduleId} />
+      </aside>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  /* Prose styling for MDX content */
+  .prose {
+    @apply text-slate-700 leading-relaxed;
+  }
+
+  .prose h2 {
+    @apply mt-12 mb-6 pb-3 border-b border-slate-200;
+  }
+
+  .prose h3 {
+    @apply mt-8 mb-4;
+  }
+
+  .prose h4 {
+    @apply mt-6 mb-3 text-lg font-semibold;
+  }
+
+  .prose p {
+    @apply mb-4;
+  }
+
+  .prose ul {
+    @apply list-disc pl-6 mb-4 space-y-2;
+  }
+
+  .prose ol {
+    @apply list-decimal pl-6 mb-4 space-y-2;
+  }
+
+  .prose blockquote {
+    @apply border-l-4 pl-4 italic text-slate-600 my-6;
+    border-color: var(--color-snowflake-blue);
+  }
+
+  .prose table {
+    @apply w-full border-collapse my-6;
+  }
+
+  .prose th {
+    @apply bg-slate-100 text-left p-3 font-semibold border border-slate-200;
+  }
+
+  .prose td {
+    @apply p-3 border border-slate-200;
+  }
+
+  .prose img {
+    @apply rounded-lg shadow-md my-6;
+  }
+</style>

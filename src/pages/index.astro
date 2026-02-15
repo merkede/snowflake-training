@@ -1,0 +1,216 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { BookOpen, Target, Zap, Award } from 'lucide-react';
+---
+
+<Layout title="Snowflake Academy - SnowPro Core Certification (COF-C02) Prep">
+  <!-- Hero Section -->
+  <section class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-4xl mx-auto">
+        <div class="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm mb-6">
+          <span class="text-sm font-medium">COF-C02 Exam Preparation</span>
+        </div>
+
+        <h1 class="text-5xl md:text-7xl font-bold mb-6 !text-white">
+          Master Snowflake.<br/>
+          <span style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+            Ace the Exam.
+          </span>
+        </h1>
+
+        <p class="text-xl text-slate-300 mb-10 max-w-2xl mx-auto">
+          Comprehensive training materials, interactive flashcards, and practice exams to help you pass the SnowPro Core Certification with confidence.
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="/modules" class="btn-primary text-lg px-8 py-4 no-underline">
+            Start Learning
+          </a>
+          <a href="/flashcards" class="btn-secondary text-lg px-8 py-4 bg-white/10 text-white hover:bg-white/20 no-underline">
+            Practice Flashcards
+          </a>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-3 gap-8 mt-16 max-w-2xl mx-auto">
+          <div class="text-center">
+            <div class="text-4xl font-bold" style="color: var(--color-snowflake-blue);">23</div>
+            <div class="text-sm text-slate-400 mt-1">Modules</div>
+          </div>
+          <div class="text-center">
+            <div class="text-4xl font-bold" style="color: var(--color-snowflake-blue);">100+</div>
+            <div class="text-sm text-slate-400 mt-1">Flashcards</div>
+          </div>
+          <div class="text-center">
+            <div class="text-4xl font-bold" style="color: var(--color-snowflake-blue);">6</div>
+            <div class="text-sm text-slate-400 mt-1">Exam Domains</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="mb-4">Why Choose Snowflake Academy?</h2>
+        <p class="text-xl text-slate-600 max-w-2xl mx-auto">
+          Everything you need to master Snowflake and pass the COF-C02 exam
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <!-- Feature 1 -->
+        <div class="card text-center">
+          <div class="w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
+            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-bold mb-2">Comprehensive Content</h3>
+          <p class="text-slate-600 text-sm">Covers all 6 COF-C02 exam domains with in-depth explanations and examples</p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="card text-center">
+          <div class="w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
+            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-bold mb-2">Interactive Learning</h3>
+          <p class="text-slate-600 text-sm">Flip-card flashcards, code examples, and hands-on exercises for better retention</p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="card text-center">
+          <div class="w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
+            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-bold mb-2">Track Progress</h3>
+          <p class="text-slate-600 text-sm">Monitor your learning journey with built-in progress tracking across all modules</p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="card text-center">
+          <div class="w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
+            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-bold mb-2">Exam-Focused</h3>
+          <p class="text-slate-600 text-sm">Structured by official exam domains with practice questions and key concepts</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Exam Domains -->
+  <section class="bg-slate-50 py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="mb-4">COF-C02 Exam Domains</h2>
+        <p class="text-xl text-slate-600 max-w-2xl mx-auto">
+          Comprehensive coverage of all official certification domains
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <a href="/architecture/overview" class="card hover:border-primary transition-all group no-underline">
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
+              1
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-bold mb-2 text-slate-900 group-hover:text-primary transition-colors">Architecture & Features</h3>
+              <p class="text-sm text-slate-600 mb-2">Data cloud features, architecture layers, and virtual warehouses</p>
+              <div class="text-xs font-medium" style="color: var(--color-snowflake-blue);">25% of exam</div>
+            </div>
+          </div>
+        </a>
+
+        <a href="/security/users-roles" class="card hover:border-primary transition-all group no-underline">
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
+              2
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-bold mb-2 text-slate-900 group-hover:text-primary transition-colors">Account Access & Security</h3>
+              <p class="text-sm text-slate-600 mb-2">User management, RBAC, network policies, and authentication</p>
+              <div class="text-xs font-medium" style="color: var(--color-snowflake-blue);">20% of exam</div>
+            </div>
+          </div>
+        </a>
+
+        <a href="/performance/queries" class="card hover:border-primary transition-all group no-underline">
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
+              3
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-bold mb-2 text-slate-900 group-hover:text-primary transition-colors">Performance Concepts</h3>
+              <p class="text-sm text-slate-600 mb-2">Query optimization, caching, clustering, and search optimization</p>
+              <div class="text-xs font-medium" style="color: var(--color-snowflake-blue);">15% of exam</div>
+            </div>
+          </div>
+        </a>
+
+        <a href="/data-loading/bulk" class="card hover:border-primary transition-all group no-underline">
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
+              4
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-bold mb-2 text-slate-900 group-hover:text-primary transition-colors">Data Loading & Unloading</h3>
+              <p class="text-sm text-slate-600 mb-2">Bulk loading, Snowpipe, stages, file formats, and unloading</p>
+              <div class="text-xs font-medium" style="color: var(--color-snowflake-blue);">15% of exam</div>
+            </div>
+          </div>
+        </a>
+
+        <a href="/data-transformations/sql-basics" class="card hover:border-primary transition-all group no-underline">
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
+              5
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-bold mb-2 text-slate-900 group-hover:text-primary transition-colors">Data Transformations</h3>
+              <p class="text-sm text-slate-600 mb-2">SQL essentials, functions, procedures, streams, and tasks</p>
+              <div class="text-xs font-medium" style="color: var(--color-snowflake-blue);">15% of exam</div>
+            </div>
+          </div>
+        </a>
+
+        <a href="/data-protection/time-travel" class="card hover:border-primary transition-all group no-underline">
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
+              6
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-bold mb-2 text-slate-900 group-hover:text-primary transition-colors">Data Protection & Sharing</h3>
+              <p class="text-sm text-slate-600 mb-2">Time Travel, fail-safe, cloning, and secure data sharing</p>
+              <div class="text-xs font-medium" style="color: var(--color-snowflake-blue);">10% of exam</div>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="py-20">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <h2 class="mb-6">Ready to Get Started?</h2>
+      <p class="text-xl text-slate-600 mb-10 max-w-2xl mx-auto">
+        Begin your journey to becoming a Snowflake Certified Professional today
+      </p>
+      <a href="/modules" class="btn-primary text-lg px-8 py-4 inline-block no-underline">
+        Start Your First Module
+      </a>
+    </div>
+  </section>
+</Layout>

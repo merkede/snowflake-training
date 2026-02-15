@@ -1,0 +1,146 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const modules = [
+  {
+    domain: 'Domain 1: Architecture & Features (25%)',
+    color: 'from-blue-500 to-cyan-500',
+    modules: [
+      { title: 'Introduction to Snowflake', slug: '/fundamentals/intro', status: 'coming-soon' },
+      { title: 'Snowflake Architecture', slug: '/architecture/overview', status: 'available' },
+      { title: 'Databases, Schemas & Tables', slug: '/architecture/databases', status: 'coming-soon' },
+      { title: 'Virtual Warehouses', slug: '/architecture/warehouses', status: 'coming-soon' },
+      { title: 'Data Storage & Clustering', slug: '/storage/overview', status: 'coming-soon' },
+    ]
+  },
+  {
+    domain: 'Domain 2: Account Access & Security (20%)',
+    color: 'from-violet-500 to-purple-500',
+    modules: [
+      { title: 'User & Role Management', slug: '/security/users-roles', status: 'coming-soon' },
+      { title: 'Role-Based Access Control', slug: '/security/rbac', status: 'coming-soon' },
+      { title: 'Network Policies & Security', slug: '/security/network', status: 'coming-soon' },
+      { title: 'Authentication & SSO', slug: '/security/authentication', status: 'coming-soon' },
+    ]
+  },
+  {
+    domain: 'Domain 3: Performance Concepts (15%)',
+    color: 'from-orange-500 to-red-500',
+    modules: [
+      { title: 'Query Performance & Optimization', slug: '/performance/queries', status: 'coming-soon' },
+      { title: 'Caching Mechanisms', slug: '/performance/caching', status: 'coming-soon' },
+      { title: 'Clustering Keys', slug: '/performance/clustering', status: 'coming-soon' },
+      { title: 'Search Optimization Service', slug: '/performance/search', status: 'coming-soon' },
+    ]
+  },
+  {
+    domain: 'Domain 4: Data Loading & Unloading (15%)',
+    color: 'from-green-500 to-emerald-500',
+    modules: [
+      { title: 'Bulk Data Loading', slug: '/data-loading/bulk', status: 'coming-soon' },
+      { title: 'Snowpipe & Continuous Loading', slug: '/data-loading/snowpipe', status: 'coming-soon' },
+      { title: 'Stages & File Formats', slug: '/data-loading/stages', status: 'coming-soon' },
+      { title: 'Data Unloading', slug: '/data-loading/unloading', status: 'coming-soon' },
+    ]
+  },
+  {
+    domain: 'Domain 5: Data Transformations (15%)',
+    color: 'from-pink-500 to-rose-500',
+    modules: [
+      { title: 'Snowflake SQL Essentials', slug: '/data-transformations/sql-basics', status: 'coming-soon' },
+      { title: 'Functions & Procedures', slug: '/data-transformations/functions', status: 'coming-soon' },
+      { title: 'Streams & Tasks', slug: '/data-transformations/streams-tasks', status: 'coming-soon' },
+    ]
+  },
+  {
+    domain: 'Domain 6: Data Protection & Sharing (10%)',
+    color: 'from-indigo-500 to-blue-500',
+    modules: [
+      { title: 'Time Travel & Fail-safe', slug: '/data-protection/time-travel', status: 'coming-soon' },
+      { title: 'Zero-Copy Cloning', slug: '/data-protection/cloning', status: 'coming-soon' },
+      { title: 'Secure Data Sharing', slug: '/data-protection/sharing', status: 'coming-soon' },
+    ]
+  },
+];
+---
+
+<Layout title="All Modules - Snowflake Academy">
+  <div class="bg-gradient-to-b from-slate-50 to-white py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h1 class="mb-4">All Training Modules</h1>
+      <p class="text-xl text-slate-600 max-w-3xl">
+        Complete curriculum organized by COF-C02 exam domains. Track your progress as you work through each module.
+      </p>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="space-y-12">
+      {modules.map((domain, index) => (
+        <div key={index} class="animate-fade-in">
+          <!-- Domain Header -->
+          <div class="flex items-center gap-4 mb-6">
+            <div class={`w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold bg-gradient-to-br ${domain.color}`}>
+              {index + 1}
+            </div>
+            <div>
+              <h2 class="text-2xl font-bold text-slate-900 mb-1">{domain.domain}</h2>
+            </div>
+          </div>
+
+          <!-- Modules Grid -->
+          <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {domain.modules.map((module) => (
+              <a
+                href={module.slug}
+                class={`card group transition-all ${
+                  module.status === 'available'
+                    ? 'hover:border-primary hover:shadow-lg cursor-pointer'
+                    : 'opacity-60 cursor-not-allowed'
+                }`}
+              >
+                <div class="flex items-start justify-between mb-3">
+                  <h3 class="text-lg font-bold text-slate-900 group-hover:text-primary transition-colors flex-1">
+                    {module.title}
+                  </h3>
+                  {module.status === 'available' ? (
+                    <svg class="w-5 h-5 flex-shrink-0 ml-2" style="color: var(--color-accent);" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <svg class="w-5 h-5 text-slate-400 flex-shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  )}
+                </div>
+
+                {module.status === 'available' ? (
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                    Available Now
+                  </span>
+                ) : (
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">
+                    Coming Soon
+                  </span>
+                )}
+              </a>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <!-- Progress CTA -->
+    <div class="mt-16 text-center">
+      <div class="card max-w-2xl mx-auto" style="background: linear-gradient(135deg, var(--color-snowflake-light) 0%, white 100%);">
+        <h3 class="text-2xl font-bold mb-4">Track Your Progress</h3>
+        <p class="text-slate-600 mb-6">
+          Your learning progress is automatically saved as you complete modules. Check back regularly as new content is added.
+        </p>
+        <a href="/flashcards" class="btn-primary inline-block no-underline">
+          Practice with Flashcards
+        </a>
+      </div>
+    </div>
+  </div>
+</Layout>

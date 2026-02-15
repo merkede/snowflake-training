@@ -1,0 +1,191 @@
+@import "tailwindcss";
+
+@theme {
+  /* Snowflake Brand Colors */
+  --color-snowflake-blue: #29b5e8;
+  --color-snowflake-dark: #164365;
+  --color-snowflake-navy: #0e3655;
+  --color-snowflake-light: #d4ebf8;
+  --color-snowflake-sky: #56c4ed;
+
+  /* Semantic Colors */
+  --color-primary: var(--color-snowflake-blue);
+  --color-primary-dark: var(--color-snowflake-dark);
+  --color-primary-light: var(--color-snowflake-light);
+
+  --color-secondary: #6366f1;
+  --color-accent: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+
+  /* Neutrals */
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Spacing for course sections */
+  --spacing-section: 4rem;
+  --spacing-module: 2rem;
+}
+
+/* Global Styles */
+* {
+  @apply antialiased;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900;
+  font-family: var(--font-sans);
+}
+
+/* Professional Typography */
+h1, h2, h3, h4, h5, h6 {
+  @apply font-bold text-slate-900;
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  @apply text-4xl md:text-5xl;
+  background: linear-gradient(135deg, var(--color-snowflake-blue) 0%, var(--color-snowflake-dark) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+h2 {
+  @apply text-3xl md:text-4xl text-slate-800;
+}
+
+h3 {
+  @apply text-2xl md:text-3xl;
+}
+
+/* Code Blocks */
+code {
+  @apply bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded text-sm;
+  font-family: var(--font-mono);
+}
+
+pre {
+  @apply bg-slate-900 text-slate-100 p-4 rounded-lg overflow-x-auto;
+  font-family: var(--font-mono);
+}
+
+pre code {
+  @apply bg-transparent p-0;
+}
+
+/* Links */
+a {
+  @apply transition-colors;
+}
+
+/* Cards */
+.card {
+  @apply bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow;
+}
+
+/* Buttons */
+.btn {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+}
+
+.btn-primary {
+  @apply btn text-white hover:opacity-90 shadow-sm hover:shadow;
+  background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));
+}
+
+.btn-secondary {
+  @apply btn bg-slate-200 text-slate-800 hover:bg-slate-300;
+}
+
+/* Course Progress Bar */
+.progress-bar {
+  @apply w-full bg-slate-200 rounded-full h-2 overflow-hidden;
+}
+
+.progress-fill {
+  @apply h-full transition-all duration-500;
+  background: linear-gradient(90deg, var(--color-snowflake-blue), var(--color-secondary));
+}
+
+/* Flashcard Styles */
+.flashcard {
+  @apply relative w-full h-64 cursor-pointer;
+  perspective: 1000px;
+}
+
+.flashcard-inner {
+  @apply relative w-full h-full transition-transform duration-500;
+  transform-style: preserve-3d;
+}
+
+.flashcard.flipped .flashcard-inner {
+  transform: rotateY(180deg);
+}
+
+.flashcard-front,
+.flashcard-back {
+  @apply absolute w-full h-full;
+  backface-visibility: hidden;
+}
+
+.flashcard-back {
+  transform: rotateY(180deg);
+}
+
+/* Syntax Highlighting Custom */
+.code-block {
+  @apply relative rounded-lg overflow-hidden;
+}
+
+.code-block-header {
+  @apply bg-slate-800 text-slate-300 px-4 py-2 text-sm flex items-center justify-between;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Exam Badge */
+.exam-badge {
+  @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium;
+  background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));
+  color: white;
+}
+
+/* Module Status */
+.module-complete {
+  @apply border-l-4 border-accent;
+}
+
+.module-in-progress {
+  @apply border-l-4 border-warning;
+}
+
+.module-locked {
+  @apply border-l-4 border-slate-300 opacity-60;
+}

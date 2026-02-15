@@ -1,0 +1,283 @@
+---
+layout: ../../layouts/CourseLayout.astro
+title: "Snowflake Architecture Overview"
+description: "Understanding Snowflake's unique multi-cluster, shared data architecture and its three key layers"
+moduleId: "architecture"
+domain: "Architecture"
+---
+
+import Flashcard from '../../components/Flashcard.tsx';
+import CodeBlock from '../../components/CodeBlock.tsx';
+
+## Introduction to Snowflake Architecture
+
+Snowflake's architecture is fundamentally different from traditional data warehouses. It uses a **hybrid architecture** that combines the benefits of both shared-disk and shared-nothing architectures.
+
+### Three-Layer Architecture
+
+Snowflake's architecture consists of three distinct layers:
+
+1. **Database Storage Layer**
+2. **Query Processing Layer (Virtual Warehouses)**
+3. **Cloud Services Layer**
+
+---
+
+## 1. Database Storage Layer
+
+The storage layer is where all your data lives. Snowflake automatically manages:
+- **Compression**: Data is automatically compressed
+- **Organization**: Micro-partitions and metadata
+- **Optimization**: Columnar storage format
+
+<Flashcard
+  client:load
+  category="Architecture"
+  question="What is the smallest unit of storage in Snowflake?"
+  answer="Micro-partition. Snowflake automatically divides tables into micro-partitions (50-500 MB compressed) without user intervention."
+/>
+
+### Key Concepts
+
+**Micro-Partitions**:
+- Automatically created and sized by Snowflake
+- Typically 50-500 MB compressed
+- Immutable (never updated in place)
+- Columnar format for efficient scanning
+
+**Metadata**:
+- Min/max values per column
+- Number of distinct values
+- Additional optimization statistics
+- Enables automatic query pruning
+
+<Flashcard
+  client:load
+  category="Architecture"
+  question="Are Snowflake micro-partitions mutable or immutable?"
+  answer="Immutable. When data is modified, Snowflake creates new micro-partitions rather than updating existing ones. This enables features like Time Travel and Zero-Copy Cloning."
+/>
+
+---
+
+## 2. Query Processing Layer (Virtual Warehouses)
+
+Virtual Warehouses are **independent compute clusters** that execute queries.
+
+### Virtual Warehouse Characteristics
+
+- **Elastic**: Scale up/down instantly
+- **Isolated**: No resource contention between warehouses
+- **MPP Clusters**: Massively Parallel Processing
+- **Auto-suspend/resume**: Cost optimization
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Creating a Virtual Warehouse"
+  code={`-- Create a virtual warehouse
+CREATE WAREHOUSE ANALYTICS_WH
+  WITH WAREHOUSE_SIZE = 'LARGE'
+  AUTO_SUSPEND = 300
+  AUTO_RESUME = TRUE
+  INITIALLY_SUSPENDED = TRUE;
+
+-- Resize warehouse on-the-fly
+ALTER WAREHOUSE ANALYTICS_WH SET WAREHOUSE_SIZE = 'X-LARGE';
+
+-- Start the warehouse
+ALTER WAREHOUSE ANALYTICS_WH RESUME;
+
+-- Suspend the warehouse
+ALTER WAREHOUSE ANALYTICS_WH SUSPEND;`}
+/>
+
+<Flashcard
+  client:load
+  category="Virtual Warehouses"
+  question="What happens to running queries when you resize a virtual warehouse?"
+  answer="Running queries continue on the old warehouse size until completion. New queries use the new warehouse size. This ensures no query interruption during resizing."
+/>
+
+### Warehouse Sizes
+
+| Size | Credits/Hour | Notes |
+|------|--------------|-------|
+| X-Small | 1 | Development, testing |
+| Small | 2 | Small workloads |
+| Medium | 4 | General purpose |
+| Large | 8 | Large datasets |
+| X-Large | 16 | Very large datasets |
+| 2X-Large | 32 | Massive workloads |
+| 3X-Large | 64 | Extreme workloads |
+| 4X-Large | 128 | Maximum size |
+
+<Flashcard
+  client:load
+  category="Virtual Warehouses"
+  question="How does Snowflake charge for compute resources?"
+  answer="Snowflake charges credits based on warehouse size and time used (per-second billing with 60-second minimum). A suspended warehouse consumes zero credits."
+/>
+
+---
+
+## 3. Cloud Services Layer
+
+The brain of Snowflake - coordinates all activities across the platform:
+
+- **Authentication**: User login and security
+- **Infrastructure Management**: Optimization and monitoring
+- **Metadata Management**: Query parsing and optimization
+- **Query Parsing & Optimization**: Execution planning
+- **Access Control**: Role-based permissions
+
+### Key Services
+
+```
+┌─────────────────────────────────────────┐
+│       Cloud Services Layer              │
+├─────────────────────────────────────────┤
+│  • Authentication & Access Control      │
+│  • Query Compilation & Optimization     │
+│  • Transaction Management               │
+│  • Metadata Management                  │
+│  • Security & Encryption                │
+└─────────────────────────────────────────┘
+              ↓
+┌─────────────────────────────────────────┐
+│    Virtual Warehouses (Compute)         │
+│  [WH1]  [WH2]  [WH3]  ...  [WHn]        │
+└─────────────────────────────────────────┘
+              ↓
+┌─────────────────────────────────────────┐
+│    Database Storage (Data)              │
+│  Tables | Stages | Micro-partitions     │
+└─────────────────────────────────────────┘
+```
+
+<Flashcard
+  client:load
+  category="Cloud Services"
+  question="Is the Cloud Services Layer charged separately?"
+  answer="Generally no. Cloud services are included for free up to 10% of daily compute credit usage. Only usage exceeding 10% is billed."
+/>
+
+---
+
+## Data Sharing Architecture
+
+Snowflake enables **secure data sharing** without data copying:
+
+- **Live Access**: Consumers query provider's data directly
+- **Zero-Copy**: No data movement required
+- **Real-Time**: Always up-to-date data
+- **Granular Control**: Share specific objects only
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Creating a Share"
+  code={`-- Create a share
+CREATE SHARE SALES_SHARE;
+
+-- Grant usage on database
+GRANT USAGE ON DATABASE SALES_DB TO SHARE SALES_SHARE;
+
+-- Grant usage on schema
+GRANT USAGE ON SCHEMA SALES_DB.PUBLIC TO SHARE SALES_SHARE;
+
+-- Grant select on specific table
+GRANT SELECT ON TABLE SALES_DB.PUBLIC.ORDERS TO SHARE SALES_SHARE;
+
+-- Add account to share
+ALTER SHARE SALES_SHARE ADD ACCOUNTS = xy12345;`}
+/>
+
+---
+
+## Multi-Cluster Warehouses
+
+For high concurrency scenarios, Snowflake offers **Multi-cluster Warehouses**:
+
+- **Auto-scaling**: Add clusters based on load
+- **Maximized Mode**: All clusters run simultaneously
+- **Auto-scale Mode**: Clusters scale based on demand
+- **Concurrent Query Handling**: Distributes queries across clusters
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Multi-Cluster Warehouse"
+  code={`CREATE WAREHOUSE PRODUCTION_WH
+  WITH WAREHOUSE_SIZE = 'LARGE'
+  MIN_CLUSTER_COUNT = 1
+  MAX_CLUSTER_COUNT = 5
+  SCALING_POLICY = 'STANDARD'
+  AUTO_SUSPEND = 300
+  AUTO_RESUME = TRUE;`}
+/>
+
+<Flashcard
+  client:load
+  category="Multi-Cluster"
+  question="What's the difference between scaling UP and scaling OUT in Snowflake?"
+  answer="Scaling UP = Increasing warehouse size (more resources per query). Scaling OUT = Adding more clusters (handles more concurrent queries). Use scaling UP for large queries, scaling OUT for high concurrency."
+/>
+
+---
+
+## Key Architecture Benefits
+
+1. **Separation of Storage and Compute**
+   - Scale independently
+   - Pay for what you use
+   - Multiple warehouses access same data
+
+2. **Automatic Optimization**
+   - No indexes to manage
+   - No partitioning required
+   - Automatic statistics
+
+3. **Data Sharing Without Copying**
+   - Secure and controlled
+   - Real-time updates
+   - No ETL required
+
+4. **Zero Maintenance**
+   - No infrastructure management
+   - Automatic updates
+   - Built-in disaster recovery
+
+---
+
+## Practice Questions
+
+<Flashcard
+  client:load
+  category="Exam Prep"
+  question="True or False: In Snowflake, you need to define partition keys for tables to optimize query performance."
+  answer="FALSE. Snowflake automatically creates micro-partitions and maintains metadata. Manual partitioning is not required and not recommended."
+/>
+
+<Flashcard
+  client:load
+  category="Exam Prep"
+  question="What happens to data when you drop a virtual warehouse?"
+  answer="Nothing. Data is stored independently in the storage layer. Dropping a warehouse only removes compute resources, not data."
+/>
+
+<Flashcard
+  client:load
+  category="Exam Prep"
+  question="Can two different virtual warehouses query the same table simultaneously?"
+  answer="YES. Multiple warehouses can access the same data concurrently without any contention, thanks to the separation of storage and compute."
+/>
+
+---
+
+## Next Steps
+
+Now that you understand Snowflake's architecture, continue to:
+- [Virtual Warehouses Deep Dive](/architecture/warehouses)
+- [Databases, Schemas & Tables](/architecture/databases)
+- [Performance Optimization](/performance/queries)

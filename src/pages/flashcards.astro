@@ -1,0 +1,167 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Flashcard from '../components/Flashcard.tsx';
+---
+
+<Layout title="Flashcards - Snowflake Academy">
+  <div class="bg-gradient-to-b from-slate-50 to-white py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h1 class="mb-4">Practice Flashcards</h1>
+      <p class="text-xl text-slate-600 max-w-3xl">
+        Master key Snowflake concepts with interactive flashcards. Click each card to reveal the answer.
+      </p>
+    </div>
+  </div>
+
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="mb-12">
+      <h2 class="text-2xl font-bold mb-6" style="color: var(--color-snowflake-dark);">Architecture & Features</h2>
+
+      <Flashcard
+        client:load
+        category="Architecture"
+        question="What are the three layers of Snowflake's architecture?"
+        answer="1. Database Storage Layer (where data is stored), 2. Query Processing Layer (virtual warehouses for compute), 3. Cloud Services Layer (authentication, metadata, query optimization)"
+      />
+
+      <Flashcard
+        client:load
+        category="Architecture"
+        question="What is a micro-partition in Snowflake?"
+        answer="An immutable, automatically-managed storage unit (50-500 MB compressed) that stores table data in columnar format. Snowflake creates and optimizes these automatically."
+      />
+
+      <Flashcard
+        client:load
+        category="Virtual Warehouses"
+        question="What happens when you suspend a virtual warehouse?"
+        answer="The warehouse stops consuming credits immediately. Running queries complete, but new queries cannot start until the warehouse is resumed. Data remains accessible."
+      />
+
+      <Flashcard
+        client:load
+        category="Virtual Warehouses"
+        question="Can you run queries on multiple tables using different virtual warehouses simultaneously?"
+        answer="Yes! Multiple virtual warehouses can access the same data concurrently without any performance impact, thanks to Snowflake's separation of storage and compute."
+      />
+    </div>
+
+    <div class="mb-12">
+      <h2 class="text-2xl font-bold mb-6" style="color: var(--color-snowflake-dark);">Security & Access Control</h2>
+
+      <Flashcard
+        client:load
+        category="Security"
+        question="What is the hierarchy of securable objects in Snowflake?"
+        answer="Account → Organization → User/Role → Database → Schema → Table/View/Procedure. Privileges flow down the hierarchy."
+      />
+
+      <Flashcard
+        client:load
+        category="RBAC"
+        question="What is the principle of Role-Based Access Control (RBAC) in Snowflake?"
+        answer="Access privileges are assigned to roles, and roles are assigned to users. This provides granular control and easier management than assigning privileges directly to users."
+      />
+
+      <Flashcard
+        client:load
+        category="Security"
+        question="What are the default system-defined roles in Snowflake?"
+        answer="ACCOUNTADMIN (top-level), SECURITYADMIN (manages security), SYSADMIN (manages objects), PUBLIC (default role for all users), USERADMIN (manages users/roles)"
+      />
+    </div>
+
+    <div class="mb-12">
+      <h2 class="text-2xl font-bold mb-6" style="color: var(--color-snowflake-dark);">Performance Optimization</h2>
+
+      <Flashcard
+        client:load
+        category="Performance"
+        question="What are the three types of caching in Snowflake?"
+        answer="1. Metadata Cache (query results from metadata), 2. Result Cache (24-hour cache of query results), 3. Warehouse Cache (data cached in SSD/memory of virtual warehouse)"
+      />
+
+      <Flashcard
+        client:load
+        category="Performance"
+        question="When does Snowflake's result cache get invalidated?"
+        answer="When the underlying table data changes, after 24 hours, or when the query text differs (even whitespace changes invalidate the cache)."
+      />
+
+      <Flashcard
+        client:load
+        category="Clustering"
+        question="When should you consider defining a clustering key?"
+        answer="For very large tables (multi-terabyte) with poor query performance on specific columns used in WHERE clauses or JOINs. Most tables don't need clustering keys."
+      />
+    </div>
+
+    <div class="mb-12">
+      <h2 class="text-2xl font-bold mb-6" style="color: var(--color-snowflake-dark);">Data Loading</h2>
+
+      <Flashcard
+        client:load
+        category="Data Loading"
+        question="What is the difference between bulk loading and Snowpipe?"
+        answer="Bulk loading is for large, batch data loads using COPY INTO command. Snowpipe is for continuous, automated micro-batch loading as files arrive in a stage."
+      />
+
+      <Flashcard
+        client:load
+        category="Stages"
+        question="What are the three types of stages in Snowflake?"
+        answer="1. User Stage (per-user, @~), 2. Table Stage (per-table, @%table_name), 3. Named Stage (account-level, internal or external)"
+      />
+
+      <Flashcard
+        client:load
+        category="File Formats"
+        question="What file formats does Snowflake support for loading data?"
+        answer="CSV, JSON, Avro, ORC, Parquet, XML. Each can be defined as a named file format object for reusability."
+      />
+    </div>
+
+    <div class="mb-12">
+      <h2 class="text-2xl font-bold mb-6" style="color: var(--color-snowflake-dark);">Data Protection</h2>
+
+      <Flashcard
+        client:load
+        category="Time Travel"
+        question="What is Time Travel in Snowflake and what is its default retention period?"
+        answer="Time Travel allows querying/restoring historical data. Default is 1 day for Standard Edition, up to 90 days for Enterprise Edition (configurable)."
+      />
+
+      <Flashcard
+        client:load
+        category="Time Travel"
+        question="How do you query a table as it existed 2 hours ago?"
+        answer="Use AT or BEFORE clause: SELECT * FROM table_name AT(OFFSET => -3600*2) or SELECT * FROM table_name BEFORE(TIMESTAMP => '2024-01-15 10:00:00'::timestamp)"
+      />
+
+      <Flashcard
+        client:load
+        category="Cloning"
+        question="What is Zero-Copy Cloning and why is it fast?"
+        answer="Creates a copy of a database/schema/table without physically copying data. It only copies metadata and pointers to micro-partitions, making it instantaneous and storage-efficient."
+      />
+
+      <Flashcard
+        client:load
+        category="Data Sharing"
+        question="Does Snowflake data sharing involve copying data?"
+        answer="No! Data sharing provides secure, live access to shared data without copying it. Consumers query the provider's data directly, always seeing the latest version."
+      />
+    </div>
+
+    <!-- Call to Action -->
+    <div class="card text-center mt-16" style="background: linear-gradient(135deg, var(--color-snowflake-light) 0%, white 100%);">
+      <h3 class="text-2xl font-bold mb-4">Ready to Learn More?</h3>
+      <p class="text-slate-600 mb-6">
+        Dive deeper into each topic with our comprehensive module content, code examples, and practice exercises.
+      </p>
+      <a href="/modules" class="btn-primary inline-block no-underline">
+        Explore All Modules
+      </a>
+    </div>
+  </div>
+</Layout>
