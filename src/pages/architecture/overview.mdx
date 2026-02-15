@@ -8,10 +8,19 @@ domain: "Architecture"
 
 import Flashcard from '../../components/Flashcard.tsx';
 import CodeBlock from '../../components/CodeBlock.tsx';
+import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
+import Diagram from '../../components/Diagram.tsx';
 
 ## Introduction to Snowflake Architecture
 
 Snowflake's architecture is fundamentally different from traditional data warehouses. It uses a **hybrid architecture** that combines the benefits of both shared-disk and shared-nothing architectures.
+
+<YouTubeEmbed
+  client:load
+  videoId="sNK___vF5N0"
+  title="Snowflake Architecture Explained"
+  description="📹 Official Snowflake video explaining the three-layer architecture"
+/>
 
 ### Three-Layer Architecture
 
@@ -21,14 +30,28 @@ Snowflake's architecture consists of three distinct layers:
 2. **Query Processing Layer (Virtual Warehouses)**
 3. **Cloud Services Layer**
 
+<Diagram
+  client:load
+  title="Snowflake Three-Layer Architecture"
+  description="Visual representation of how Snowflake separates storage, compute, and services into independent, scalable layers"
+  altText="Snowflake three-layer architecture diagram showing Cloud Services, Compute, and Storage layers"
+/>
+
 ---
 
 ## 1. Database Storage Layer
 
 The storage layer is where all your data lives. Snowflake automatically manages:
 - **Compression**: Data is automatically compressed
-- **Organization**: Micro-partitions and metadata
-- **Optimization**: Columnar storage format
+- **Organisation**: Micro-partitions and metadata
+- **Optimisation**: Columnar storage format
+
+<Diagram
+  client:load
+  title="Micro-Partition Structure"
+  description="Illustration of how Snowflake automatically organises table data into immutable micro-partitions with columnar storage"
+  altText="Micro-partition internal structure showing columnar format and metadata"
+/>
 
 <Flashcard
   client:load
@@ -48,7 +71,7 @@ The storage layer is where all your data lives. Snowflake automatically manages:
 **Metadata**:
 - Min/max values per column
 - Number of distinct values
-- Additional optimization statistics
+- Additional optimisation statistics
 - Enables automatic query pruning
 
 <Flashcard
@@ -64,12 +87,26 @@ The storage layer is where all your data lives. Snowflake automatically manages:
 
 Virtual Warehouses are **independent compute clusters** that execute queries.
 
+<YouTubeEmbed
+  client:load
+  videoId="hAqWKYPOsyo"
+  title="Understanding Snowflake Virtual Warehouses"
+  description="📹 Learn how virtual warehouses provide isolated compute resources for query execution"
+/>
+
 ### Virtual Warehouse Characteristics
 
 - **Elastic**: Scale up/down instantly
 - **Isolated**: No resource contention between warehouses
 - **MPP Clusters**: Massively Parallel Processing
-- **Auto-suspend/resume**: Cost optimization
+- **Auto-suspend/resume**: Cost optimisation
+
+<Diagram
+  client:load
+  title="Virtual Warehouse Scaling"
+  description="Visualisation of how virtual warehouses can scale up (larger size) or scale out (more clusters) independently"
+  altText="Virtual warehouse scaling diagram showing scale-up and scale-out patterns"
+/>
 
 <CodeBlock
   client:load
@@ -126,10 +163,17 @@ ALTER WAREHOUSE ANALYTICS_WH SUSPEND;`}
 The brain of Snowflake - coordinates all activities across the platform:
 
 - **Authentication**: User login and security
-- **Infrastructure Management**: Optimization and monitoring
-- **Metadata Management**: Query parsing and optimization
-- **Query Parsing & Optimization**: Execution planning
+- **Infrastructure Management**: Optimisation and monitoring
+- **Metadata Management**: Query parsing and optimisation
+- **Query Parsing & Optimisation**: Execution planning
 - **Access Control**: Role-based permissions
+
+<Diagram
+  client:load
+  title="Complete Architecture Stack"
+  description="End-to-end view showing how Cloud Services orchestrate compute and storage layers"
+  altText="Complete Snowflake architecture showing Cloud Services, Virtual Warehouses, and Storage layers with data flow"
+/>
 
 ### Key Services
 
@@ -138,7 +182,7 @@ The brain of Snowflake - coordinates all activities across the platform:
 │       Cloud Services Layer              │
 ├─────────────────────────────────────────┤
 │  • Authentication & Access Control      │
-│  • Query Compilation & Optimization     │
+│  • Query Compilation & Optimisation     │
 │  • Transaction Management               │
 │  • Metadata Management                  │
 │  • Security & Encryption                │
@@ -172,6 +216,20 @@ Snowflake enables **secure data sharing** without data copying:
 - **Zero-Copy**: No data movement required
 - **Real-Time**: Always up-to-date data
 - **Granular Control**: Share specific objects only
+
+<YouTubeEmbed
+  client:load
+  videoId="3bJeUxPzLIY"
+  title="Snowflake Secure Data Sharing"
+  description="📹 Understanding how Snowflake's unique architecture enables zero-copy data sharing"
+/>
+
+<Diagram
+  client:load
+  title="Data Sharing Architecture"
+  description="How data providers share live data with consumers without physical copying, using metadata and access grants"
+  altText="Data sharing diagram showing provider and consumer accounts accessing shared data"
+/>
 
 <CodeBlock
   client:load
@@ -233,7 +291,7 @@ For high concurrency scenarios, Snowflake offers **Multi-cluster Warehouses**:
    - Pay for what you use
    - Multiple warehouses access same data
 
-2. **Automatic Optimization**
+2. **Automatic Optimisation**
    - No indexes to manage
    - No partitioning required
    - Automatic statistics
@@ -248,6 +306,13 @@ For high concurrency scenarios, Snowflake offers **Multi-cluster Warehouses**:
    - Automatic updates
    - Built-in disaster recovery
 
+<Diagram
+  client:load
+  title="Architecture Benefits Summary"
+  description="Visual summary comparing traditional data warehouses with Snowflake's modern architecture advantages"
+  altText="Comparison diagram showing Snowflake architecture benefits vs traditional warehouses"
+/>
+
 ---
 
 ## Practice Questions
@@ -255,7 +320,7 @@ For high concurrency scenarios, Snowflake offers **Multi-cluster Warehouses**:
 <Flashcard
   client:load
   category="Exam Prep"
-  question="True or False: In Snowflake, you need to define partition keys for tables to optimize query performance."
+  question="True or False: In Snowflake, you need to define partition keys for tables to optimise query performance."
   answer="FALSE. Snowflake automatically creates micro-partitions and maintains metadata. Manual partitioning is not required and not recommended."
 />
 
@@ -273,6 +338,34 @@ For high concurrency scenarios, Snowflake offers **Multi-cluster Warehouses**:
   answer="YES. Multiple warehouses can access the same data concurrently without any contention, thanks to the separation of storage and compute."
 />
 
+<Flashcard
+  client:load
+  category="Exam Prep"
+  question="Which layer is responsible for query optimisation and execution planning?"
+  answer="The Cloud Services Layer handles query compilation, optimisation, and execution planning. Virtual Warehouses execute the queries based on these plans."
+/>
+
+<Flashcard
+  client:load
+  category="Exam Prep"
+  question="What is the maximum Time Travel retention period in Snowflake Enterprise Edition?"
+  answer="90 days for permanent tables (requires Enterprise Edition or higher). Standard Edition supports up to 1 day."
+/>
+
+---
+
+## Additional Resources
+
+### Official Snowflake Documentation
+- [Architecture Overview](https://docs.snowflake.com/en/user-guide/intro-key-concepts)
+- [Virtual Warehouses](https://docs.snowflake.com/en/user-guide/warehouses)
+- [Micro-partitions & Data Clustering](https://docs.snowflake.com/en/user-guide/tables-clustering-micropartitions)
+
+### Recommended Reading
+- Snowflake Architecture Whitepaper
+- Best Practices Guide for COF-C02
+- Performance Optimisation Techniques
+
 ---
 
 ## Next Steps
@@ -280,4 +373,4 @@ For high concurrency scenarios, Snowflake offers **Multi-cluster Warehouses**:
 Now that you understand Snowflake's architecture, continue to:
 - [Virtual Warehouses Deep Dive](/architecture/warehouses)
 - [Databases, Schemas & Tables](/architecture/databases)
-- [Performance Optimization](/performance/queries)
+- [Performance Optimisation](/performance/queries)

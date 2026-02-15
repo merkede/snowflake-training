@@ -271,3 +271,34 @@ Internal training material. Not for redistribution.
 ---
 
 Built with ❄️ for Snowflake mastery
+
+## 🎬 New Components
+
+### YouTubeEmbed
+Embed Snowflake training videos directly in your modules:
+
+```tsx
+<YouTubeEmbed
+  client:load
+  videoId="VIDEO_ID"
+  title="Video Title"
+  description="Optional description shown above video"
+/>
+```
+
+### Diagram
+Add visual diagrams with placeholders for images:
+
+```tsx
+<Diagram
+  client:load
+  title="Diagram Title"
+  description="What the diagram illustrates"
+  imagePath="/images/diagrams/your-image.png"  // Optional
+  altText="Descriptive alt text"
+/>
+```
+
+## 🇬🇧 Language Note
+
+This site uses **British English** spellings throughout (organise, optimise, analyse, etc.) to maintain consistency with international standards.

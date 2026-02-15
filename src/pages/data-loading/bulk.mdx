@@ -1,0 +1,728 @@
+---
+layout: ../../layouts/CourseLayout.astro
+title: "Bulk Data Loading in Snowflake"
+description: "Master the COPY INTO command, file formats, stages, and best practices for efficient bulk data loading"
+moduleId: "bulk-loading"
+domain: "Data Loading"
+---
+
+import Flashcard from '../../components/Flashcard.tsx';
+import CodeBlock from '../../components/CodeBlock.tsx';
+import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
+import Diagram from '../../components/Diagram.tsx';
+
+## Introduction to Bulk Data Loading
+
+Bulk loading is the process of efficiently loading large volumes of data into Snowflake tables from external sources. Snowflake's COPY INTO command provides high-performance, parallel data loading capabilities.
+
+<YouTubeEmbed
+  client:load
+  videoId="us-fX5j0KP4"
+  title="Snowflake Data Loading Overview"
+  description="📹 Official introduction to data loading concepts and best practices in Snowflake"
+/>
+
+---
+
+## Loading Data: The Big Picture
+
+<Diagram
+  client:load
+  title="Data Loading Architecture"
+  description="End-to-end flow showing external data sources → stages → COPY INTO → Snowflake tables"
+  altText="Data loading architecture showing cloud storage, stages, file formats, and target tables"
+/>
+
+The typical bulk loading workflow:
+
+1. **Prepare** - Format and stage your data files
+2. **Create** - Define file formats and stages
+3. **Load** - Use COPY INTO to load data
+4. **Validate** - Verify and handle errors
+5. **Optimise** - Monitor and improve performance
+
+<Flashcard
+  client:load
+  category="Data Loading"
+  question="What is the primary command for bulk loading data into Snowflake?"
+  answer="COPY INTO. This command loads data from staged files into existing tables with high performance and automatic parallelisation."
+/>
+
+---
+
+## Understanding Stages
+
+Stages are locations where data files are stored before loading into Snowflake. There are three types:
+
+### 1. User Stages (`@~`)
+
+Personal staging area for each user.
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Using User Stages"
+  code={`-- Upload file to user stage (via SnowSQL or Web UI)
+PUT file:///tmp/sales_data.csv @~;
+
+-- List files in user stage
+LIST @~;
+
+-- Load from user stage
+COPY INTO sales_table
+FROM @~/sales_data.csv
+FILE_FORMAT = (TYPE = 'CSV');
+
+-- Remove file from user stage
+REMOVE @~/sales_data.csv;`}
+/>
+
+### 2. Table Stages (`@%table_name`)
+
+Automatically created for each table.
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Using Table Stages"
+  code={`-- Upload to table stage
+PUT file:///tmp/orders.csv @%orders_table;
+
+-- List files in table stage
+LIST @%orders_table;
+
+-- Load from table stage
+COPY INTO orders_table
+FROM @%orders_table
+FILE_FORMAT = (TYPE = 'CSV' FIELD_OPTIONALLY_ENCLOSED_BY = '"');`}
+/>
+
+### 3. Named Stages (Internal or External)
+
+Created explicitly and can be shared across the account.
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Creating Named Stages"
+  code={`-- Internal named stage
+CREATE STAGE my_internal_stage;
+
+-- External stage (AWS S3)
+CREATE STAGE my_s3_stage
+  URL = 's3://mybucket/data/'
+  CREDENTIALS = (AWS_KEY_ID = 'xxx' AWS_SECRET_KEY = 'yyy');
+
+-- External stage (Azure Blob)
+CREATE STAGE my_azure_stage
+  URL = 'azure://myaccount.blob.core.windows.net/mycontainer/'
+  CREDENTIALS = (AZURE_SAS_TOKEN = 'zzz');
+
+-- External stage (GCP)
+CREATE STAGE my_gcs_stage
+  URL = 'gcs://mybucket/path/'
+  STORAGE_INTEGRATION = my_gcp_integration;`}
+/>
+
+<Diagram
+  client:load
+  title="Stage Types Comparison"
+  description="Visual comparison of User, Table, and Named stages with their scope and use cases"
+  altText="Diagram comparing the three types of Snowflake stages"
+/>
+
+<Flashcard
+  client:load
+  category="Stages"
+  question="What's the difference between internal and external stages?"
+  answer="Internal stages store data within Snowflake's cloud storage. External stages reference data in your own cloud storage (S3, Azure Blob, GCS) without moving it into Snowflake."
+/>
+
+---
+
+## File Formats
+
+File formats define how Snowflake interprets the structure and content of your data files.
+
+<YouTubeEmbed
+  client:load
+  videoId="9PBvVhL8wHE"
+  title="Snowflake File Formats Explained"
+  description="📹 Understanding file formats for different data types (CSV, JSON, Parquet, Avro, ORC)"
+/>
+
+### Supported File Types
+
+| Format | Use Case | Key Benefits |
+|--------|----------|--------------|
+| **CSV** | Delimited text files | Universal compatibility, simple |
+| **JSON** | Semi-structured data | Flexible schema, nested data |
+| **Avro** | Binary format | Compact, schema evolution |
+| **Parquet** | Columnar format | High compression, fast queries |
+| **ORC** | Optimised row columnar | Efficient for big data workloads |
+| **XML** | Hierarchical data | Legacy systems integration |
+
+### Creating File Formats
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="CSV File Format Examples"
+  code={`-- Basic CSV format
+CREATE FILE FORMAT csv_format
+  TYPE = 'CSV'
+  FIELD_DELIMITER = ','
+  SKIP_HEADER = 1
+  FIELD_OPTIONALLY_ENCLOSED_BY = '"'
+  TRIM_SPACE = TRUE
+  ERROR_ON_COLUMN_COUNT_MISMATCH = TRUE
+  NULL_IF = ('NULL', 'null', '');
+
+-- CSV with custom delimiter
+CREATE FILE FORMAT pipe_delimited_format
+  TYPE = 'CSV'
+  FIELD_DELIMITER = '|'
+  RECORD_DELIMITER = '\\n'
+  SKIP_HEADER = 1;
+
+-- Tab-delimited format
+CREATE FILE FORMAT tsv_format
+  TYPE = 'CSV'
+  FIELD_DELIMITER = '\\t'
+  COMPRESSION = 'GZIP';`}
+/>
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="JSON File Format Examples"
+  code={`-- Basic JSON format
+CREATE FILE FORMAT json_format
+  TYPE = 'JSON'
+  COMPRESSION = 'AUTO'
+  STRIP_OUTER_ARRAY = TRUE;
+
+-- JSON with specific date format
+CREATE FILE FORMAT json_with_dates
+  TYPE = 'JSON'
+  DATE_FORMAT = 'YYYY-MM-DD'
+  TIMESTAMP_FORMAT = 'YYYY-MM-DD HH24:MI:SS';`}
+/>
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Parquet Format"
+  code={`-- Parquet format (binary, no delimiters needed)
+CREATE FILE FORMAT parquet_format
+  TYPE = 'PARQUET'
+  COMPRESSION = 'SNAPPY';`}
+/>
+
+<Flashcard
+  client:load
+  category="File Formats"
+  question="Why would you choose Parquet over CSV for large datasets?"
+  answer="Parquet offers better compression (smaller files), faster query performance (columnar format), and built-in schema definition. It's ideal for large analytical workloads."
+/>
+
+---
+
+## The COPY INTO Command
+
+The COPY INTO command loads data from staged files into tables.
+
+### Basic Syntax
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Basic COPY INTO Syntax"
+  code={`COPY INTO target_table
+FROM @stage_name/path/
+FILE_FORMAT = (FORMAT_NAME = 'format_name')
+PATTERN = '.*\\.csv'
+ON_ERROR = 'CONTINUE';`}
+/>
+
+### Comprehensive Example
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Complete Data Loading Example"
+  code={`-- 1. Create target table
+CREATE TABLE customer_orders (
+  order_id INTEGER,
+  customer_id INTEGER,
+  order_date DATE,
+  amount DECIMAL(10,2),
+  status VARCHAR(50),
+  product_category VARCHAR(100)
+);
+
+-- 2. Create file format
+CREATE FILE FORMAT csv_orders_format
+  TYPE = 'CSV'
+  FIELD_DELIMITER = ','
+  SKIP_HEADER = 1
+  FIELD_OPTIONALLY_ENCLOSED_BY = '"'
+  NULL_IF = ('NULL', 'null', '')
+  ERROR_ON_COLUMN_COUNT_MISMATCH = TRUE
+  COMPRESSION = 'AUTO';
+
+-- 3. Create named stage
+CREATE STAGE orders_stage
+  FILE_FORMAT = csv_orders_format;
+
+-- 4. Load data with error handling
+COPY INTO customer_orders
+FROM @orders_stage/2024/
+FILE_FORMAT = (FORMAT_NAME = 'csv_orders_format')
+PATTERN = '.*orders.*\\.csv\\.gz'
+ON_ERROR = 'SKIP_FILE_5%'  -- Skip file if >5% errors
+PURGE = TRUE                -- Delete files after successful load
+FORCE = FALSE;              -- Don't reload previously loaded files
+
+-- 5. Verify the load
+SELECT COUNT(*) FROM customer_orders;`}
+/>
+
+<Diagram
+  client:load
+  title="COPY INTO Execution Flow"
+  description="Step-by-step visualisation of how COPY INTO processes files: validation → parallelisation → loading → error handling"
+  altText="COPY INTO command execution flow diagram"
+/>
+
+### Error Handling Options
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Error Handling Strategies"
+  code={`-- Continue on errors (default)
+COPY INTO table1 FROM @stage1
+ON_ERROR = 'CONTINUE';
+
+-- Skip entire file if any error
+COPY INTO table1 FROM @stage1
+ON_ERROR = 'SKIP_FILE';
+
+-- Skip file if more than N errors
+COPY INTO table1 FROM @stage1
+ON_ERROR = 'SKIP_FILE_5';      -- Skip if >5 errors
+
+-- Skip file if more than N% errors
+COPY INTO table1 FROM @stage1
+ON_ERROR = 'SKIP_FILE_10%';    -- Skip if >10% error rate
+
+-- Abort on first error
+COPY INTO table1 FROM @stage1
+ON_ERROR = 'ABORT_STATEMENT';`}
+/>
+
+<Flashcard
+  client:load
+  category="COPY INTO"
+  question="What does the PURGE option do in COPY INTO?"
+  answer="PURGE = TRUE automatically deletes successfully loaded files from the stage after loading completes. This helps manage storage costs and prevents reloading the same data."
+/>
+
+---
+
+## Advanced Loading Techniques
+
+### Column Mapping and Transformation
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Loading with Transformations"
+  code={`-- Load specific columns with transformations
+COPY INTO customer_orders (
+  order_id,
+  customer_id,
+  order_date,
+  amount,
+  status
+)
+FROM (
+  SELECT
+    $1::INTEGER,                        -- Column 1 → order_id
+    $2::INTEGER,                        -- Column 2 → customer_id
+    TO_DATE($3, 'YYYY-MM-DD'),         -- Column 3 → order_date (converted)
+    $4::DECIMAL(10,2),                 -- Column 4 → amount
+    UPPER($5)                          -- Column 5 → status (uppercase)
+  FROM @orders_stage/raw/
+)
+FILE_FORMAT = (TYPE = 'CSV' SKIP_HEADER = 1)
+PATTERN = '.*\\.csv';`}
+/>
+
+### Loading JSON Data
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Loading Semi-Structured JSON"
+  code={`-- Create table with VARIANT column
+CREATE TABLE user_events (
+  event_id INTEGER,
+  event_data VARIANT,
+  loaded_at TIMESTAMP_LTZ DEFAULT CURRENT_TIMESTAMP()
+);
+
+-- Load JSON data
+COPY INTO user_events (event_id, event_data)
+FROM (
+  SELECT
+    $1:event_id::INTEGER,
+    $1                              -- Entire JSON object
+  FROM @json_stage/events/
+)
+FILE_FORMAT = (TYPE = 'JSON')
+PATTERN = '.*\\.json';
+
+-- Query JSON data
+SELECT
+  event_id,
+  event_data:user_id::INTEGER AS user_id,
+  event_data:event_type::STRING AS event_type,
+  event_data:properties AS properties
+FROM user_events;`}
+/>
+
+<YouTubeEmbed
+  client:load
+  videoId="6efriYN5R0U"
+  title="Loading Semi-Structured Data"
+  description="📹 Working with JSON, Avro, and Parquet in Snowflake"
+/>
+
+### Loading from Multiple Files
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Pattern Matching for Multiple Files"
+  code={`-- Load all CSV files from a path
+COPY INTO orders
+FROM @my_stage/2024/01/
+PATTERN = '.*\\.csv';
+
+-- Load files matching specific pattern
+COPY INTO orders
+FROM @my_stage/
+PATTERN = '.*orders_202401.*\\.csv\\.gz';
+
+-- Load specific list of files
+COPY INTO orders
+FROM @my_stage/
+FILES = ('file1.csv', 'file2.csv', 'file3.csv');`}
+/>
+
+<Flashcard
+  client:load
+  category="Advanced Loading"
+  question="How do you reference columns in a CSV file during COPY INTO with transformations?"
+  answer="Use positional notation: $1 for first column, $2 for second, etc. You can cast and transform these: $1::INTEGER, UPPER($2), TO_DATE($3, 'format')."
+/>
+
+---
+
+## Monitoring and Troubleshooting
+
+### View Load History
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Monitoring Data Loads"
+  code={`-- View recent load history
+SELECT *
+FROM TABLE(INFORMATION_SCHEMA.COPY_HISTORY(
+  TABLE_NAME => 'CUSTOMER_ORDERS',
+  START_TIME => DATEADD(HOUR, -24, CURRENT_TIMESTAMP())
+))
+ORDER BY LAST_LOAD_TIME DESC;
+
+-- Check for errors
+SELECT
+  FILE_NAME,
+  STATUS,
+  ERROR_COUNT,
+  ERROR_LIMIT,
+  FIRST_ERROR
+FROM TABLE(INFORMATION_SCHEMA.COPY_HISTORY(
+  TABLE_NAME => 'CUSTOMER_ORDERS',
+  START_TIME => DATEADD(DAY, -7, CURRENT_TIMESTAMP())
+))
+WHERE STATUS != 'LOADED'
+ORDER BY LAST_LOAD_TIME DESC;`}
+/>
+
+### Validate Before Loading
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Validation Techniques"
+  code={`-- Test load with limited rows
+COPY INTO customer_orders
+FROM @orders_stage/
+FILE_FORMAT = (FORMAT_NAME = 'csv_orders_format')
+VALIDATION_MODE = 'RETURN_ERRORS';     -- See errors without loading
+
+-- Return first N errors
+COPY INTO customer_orders
+FROM @orders_stage/
+FILE_FORMAT = (FORMAT_NAME = 'csv_orders_format')
+VALIDATION_MODE = 'RETURN_5_ROWS';     -- Return first 5 error rows`}
+/>
+
+<Diagram
+  client:load
+  title="Load Monitoring Dashboard"
+  description="Example monitoring view showing load status, error rates, throughput, and file processing metrics"
+  altText="Data loading monitoring dashboard with key metrics"
+/>
+
+---
+
+## Best Practices
+
+### 1. File Sizing
+
+- **Optimal file size**: 100-250 MB compressed
+- **Avoid**: Files < 10 MB (overhead) or > 5 GB (reduced parallelism)
+- **Split large files** into smaller chunks for better performance
+
+<Flashcard
+  client:load
+  category="Best Practices"
+  question="What is the optimal file size for bulk loading in Snowflake?"
+  answer="100-250 MB compressed per file. This balances parallelism and overhead. Avoid very small files (<10 MB) and very large files (>5 GB)."
+/>
+
+### 2. Compression
+
+Always compress your files before loading:
+
+- **gzip** - Good compression, widely supported
+- **Snappy** - Faster decompression (Parquet)
+- **Brotli** - Higher compression ratio
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Handling Compressed Files"
+  code={`-- Snowflake auto-detects compression
+COPY INTO orders
+FROM @my_stage/
+FILE_FORMAT = (TYPE = 'CSV' COMPRESSION = 'AUTO')
+PATTERN = '.*\\.csv\\.gz';
+
+-- Explicitly specify compression
+COPY INTO orders
+FROM @my_stage/
+FILE_FORMAT = (TYPE = 'CSV' COMPRESSION = 'GZIP');`}
+/>
+
+### 3. Use Dedicated Warehouse
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Dedicated Loading Warehouse"
+  code={`-- Create warehouse for data loading
+CREATE WAREHOUSE LOADING_WH
+  WITH WAREHOUSE_SIZE = 'LARGE'
+  AUTO_SUSPEND = 60
+  AUTO_RESUME = TRUE
+  INITIALLY_SUSPENDED = TRUE;
+
+-- Use it for loading
+USE WAREHOUSE LOADING_WH;
+
+COPY INTO large_table
+FROM @data_stage/
+FILE_FORMAT = (FORMAT_NAME = 'my_format');`}
+/>
+
+### 4. Partition Data by Date
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Organised Stage Structure"
+  code={`-- Organize files by date in stage
+-- s3://mybucket/data/2024/01/15/orders_*.csv.gz
+--                     YYYY/MM/DD/
+
+-- Load specific date range
+COPY INTO orders
+FROM @my_stage/2024/01/15/
+FILE_FORMAT = (FORMAT_NAME = 'csv_format')
+PATTERN = '.*\\.csv\\.gz';`}
+/>
+
+### 5. Enable PURGE for Production
+
+Remove loaded files automatically to save costs:
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Auto-Cleanup After Load"
+  code={`COPY INTO orders
+FROM @my_stage/
+FILE_FORMAT = (FORMAT_NAME = 'csv_format')
+PURGE = TRUE;  -- Delete files after successful load`}
+/>
+
+<Flashcard
+  client:load
+  category="Best Practices"
+  question="Why should you use a dedicated warehouse for large data loads?"
+  answer="A dedicated warehouse prevents data loading operations from competing with query workloads, ensures predictable performance, and allows independent scaling and monitoring."
+/>
+
+---
+
+## Common Patterns
+
+### Incremental Loading Pattern
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Daily Incremental Load Process"
+  code={`-- 1. Create or replace transient staging table
+CREATE OR REPLACE TRANSIENT TABLE orders_staging LIKE orders;
+
+-- 2. Load into staging
+COPY INTO orders_staging
+FROM @orders_stage/{{ current_date }}/
+FILE_FORMAT = (FORMAT_NAME = 'csv_orders')
+PURGE = TRUE;
+
+-- 3. Deduplicate and merge
+MERGE INTO orders o
+USING (
+  SELECT * FROM orders_staging
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY loaded_at DESC) = 1
+) s
+ON o.order_id = s.order_id
+WHEN MATCHED THEN UPDATE SET
+  o.amount = s.amount,
+  o.status = s.status
+WHEN NOT MATCHED THEN INSERT VALUES (
+  s.order_id, s.customer_id, s.order_date, s.amount, s.status
+);
+
+-- 4. Clean up staging
+DROP TABLE orders_staging;`}
+/>
+
+### Full Refresh Pattern
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Full Table Refresh"
+  code={`-- 1. Create new table
+CREATE OR REPLACE TABLE orders_new LIKE orders;
+
+-- 2. Load all data
+COPY INTO orders_new
+FROM @orders_stage/full_export/
+FILE_FORMAT = (FORMAT_NAME = 'csv_orders')
+PURGE = TRUE;
+
+-- 3. Swap tables (zero-downtime)
+ALTER TABLE orders RENAME TO orders_old;
+ALTER TABLE orders_new RENAME TO orders;
+
+-- 4. Verify and drop old table
+-- SELECT COUNT(*) FROM orders;
+DROP TABLE orders_old;`}
+/>
+
+---
+
+## Practice Questions
+
+<Flashcard
+  client:load
+  category="Exam Prep"
+  question="Which stage type is automatically created for every table?"
+  answer="Table stage (@%table_name). It's created automatically when a table is created and can only be used for that specific table."
+/>
+
+<Flashcard
+  client:load
+  category="Exam Prep"
+  question="What does VALIDATION_MODE = 'RETURN_ERRORS' do?"
+  answer="It validates the COPY INTO operation and returns all errors without actually loading data. Useful for testing before running the actual load."
+/>
+
+<Flashcard
+  client:load
+  category="Exam Prep"
+  question="What's the default value for ON_ERROR in COPY INTO?"
+  answer="ABORT_STATEMENT. The load operation will fail and rollback if any error is encountered. This is the safest but least flexible option."
+/>
+
+<Flashcard
+  client:load
+  category="Exam Prep"
+  question="Can you transform data during the COPY INTO operation?"
+  answer="YES. You can use a SELECT subquery in the FROM clause to apply transformations, cast data types, rename columns, and filter rows during the load."
+/>
+
+<Flashcard
+  client:load
+  category="Exam Prep"
+  question="What happens if you run COPY INTO twice with the same files and FORCE = FALSE?"
+  answer="The second run loads nothing. Snowflake tracks loaded files for 64 days and skips them unless FORCE = TRUE is specified."
+/>
+
+---
+
+## Additional Resources
+
+### Official Documentation
+- [COPY INTO Table](https://docs.snowflake.com/en/sql-reference/sql/copy-into-table)
+- [File Formats](https://docs.snowflake.com/en/sql-reference/sql/create-file-format)
+- [Stages](https://docs.snowflake.com/en/sql-reference/sql/create-stage)
+
+### Best Practice Guides
+- Snowflake Data Loading Best Practices
+- Optimising Bulk Loads
+- Error Handling Strategies
+
+---
+
+## Summary
+
+**Key Takeaways:**
+
+✅ Use **stages** to organise files before loading
+✅ Define **file formats** for reusability and consistency
+✅ **COPY INTO** is the primary bulk loading command
+✅ **Compress files** (100-250 MB each) for optimal performance
+✅ Use **ON_ERROR** and **VALIDATION_MODE** to handle errors
+✅ **PURGE = TRUE** to auto-delete loaded files
+✅ Monitor loads with **COPY_HISTORY** information schema
+✅ Use **dedicated warehouses** for large loads
+
+---
+
+## Next Steps
+
+Continue your learning journey:
+- [Snowpipe: Continuous Data Loading](/data-loading/snowpipe)
+- [Stages & File Formats Deep Dive](/data-loading/stages)
+- [Data Unloading Techniques](/data-loading/unloading)
+- [Performance Optimisation](/performance/queries)
