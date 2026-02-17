@@ -1,0 +1,615 @@
+---
+layout: ../../layouts/CourseLayout.astro
+title: "Introduction to Snowflake"
+description: "Understand what Snowflake is, why it was built, its editions, object hierarchy, pricing model, and how it compares to traditional data warehouses — the essential foundation for COF-C02"
+moduleId: "intro"
+domain: "Architecture"
+---
+
+import Flashcard from '../../components/Flashcard.tsx';
+import CodeBlock from '../../components/CodeBlock.tsx';
+import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
+import Diagram from '../../components/Diagram.tsx';
+import CalloutBox from '../../components/CalloutBox.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import CompareTable from '../../components/CompareTable.tsx';
+import KeyTerms from '../../components/KeyTerms.tsx';
+import StepByStep from '../../components/StepByStep.tsx';
+import CheatSheet from '../../components/CheatSheet.tsx';
+
+<KeyTerms
+  client:load
+  title="Key Terms — Introduction to Snowflake"
+  terms={[
+    { term: "SaaS", abbr: "SaaS", definition: "Software as a Service. Snowflake is a fully managed SaaS platform — no hardware to provision, no software to install or upgrade." },
+    { term: "Credit", abbr: "—", definition: "Snowflake's unit of compute consumption. Credits are consumed based on virtual warehouse size and run time, billed per second with a 60-second minimum." },
+    { term: "Virtual Warehouse", abbr: "VW", definition: "An independent compute cluster (MPP) that executes SQL queries. Warehouses scale independently from storage." },
+    { term: "Data Cloud", abbr: "DC", definition: "Snowflake's vision: a global network connecting organisations, data providers, and data consumers through a single platform." },
+    { term: "Edition", abbr: "—", definition: "The Snowflake service tier — Standard, Enterprise, Business Critical, or Virtual Private Snowflake (VPS) — each unlocking additional features." },
+    { term: "Snowsight", abbr: "—", definition: "Snowflake's modern web-based UI for writing SQL, visualising data, and managing objects. Replaced the Classic Console." },
+    { term: "Organisation", abbr: "Org", definition: "The highest-level container in Snowflake, grouping multiple Accounts. Used for cross-account governance and replication." },
+    { term: "Account Identifier", abbr: "—", definition: "The unique address for a Snowflake account. Format: <org_name>-<account_name> or legacy <locator>.<region>.<cloud>." },
+  ]}
+/>
+
+---
+
+## What is Snowflake — and Why Does It Exist?
+
+Before Snowflake, data teams faced a painful choice: **traditional on-premise warehouses** (Oracle, Teradata) that were expensive, inflexible, and slow to scale — or early **cloud warehouses** (Amazon Redshift, Azure Synapse) that moved to the cloud but still required significant infrastructure management.
+
+Snowflake was founded in 2012 by three data warehouse engineers — Benoit Dageville, Thierry Cruanes, and Marcin Zukowski — who asked a simple question: *what if you built a data warehouse from scratch, designed purely for the cloud, with no legacy constraints?*
+
+The result was a **cloud-native, fully managed SaaS platform** that separates storage from compute, handles all infrastructure automatically, and delivers features that were previously impossible or impractical.
+
+<YouTubeEmbed
+  client:load
+  videoId="dxBe_IDTH2k"
+  title="Snowflake in 100 Seconds"
+  description="📹 A concise introduction to what Snowflake is and why it's different from traditional data warehouses"
+/>
+
+<CalloutBox type="exam" title="Exam Focus: Snowflake's Deployment Model">
+  Snowflake is a **SaaS (Software as a Service)** offering — **not IaaS or PaaS**. Snowflake manages everything: hardware, software, updates, optimisation, and backups. You bring data and queries; Snowflake handles the rest. This distinction is tested in the COF-C02 exam.
+</CalloutBox>
+
+---
+
+## The Problem Snowflake Solves
+
+<CompareTable
+  client:load
+  title="Traditional Warehouses vs. Snowflake"
+  leftLabel="Traditional Approach"
+  rightLabel="Snowflake"
+  rows={[
+    { feature: "Infrastructure", left: "You provision, manage, and patch servers", right: "Fully managed — zero infrastructure", winner: "right" },
+    { feature: "Scaling compute", left: "Requires downtime or complex reconfiguration", right: "Instant resize with no downtime", winner: "right" },
+    { feature: "Storage & compute", left: "Tightly coupled — scale together or not at all", right: "Completely independent scaling", winner: "right" },
+    { feature: "Concurrency", left: "Shared resources cause query queuing", right: "Multi-cluster warehouses eliminate queuing", winner: "right" },
+    { feature: "Semi-structured data", left: "Requires ETL transformation into relational format", right: "Native JSON, XML, Avro, Parquet support (VARIANT)", winner: "right" },
+    { feature: "Data sharing", left: "ETL, data copies, complex agreements", right: "Live zero-copy sharing via metadata", winner: "right" },
+    { feature: "Updates & patching", left: "Scheduled maintenance windows", right: "Transparent, zero-downtime updates", winner: "right" },
+    { feature: "Cost model", left: "Fixed capacity — pay whether used or not", right: "Pay-per-second for compute, pay-per-TB for storage", winner: "right" },
+  ]}
+/>
+
+<CalloutBox type="info" title="Snowflake's Unique Architecture">
+  Unlike shared-everything systems (Oracle, SQL Server) or shared-nothing MPP systems (Teradata, Redshift), Snowflake uses a **hybrid architecture** — shared centralised storage with independent compute clusters. This is the key to its elasticity and multi-user isolation. The full architecture is covered in the next module.
+</CalloutBox>
+
+<Diagram
+  client:load
+  title="Traditional vs. Snowflake Architecture"
+  description="Side-by-side comparison: traditional shared-nothing MPP (storage coupled to compute nodes) versus Snowflake's decoupled model with shared centralised storage and independent virtual warehouses"
+  altText="Two architecture diagrams: left shows traditional MPP with storage and compute tightly coupled per node; right shows Snowflake with separate cloud storage and multiple independent virtual warehouses"
+/>
+
+<Flashcard
+  client:load
+  category="Introduction"
+  question="What three things does Snowflake's SaaS model mean you do NOT need to manage?"
+  answer="1. Hardware — no servers to provision or maintain. 2. Software — no installation, patching, or upgrades required. 3. Optimisation — no manual index creation, statistics updates, or VACUUM operations. Snowflake handles all of this automatically."
+/>
+
+---
+
+## Snowflake: A Data Platform, Not Just a Warehouse
+
+Snowflake positions itself as the **Data Cloud** — a unified platform that supports multiple workloads beyond traditional data warehousing:
+
+<Diagram
+  client:load
+  title="The Five Pillars of the Snowflake Data Cloud"
+  description="Snowflake's platform supporting Data Warehousing, Data Lake, Data Engineering, Data Science, and Data Sharing & Marketplace — all on one unified platform with shared governance"
+  altText="Five connected pillars showing: Data Warehouse (BI & reporting), Data Lake (raw data storage), Data Engineering (pipelines & transformations), Data Science (ML & Python), Data Sharing (Marketplace & collaboration)"
+/>
+
+| Pillar | What it means | Key features |
+|--------|--------------|-------------|
+| **Data Warehouse** | Structured analytics and BI reporting | SQL, views, materialized views, clustering |
+| **Data Lake** | Store raw data in native formats | Semi-structured (VARIANT), external tables, stages |
+| **Data Engineering** | Build and orchestrate pipelines | Streams, Tasks, Pipes, Stored Procedures |
+| **Data Science** | ML and Python workloads | Snowpark (Python/Java/Scala), Streamlit, ML functions |
+| **Data Sharing** | Share live data with partners | Secure data sharing, Snowflake Marketplace, listings |
+
+<CalloutBox type="tip" title="Why This Matters for the Exam">
+  The exam may ask about Snowflake's use cases beyond traditional warehousing. Know that Snowflake supports semi-structured data natively (no ETL into relational columns required), and that the Snowflake Marketplace enables accessing third-party live datasets without data movement.
+</CalloutBox>
+
+---
+
+## Supported Cloud Platforms
+
+Snowflake runs on three major cloud providers. Each Snowflake **account** is deployed to a single cloud provider in a single region.
+
+<Diagram
+  client:load
+  title="Snowflake Multi-Cloud Deployment"
+  description="World map showing Snowflake's deployment regions across AWS, Azure, and GCP, with arrows showing cross-cloud replication capability between accounts in different regions/clouds"
+  altText="Global map with pins showing AWS regions (US East/West, EU, APAC), Azure regions, and GCP regions where Snowflake is available"
+/>
+
+<CheatSheet
+  client:load
+  title="Cloud Platform Reference"
+  sections={[
+    {
+      title: "Supported Clouds",
+      icon: "☁️",
+      items: [
+        { label: "AWS", value: "Amazon Web Services — largest number of Snowflake regions globally", note: "e.g. us-east-1, eu-west-1" },
+        { label: "Azure", value: "Microsoft Azure — strong enterprise adoption", note: "e.g. eastus, westeurope" },
+        { label: "GCP", value: "Google Cloud Platform — available in key regions", note: "e.g. us-central1, europe-west4" },
+      ]
+    },
+    {
+      title: "Account & Region Facts",
+      icon: "📍",
+      items: [
+        { label: "1 cloud", value: "Each account is tied to exactly one cloud provider and region", note: "Cannot be changed after creation" },
+        { label: "Replicate", value: "Database Replication allows cross-region and cross-cloud replication", note: "Enterprise Edition+ required" },
+        { label: "ID format", value: "<org>-<account> OR legacy <locator>.<region>.<cloud>", note: "Both formats are valid" },
+      ]
+    },
+  ]}
+/>
+
+<CalloutBox type="important" title="Account = One Cloud + One Region">
+  A single Snowflake account **cannot span multiple cloud providers or regions**. If you need data in multiple regions, you use Database Replication (Enterprise Edition+) to replicate objects to accounts in other regions or clouds. Each replica account is its own Snowflake account.
+</CalloutBox>
+
+<Flashcard
+  client:load
+  category="Introduction"
+  question="Can a single Snowflake account span multiple cloud providers (e.g. AWS and Azure simultaneously)?"
+  answer="No. Each Snowflake account is tied to exactly one cloud provider and one region. Cross-cloud/cross-region data requires Database Replication, which creates separate accounts in each target cloud/region. Replication requires Enterprise Edition or higher."
+/>
+
+---
+
+## Snowflake Editions
+
+Snowflake offers four editions, each building on the previous. This is one of the **most heavily tested topics** in the COF-C02 exam.
+
+<Diagram
+  client:load
+  title="Snowflake Editions Overview"
+  description="Pyramid diagram showing the four Snowflake editions from Standard at the base to VPS at the top, with each tier adding features for security, compliance, and isolation"
+  altText="Edition pyramid: Standard (foundation), Enterprise (+scale & governance), Business Critical (+compliance & encryption), VPS (dedicated isolation)"
+/>
+
+<CheatSheet
+  client:load
+  title="Snowflake Editions — Feature Breakdown"
+  sections={[
+    {
+      title: "Standard (Entry Level)",
+      icon: "🟦",
+      items: [
+        { label: "Time Travel", value: "Up to 1 day", note: "Cannot be extended" },
+        { label: "Warehouses", value: "Single-cluster virtual warehouses only", note: "No multi-cluster" },
+        { label: "Security", value: "Basic access control (RBAC)", note: "No column/row-level security" },
+        { label: "Compliance", value: "SOC 2 Type II only", note: "No HIPAA/PCI" },
+      ]
+    },
+    {
+      title: "Enterprise (Most Common for COF-C02 Scenarios)",
+      icon: "🟨",
+      items: [
+        { label: "Time Travel", value: "Up to 90 days", note: "Configurable per object" },
+        { label: "Warehouses", value: "Multi-cluster warehouses for concurrency", note: "Scale-out for high concurrency" },
+        { label: "Security", value: "Column-level Security + Row Access Policies", note: "Dynamic Data Masking" },
+        { label: "Other", value: "Search Optimisation Service, Database Replication", note: "Periodic rekeying" },
+      ]
+    },
+    {
+      title: "Business Critical (Regulated Industries)",
+      icon: "🟧",
+      items: [
+        { label: "Compliance", value: "HIPAA, PCI DSS, SOC 1 & 2, ISO 27001", note: "" },
+        { label: "Encryption", value: "Tri-Secret Secure — customer-managed keys", note: "Via AWS KMS / Azure Key Vault / GCP KMS" },
+        { label: "Network", value: "Private Link support (no public internet)", note: "AWS PrivateLink, Azure Private Link, GCP PSC" },
+        { label: "Disaster", value: "Business continuity Failover & Fallback", note: "" },
+      ]
+    },
+    {
+      title: "Virtual Private Snowflake (VPS — Highest Security)",
+      icon: "🟥",
+      items: [
+        { label: "Isolation", value: "Dedicated single-tenant hardware environment", note: "No shared resources with other customers" },
+        { label: "Network", value: "Isolated network stack (dedicated VPC)", note: "" },
+        { label: "Use case", value: "Government, defence, highest-security regulated sectors", note: "" },
+        { label: "Cost", value: "Significantly higher cost than other editions", note: "" },
+      ]
+    },
+  ]}
+/>
+
+<CompareTable
+  client:load
+  title="Edition Feature Matrix — Exam Quick Reference"
+  leftLabel="Feature"
+  rightLabel="Minimum Edition Required"
+  rows={[
+    { feature: "Time Travel > 1 day (up to 90 days)", left: "Time Travel (extended)", right: "Enterprise", winner: "none" },
+    { feature: "Multi-cluster Warehouses", left: "Concurrency scaling", right: "Enterprise", winner: "none" },
+    { feature: "Column-level Security / Dynamic Data Masking", left: "DDM", right: "Enterprise", winner: "none" },
+    { feature: "Row Access Policies", left: "Row-level security", right: "Enterprise", winner: "none" },
+    { feature: "Search Optimisation Service", left: "SOS", right: "Enterprise", winner: "none" },
+    { feature: "Database Replication & Failover", left: "Cross-region replication", right: "Enterprise", winner: "none" },
+    { feature: "HIPAA / PCI DSS Compliance", left: "Regulated industry compliance", right: "Business Critical", winner: "none" },
+    { feature: "Tri-Secret Secure (customer-managed keys)", left: "Customer encryption control", right: "Business Critical", winner: "none" },
+    { feature: "PrivateLink / Private Connectivity", left: "No public internet traffic", right: "Business Critical", winner: "none" },
+    { feature: "Dedicated Single-Tenant Hardware", left: "Full isolation", right: "Virtual Private Snowflake", winner: "none" },
+  ]}
+/>
+
+<CalloutBox type="exam" title="Exam Focus: Edition Questions">
+  Common exam patterns: *"A company processes PHI (Protected Health Information) — which edition is required?"* → **Business Critical**. *"A warehouse is queuing queries — which edition enables multi-cluster warehouses?"* → **Enterprise**. *"A company wants 60-day Time Travel on a table — which edition is required?"* → **Enterprise**.
+</CalloutBox>
+
+<Flashcard
+  client:load
+  category="Editions"
+  question="Which Snowflake edition is the minimum required for HIPAA compliance?"
+  answer="Business Critical Edition (formerly called Enterprise for Sensitive Data). It includes HIPAA, PCI DSS, SOC 1 & 2 compliance, Tri-Secret Secure encryption, and Private Link support for regulated industries."
+/>
+
+<Flashcard
+  client:load
+  category="Editions"
+  question="A company needs multi-cluster warehouses to handle concurrency spikes. What is the minimum Snowflake edition required?"
+  answer="Enterprise Edition. Multi-cluster warehouses (also called multi-cluster, or scale-out warehouses) are NOT available in Standard Edition. Enterprise adds multi-cluster, 90-day Time Travel, column/row-level security, and more."
+/>
+
+---
+
+## Snowflake Object Hierarchy
+
+Every object in Snowflake lives within a strict hierarchy. Understanding this is fundamental to both working with Snowflake and passing the exam.
+
+<Diagram
+  client:load
+  title="Snowflake Object Hierarchy"
+  description="Complete tree diagram of Snowflake objects from Organisation at the top, through Account, Database, and Schema, down to Tables, Views, Stages, Pipes, Tasks, Streams, Functions, Procedures, File Formats, and Sequences"
+  altText="Hierarchy tree: Organisation → Account → Database → Schema → (Tables, Views, Stages, Pipes, Tasks, Streams, Functions, Procedures, Sequences, File Formats)"
+/>
+
+```
+Organisation (optional grouping of multiple accounts)
+└── Account (tied to one cloud + one region)
+    └── Database
+        └── Schema
+            ├── Table           (permanent, transient, temporary, external)
+            ├── View            (standard, secure, materialized)
+            ├── Stage           (user @~, table @%, named)
+            ├── File Format     (CSV, JSON, Parquet, Avro, ORC, XML)
+            ├── Pipe            (Snowpipe continuous loading)
+            ├── Stream          (change data capture)
+            ├── Task            (scheduled SQL execution)
+            ├── Stored Procedure
+            ├── User-Defined Function (UDF / UDTF)
+            └── Sequence        (auto-increment counter)
+```
+
+<CalloutBox type="note" title="Schema-Level Objects">
+  Notice that **stages, pipes, streams, tasks, and file formats** all live **inside a schema**, not directly under the database. This is an important detail tested in the exam — these are schema-level objects, accessed with the three-part naming convention `database.schema.object_name`.
+</CalloutBox>
+
+### Naming Objects: Three-Part Convention
+
+Snowflake uses dot notation to reference objects:
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Object Naming Convention"
+  code={`-- Full three-part name: database.schema.object
+SELECT * FROM my_database.my_schema.my_table;
+
+-- When a database is in use (set by USE DATABASE)
+USE DATABASE my_database;
+SELECT * FROM my_schema.my_table;
+
+-- When both database and schema are in use
+USE DATABASE my_database;
+USE SCHEMA my_schema;
+SELECT * FROM my_table;
+
+-- Show all objects in a schema
+SHOW TABLES IN SCHEMA my_database.my_schema;
+SHOW VIEWS IN DATABASE my_database;
+SHOW SCHEMAS IN ACCOUNT;
+SHOW DATABASES;`}
+/>
+
+<Flashcard
+  client:load
+  category="Object Hierarchy"
+  question="Where in the Snowflake hierarchy does a Stage live — at the Account, Database, or Schema level?"
+  answer="Schema level. Stages (both named internal and named external) are schema-level objects. User stages (@~) are account-level and table stages (@%) are table-level, but named stages require a schema. Reference them as database.schema.stage_name."
+/>
+
+---
+
+## Snowflake Pricing Model
+
+Snowflake separates billing into three components. Understanding each is important for the exam.
+
+<Diagram
+  client:load
+  title="Snowflake Pricing Components"
+  description="Three-part pricing diagram: Compute (credit-based, per-second), Storage (per TB compressed per month), and Data Transfer (outbound charges) — shown as separate meters feeding into a single bill"
+  altText="Three billing meters: Compute credits consumed by virtual warehouses, Storage TB-months for active + Time Travel + Fail-safe data, Data Transfer for egress"
+/>
+
+<CheatSheet
+  client:load
+  title="Snowflake Pricing — Quick Reference"
+  sections={[
+    {
+      title: "Compute (Virtual Warehouse Credits)",
+      icon: "⚡",
+      items: [
+        { label: "Billing", value: "Per second, 60-second minimum per warehouse start", note: "Clock starts when warehouse resumes" },
+        { label: "X-Small", value: "1 credit/hour", note: "Best for dev/test" },
+        { label: "Small", value: "2 credits/hour", note: "" },
+        { label: "Medium", value: "4 credits/hour", note: "" },
+        { label: "Large", value: "8 credits/hour", note: "" },
+        { label: "X-Large", value: "16 credits/hour", note: "" },
+        { label: "2X-Large", value: "32 credits/hour", note: "" },
+        { label: "3X-Large", value: "64 credits/hour", note: "" },
+        { label: "4X-Large", value: "128 credits/hour", note: "Maximum size" },
+      ]
+    },
+    {
+      title: "Storage",
+      icon: "💾",
+      items: [
+        { label: "Active", value: "Charged per TB/month (compressed)", note: "On-demand or pre-purchased" },
+        { label: "Time Travel", value: "Same rate as active — billed per TB", note: "Increases with retention period" },
+        { label: "Fail-safe", value: "Same rate — 7 days beyond Time Travel", note: "Permanent tables only" },
+        { label: "Stages", value: "Internal stage data billed same as table storage", note: "" },
+      ]
+    },
+    {
+      title: "Cloud Services (10% Rule)",
+      icon: "🛡️",
+      items: [
+        { label: "Free tier", value: "Cloud Services are FREE up to 10% of daily compute credits", note: "Usually covers metadata, auth, optimisation" },
+        { label: "Excess", value: "Cloud Services above 10% threshold are billed as credits", note: "Rare in normal usage" },
+      ]
+    },
+    {
+      title: "Data Transfer",
+      icon: "🌐",
+      items: [
+        { label: "Same region", value: "No charge for data staying in same cloud + region", note: "" },
+        { label: "Cross-region", value: "Charged per GB transferred to different region", note: "Cloud provider egress rates apply" },
+        { label: "Egress", value: "Charged per GB for data leaving Snowflake to internet", note: "" },
+      ]
+    },
+  ]}
+/>
+
+<CalloutBox type="exam" title="Exam Focus: The 60-Second Minimum">
+  Virtual Warehouses are billed **per second** with a **60-second minimum** each time the warehouse resumes. If you run a query in 5 seconds, you are billed for 60 seconds. If you run another query while the warehouse is already running (before auto-suspend), there is no additional minimum — the clock is already running.
+</CalloutBox>
+
+<CalloutBox type="important" title="Suspended Warehouses Cost Nothing">
+  A **suspended virtual warehouse** consumes **zero credits**. Only running time is billed. Auto-suspend (default: 600 seconds) is your most effective tool for cost control. A warehouse that auto-suspends and auto-resumes only costs when queries are actually being executed.
+</CalloutBox>
+
+<Flashcard
+  client:load
+  category="Pricing"
+  question="A virtual warehouse runs a query that completes in 15 seconds. How many seconds of compute are you billed for?"
+  answer="60 seconds — the 60-second minimum applies each time a warehouse resumes. You are billed for at least 60 seconds per resume event, regardless of how short the actual query was."
+/>
+
+---
+
+## Getting Started with Snowflake
+
+<StepByStep
+  client:load
+  title="Your First Snowflake Session"
+  steps={[
+    {
+      title: "Sign in to Snowsight",
+      description: "Access your Snowflake account at <account-identifier>.snowflakecomputing.com or via the Snowsight web UI. You can also connect via the SnowSQL CLI, Python Connector, JDBC, ODBC, or partner tools like dbt and Tableau.",
+      tip: "Snowsight is the modern web interface. If you see the Classic Console (older blue/grey UI), switch to Snowsight via the user menu.",
+    },
+    {
+      title: "Explore Your Account Context",
+      description: "Before running any query, you need a Warehouse (compute), Database, and Schema in context. Check what's available and set your context.",
+      code: `-- Check current context
+SELECT CURRENT_USER(), CURRENT_ROLE(), CURRENT_WAREHOUSE(),
+       CURRENT_DATABASE(), CURRENT_SCHEMA();
+
+-- See available warehouses
+SHOW WAREHOUSES;
+
+-- See available databases
+SHOW DATABASES;`,
+    },
+    {
+      title: "Set Your Working Context",
+      description: "Use USE commands to set the active warehouse, database, and schema. This avoids needing to type three-part names for every object reference.",
+      code: `-- Set compute, database, and schema
+USE WAREHOUSE COMPUTE_WH;
+USE DATABASE SNOWFLAKE_SAMPLE_DATA;
+USE SCHEMA TPCH_SF1;`,
+      tip: "SNOWFLAKE_SAMPLE_DATA is available in every Snowflake account. It's a shared read-only database perfect for learning SQL.",
+    },
+    {
+      title: "Run Your First Query",
+      description: "Query the sample data to confirm everything is working. Snowflake automatically manages query optimisation — no indexes, no ANALYZE, no VACUUM needed.",
+      code: `-- Count rows in the Orders table
+SELECT COUNT(*) AS total_orders FROM orders;
+
+-- Simple aggregation
+SELECT o_orderstatus, COUNT(*) AS order_count,
+       SUM(o_totalprice) AS total_revenue
+FROM orders
+GROUP BY o_orderstatus
+ORDER BY total_revenue DESC;`,
+    },
+    {
+      title: "Create Your Own Database",
+      description: "Create a database and schema to start building with your own data. These are instant operations — no provisioning required.",
+      code: `-- Create a database
+CREATE DATABASE my_first_db;
+
+-- Create a schema within it
+CREATE SCHEMA my_first_db.raw;
+
+-- Verify the objects were created
+SHOW DATABASES LIKE 'MY_FIRST_DB';
+SHOW SCHEMAS IN DATABASE my_first_db;`,
+      tip: "Object names in Snowflake are case-insensitive by default and stored in UPPERCASE. 'my_table' and 'MY_TABLE' refer to the same object.",
+    },
+  ]}
+/>
+
+---
+
+## Snowflake vs. Cloud Competitors
+
+It's worth understanding how Snowflake positions against other cloud data platforms — the exam may test your understanding of Snowflake's unique characteristics.
+
+<CompareTable
+  client:load
+  title="Cloud Data Platform Comparison"
+  leftLabel="Snowflake"
+  rightLabel="Key Competitors"
+  rows={[
+    { feature: "Architecture", left: "Hybrid shared-data — truly decoupled storage and compute", right: "Redshift: shared-nothing; BigQuery: serverless; Synapse: hybrid", winner: "left" },
+    { feature: "Compute scaling", left: "Instant resize, no downtime, auto-suspend/resume", right: "Redshift: pausing is slow; BigQuery: serverless (no warehouses); Synapse: manual scaling", winner: "left" },
+    { feature: "Semi-structured data", left: "Native VARIANT type — JSON, XML, Avro, Parquet, ORC in-column", right: "Redshift: SUPER type (limited); BigQuery: STRUCT/ARRAY; Synapse: JSON functions", winner: "left" },
+    { feature: "Data sharing", left: "Live zero-copy sharing across accounts and clouds", right: "Limited native sharing; typically requires data movement", winner: "left" },
+    { feature: "Multi-cloud", left: "Available on AWS, Azure, GCP — cross-cloud replication", right: "Redshift: AWS-only; BigQuery: GCP-only; Synapse: Azure-only", winner: "left" },
+    { feature: "Maintenance", left: "Zero maintenance — automatic tuning, no VACUUM, no indexes", right: "Redshift: manual VACUUM, ANALYZE; BigQuery: minimal; Synapse: some maintenance", winner: "left" },
+    { feature: "Time Travel", left: "Up to 90 days (Enterprise)", right: "BigQuery: 7 days; Redshift: no equivalent; Synapse: no equivalent", winner: "left" },
+  ]}
+/>
+
+<CalloutBox type="note" title="Snowflake Is Cloud-Agnostic but Not Multi-Cloud per Account">
+  Snowflake runs on AWS, Azure, and GCP — unlike Redshift (AWS only), BigQuery (GCP only), or Synapse (Azure only). However, a single Snowflake account is still deployed to one cloud and region. The multi-cloud advantage means you can choose your preferred cloud and replicate data across clouds if needed.
+</CalloutBox>
+
+---
+
+## Practice Quiz
+
+<Quiz
+  client:load
+  category="Introduction"
+  question="Which of the following BEST describes Snowflake's deployment model?"
+  options={[
+    { label: "A", text: "Platform as a Service (PaaS) — you provision virtual machines but Snowflake manages the database software" },
+    { label: "B", text: "Infrastructure as a Service (IaaS) — you rent cloud compute and run Snowflake yourself" },
+    { label: "C", text: "Software as a Service (SaaS) — Snowflake manages all hardware, software, upgrades, and optimisation" },
+    { label: "D", text: "On-premise — you deploy Snowflake on your own data centre hardware" },
+  ]}
+  correct="C"
+  explanation="Snowflake is a SaaS (Software as a Service) offering. You access it through a web browser, API, or connector — there is no hardware to provision, no software to install, and no patching or upgrades to manage. This is a fundamental characteristic tested in COF-C02."
+/>
+
+<Quiz
+  client:load
+  category="Introduction"
+  question="A healthcare company needs to store patient records (PHI) in Snowflake and requires HIPAA compliance. What is the minimum Snowflake edition they must use?"
+  options={[
+    { label: "A", text: "Standard Edition — all editions include compliance certifications" },
+    { label: "B", text: "Enterprise Edition — it includes all security and compliance features" },
+    { label: "C", text: "Business Critical Edition — specifically designed for regulated industries with HIPAA, PCI DSS support" },
+    { label: "D", text: "Virtual Private Snowflake — the only edition with healthcare compliance" },
+  ]}
+  correct="C"
+  explanation="Business Critical Edition (option C) is the minimum required for HIPAA compliance. It adds HIPAA BAA (Business Associate Agreement) support, PCI DSS compliance, Tri-Secret Secure encryption, and Private Link connectivity. Standard and Enterprise editions do NOT include HIPAA compliance. VPS would also work but is not the minimum — Business Critical is sufficient."
+/>
+
+<Quiz
+  client:load
+  category="Introduction"
+  question="A Large virtual warehouse has been running for exactly 45 seconds when the query completes and auto-suspend kicks in. How many seconds of credits are charged?"
+  options={[
+    { label: "A", text: "45 seconds — Snowflake charges per second of actual usage" },
+    { label: "B", text: "60 seconds — the 60-second minimum applies on each warehouse resume" },
+    { label: "C", text: "600 seconds — auto-suspend default means you pay for the full idle period" },
+    { label: "D", text: "3600 seconds — compute is billed in full-hour increments" },
+  ]}
+  correct="B"
+  explanation="Snowflake charges per second with a 60-second minimum per resume event. The warehouse ran for 45 seconds, but the minimum is 60 seconds, so 60 seconds are billed. Auto-suspend stops the credit consumption after the idle period — you are NOT charged for idle time once the warehouse suspends."
+/>
+
+---
+
+## Flashcard Review
+
+<Flashcard
+  client:load
+  category="Exam Prep"
+  question="In what year was Snowflake founded, and by whom?"
+  answer="Snowflake was founded in 2012 by Benoit Dageville, Thierry Cruanes, and Marcin Zukowski — three data warehouse engineers who previously worked at Oracle and other database companies. Snowflake's IPO was in September 2020."
+/>
+
+<Flashcard
+  client:load
+  category="Exam Prep"
+  question="What is the Snowflake Data Cloud Marketplace?"
+  answer="A platform within Snowflake where data providers list live datasets, data services, and Snowflake Native Apps. Consumers can access these directly within their Snowflake account — no data movement, no ETL, no copies. Examples include financial data, weather data, and demographic data from third-party providers."
+/>
+
+<Flashcard
+  client:load
+  category="Exam Prep"
+  question="What is an Organisation in Snowflake and when is it used?"
+  answer="An Organisation is the highest-level Snowflake container, grouping multiple Accounts under a single entity. It enables cross-account features like account replication, failover groups, and centralised usage reporting. Organisations must be enabled by Snowflake Support — they are not created by default."
+/>
+
+<Flashcard
+  client:load
+  category="Exam Prep"
+  question="Cloud Services are free up to what percentage of daily compute credits?"
+  answer="Cloud Services are free up to 10% of daily compute credit consumption. Services above this threshold are billed. Cloud Services include authentication, metadata management, query parsing, query optimisation, and access control enforcement."
+/>
+
+<Flashcard
+  client:load
+  category="Exam Prep"
+  question="True or False: A Snowflake account can be deployed across multiple cloud providers simultaneously."
+  answer="FALSE. Each Snowflake account is tied to exactly one cloud provider (AWS, Azure, or GCP) and one region. To have Snowflake in multiple clouds or regions, you need separate accounts and use Database Replication (Enterprise Edition+) to synchronise data between them."
+/>
+
+<Flashcard
+  client:load
+  category="Exam Prep"
+  question="What is Snowsight?"
+  answer="Snowsight is Snowflake's modern web-based user interface for writing SQL queries, visualising data, managing worksheets, and administering objects. It replaced the Classic Console (the older green/blue UI). Snowsight supports dashboards, query profiling, and collaborative worksheets."
+/>
+
+---
+
+## Additional Resources
+
+### Official Snowflake Documentation
+- [Snowflake Overview — Key Concepts & Architecture](https://docs.snowflake.com/en/user-guide/intro-key-concepts)
+- [Snowflake Editions](https://docs.snowflake.com/en/user-guide/intro-editions)
+- [Snowflake Pricing](https://www.snowflake.com/en/data-cloud/pricing-options/)
+- [Snowflake Object Hierarchy](https://docs.snowflake.com/en/sql-reference/snowflake-db)
+
+### COF-C02 Exam Resources
+- [SnowPro Core Certification Study Guide (Snowflake)](https://www.snowflake.com/certifications/)
+- [COF-C02 Exam Guide — Domain Breakdown](https://learn.snowflake.com/en/certifications/snowpro-core/)
+
+---
+
+## Next Steps
+
+Now that you understand what Snowflake is and its core concepts, continue to:
+- [Snowflake Architecture Deep Dive](/architecture/overview)
+- [Databases, Schemas & Tables](/architecture/databases)
+- [Virtual Warehouses](/architecture/warehouses)
