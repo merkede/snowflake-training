@@ -1,0 +1,458 @@
+---
+layout: ../../layouts/CourseLayout.astro
+title: "Time Travel & Fail-safe"
+description: "Master Snowflake's Time Travel and Fail-safe features for data protection, recovery, and the SnowPro Core exam"
+moduleId: "time-travel"
+domain: "Data Protection & Recovery"
+---
+
+import Flashcard from '../../components/Flashcard.tsx';
+import CodeBlock from '../../components/CodeBlock.tsx';
+import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
+import Diagram from '../../components/Diagram.tsx';
+import CalloutBox from '../../components/CalloutBox.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import CompareTable from '../../components/CompareTable.tsx';
+import KeyTerms from '../../components/KeyTerms.tsx';
+import StepByStep from '../../components/StepByStep.tsx';
+import CheatSheet from '../../components/CheatSheet.tsx';
+
+<KeyTerms
+  client:load
+  title="Key Terms — Data Protection"
+  terms={[
+    { term: "Time Travel", abbr: "TT", definition: "Snowflake feature allowing you to query, clone, or restore data as it existed at any point within the retention period." },
+    { term: "Fail-safe", abbr: "FS", definition: "A 7-day non-configurable storage period beyond Time Travel, managed exclusively by Snowflake for disaster recovery." },
+    { term: "Retention Period", abbr: "RP", definition: "The configurable number of days (0–90) that Time Travel data is preserved for a database, schema, or table." },
+    { term: "Zero-Copy Clone", abbr: "ZCC", definition: "A copy of a database, schema, or table created instantly by sharing metadata pointers rather than duplicating data." },
+    { term: "AT / BEFORE", abbr: "—", definition: "SQL clauses used with SELECT, CREATE CLONE, and UNDROP to access historical data at a specific timestamp or offset." },
+    { term: "UNDROP", abbr: "—", definition: "DDL command that restores a dropped table, schema, or database from Time Travel storage." },
+  ]}
+/>
+
+---
+
+## What is Time Travel?
+
+Snowflake's **Time Travel** is one of its most powerful differentiating features. It allows you to access historical data — data that has been **updated**, **deleted**, or **dropped** — at any point within your defined retention period.
+
+<CalloutBox type="exam" title="Exam Focus: Time Travel Retention Periods">
+  Time Travel retention is **heavily tested** in COF-C02. Know the defaults and maximums for each edition:
+  - **Standard Edition**: 0–1 days (default: 1 day)
+  - **Enterprise Edition and above**: 0–90 days (default: 1 day)
+  - **Transient & Temporary tables**: maximum 1 day (regardless of edition)
+</CalloutBox>
+
+<YouTubeEmbed
+  client:load
+  videoId="Yiz6YYhWFLA"
+  title="Snowflake Time Travel Explained"
+  description="📹 Official Snowflake walkthrough of Time Travel and Fail-safe features"
+/>
+
+### How Time Travel Works
+
+Snowflake's immutable micro-partition storage model is what makes Time Travel possible at no extra complexity cost. When data changes, **old micro-partitions are retained** rather than overwritten, and their metadata is preserved for the duration of the retention period.
+
+<Diagram
+  client:load
+  title="Time Travel Data Lifecycle"
+  description="Illustration of how data moves from Active Storage → Time Travel Storage → Fail-safe Storage → Purged, showing the retention timeline and what operations are available at each stage"
+  altText="Timeline diagram showing Active, Time Travel (0-90 days), Fail-safe (7 days), and Purge stages"
+/>
+
+<CalloutBox type="info" title="Storage Is Not Free">
+  Time Travel data is stored in addition to your active data. A 90-day retention period can significantly increase storage costs. Monitor usage with `SNOWFLAKE.ACCOUNT_USAGE.TABLE_STORAGE_METRICS`.
+</CalloutBox>
+
+---
+
+## Time Travel SQL Syntax
+
+There are three ways to specify a point in time for historical queries:
+
+<CheatSheet
+  client:load
+  title="Time Travel Query Syntax"
+  sections={[
+    {
+      title: "Timestamp-Based",
+      icon: "🕐",
+      items: [
+        { label: "AT", value: "TIMESTAMP => '2024-01-15 09:00:00'::TIMESTAMP_TZ", note: "Inclusive — data as of this exact time" },
+        { label: "BEFORE", value: "TIMESTAMP => '2024-01-15 09:00:00'::TIMESTAMP_TZ", note: "Exclusive — data just before this time" },
+      ]
+    },
+    {
+      title: "Offset-Based",
+      icon: "⏱️",
+      items: [
+        { label: "AT", value: "OFFSET => -3600", note: "Seconds from now (negative = past)" },
+        { label: "BEFORE", value: "OFFSET => -86400", note: "24 hours ago" },
+      ]
+    },
+    {
+      title: "Statement-Based",
+      icon: "📋",
+      items: [
+        { label: "AT", value: "STATEMENT => '<query_id>'", note: "Data as it existed at end of this query" },
+        { label: "BEFORE", value: "STATEMENT => '<query_id>'", note: "Data as it existed before this query ran" },
+      ]
+    },
+  ]}
+/>
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Time Travel Query Examples"
+  code={`-- Query table as it was 1 hour ago (offset in seconds)
+SELECT * FROM orders
+  AT(OFFSET => -3600);
+
+-- Query at a specific timestamp
+SELECT * FROM customers
+  AT(TIMESTAMP => '2024-06-01 00:00:00'::TIMESTAMP_TZ);
+
+-- Query data BEFORE a specific DML statement ran
+SELECT * FROM products
+  BEFORE(STATEMENT => '01ab2345-0001-dead-beef-246800135246');
+
+-- Find deleted rows by comparing historical data to current
+SELECT h.* FROM orders AT(OFFSET => -86400) h
+LEFT JOIN orders c ON h.order_id = c.order_id
+WHERE c.order_id IS NULL;`}
+/>
+
+<Flashcard
+  client:load
+  category="Time Travel"
+  question="What are the three Time Travel clause options available in Snowflake SQL?"
+  answer="AT(TIMESTAMP => ...), AT(OFFSET => ...), and AT(STATEMENT => ...) — each also has a BEFORE variant. TIMESTAMP pins to a wall-clock time, OFFSET specifies seconds from now, and STATEMENT references a specific query ID."
+/>
+
+---
+
+## Restoring Data with UNDROP
+
+Time Travel lets you recover accidentally dropped objects with the `UNDROP` command.
+
+<CalloutBox type="important" title="UNDROP Limitations">
+  You can only UNDROP an object if a **newer object with the same name does not already exist**. If you accidentally dropped `CUSTOMERS` and created a new empty `CUSTOMERS` table, you must rename or drop the new one first before calling UNDROP.
+</CalloutBox>
+
+<StepByStep
+  client:load
+  title="Recovering a Dropped Table"
+  steps={[
+    {
+      title: "Identify the Dropped Table",
+      description: "Check your query history or ACCOUNT_USAGE to find when the table was dropped and confirm it is within the Time Travel retention window.",
+      code: `-- List dropped tables (still within retention)
+SHOW TABLES HISTORY LIKE '%CUSTOMERS%' IN SCHEMA my_db.public;
+
+-- Check account usage for drop events
+SELECT table_name, dropped_on, retention_time
+FROM SNOWFLAKE.ACCOUNT_USAGE.TABLES
+WHERE deleted IS NOT NULL
+  AND table_name = 'CUSTOMERS';`,
+    },
+    {
+      title: "Rename Any Conflicting Object",
+      description: "If a new object with the same name exists, rename it to avoid a conflict before restoring.",
+      code: `-- Rename the conflicting table if needed
+ALTER TABLE customers RENAME TO customers_new_empty;`,
+      tip: "Always inspect the new table before renaming — it may contain data you need!",
+    },
+    {
+      title: "Run UNDROP",
+      description: "UNDROP restores the table with all its data, grants, and metadata to the state just before it was dropped.",
+      code: `-- Restore the dropped table
+UNDROP TABLE customers;
+
+-- Verify restoration
+SELECT COUNT(*) FROM customers;`,
+    },
+    {
+      title: "Validate the Restored Data",
+      description: "Query the restored table alongside the historical view to confirm data integrity before communicating recovery to stakeholders.",
+      code: `-- Compare current vs. historical row counts
+SELECT 'Current' AS source, COUNT(*) AS rows FROM customers
+UNION ALL
+SELECT 'Before Drop (24h ago)', COUNT(*)
+FROM customers AT(OFFSET => -86400);`,
+    },
+  ]}
+/>
+
+<Flashcard
+  client:load
+  category="Time Travel"
+  question="Which objects can be restored using UNDROP in Snowflake?"
+  answer="Tables, Schemas, and Databases can all be restored with UNDROP — as long as they are within the Time Travel retention period and no newer object with the same name exists at the same level."
+/>
+
+---
+
+## Zero-Copy Cloning with Time Travel
+
+One of the most powerful combinations in Snowflake is using **Time Travel + Cloning**. You can clone a table or schema as it existed at any historical point, creating an instant copy with no data duplication.
+
+<Diagram
+  client:load
+  title="Zero-Copy Clone with Time Travel"
+  description="How cloning from a historical point works: the new clone shares micro-partition pointers from the past state, adding only metadata overhead until new writes diverge"
+  altText="Diagram showing original table with historical micro-partitions, a clone pointing to past micro-partitions via metadata, and new writes creating independent micro-partitions"
+/>
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Clone from Historical Point"
+  code={`-- Clone a table as it was before yesterday's batch run
+CREATE TABLE orders_backup
+  CLONE orders
+  BEFORE(STATEMENT => '01ab2345-0001-dead-beef-246800135246');
+
+-- Clone an entire schema as it existed 24 hours ago
+CREATE SCHEMA reporting_backup
+  CLONE reporting
+  AT(OFFSET => -86400);
+
+-- Clone database to a point before a failed migration
+CREATE DATABASE prod_backup
+  CLONE production
+  AT(TIMESTAMP => '2024-06-10 08:00:00'::TIMESTAMP_TZ);`}
+/>
+
+<CalloutBox type="tip" title="Use Clones for Safe Testing">
+  Before running a large DELETE or UPDATE, clone the target table with `CREATE TABLE backup CLONE my_table`. If something goes wrong, you can recover instantly without waiting for a full restore. The clone costs almost nothing until you write to it.
+</CalloutBox>
+
+---
+
+## Time Travel vs. Fail-safe
+
+<CompareTable
+  client:load
+  title="Time Travel vs. Fail-safe"
+  leftLabel="Time Travel"
+  rightLabel="Fail-safe"
+  rows={[
+    { feature: "Purpose", left: "Self-service data recovery & historical queries", right: "Snowflake-managed disaster recovery", winner: "left" },
+    { feature: "Duration", left: "0–90 days (configurable)", right: "7 days (fixed, non-configurable)", winner: "left" },
+    { feature: "Who can access?", left: "You — via SQL (AT/BEFORE, UNDROP, CLONE)", right: "Snowflake Support only (no self-service)", winner: "left" },
+    { feature: "Can you query data?", left: "Yes — full SQL access", right: "No — not directly accessible", winner: "left" },
+    { feature: "Storage cost?", left: "Yes — billed per TB", right: "Yes — billed per TB", winner: "none" },
+    { feature: "Applies to temp tables?", left: "Yes (max 1 day)", right: "No — excluded", winner: "none" },
+    { feature: "Applies to transient tables?", left: "Yes (max 1 day)", right: "No — excluded", winner: "none" },
+    { feature: "Configurable per object?", left: "Yes — table, schema, database level", right: "No", winner: "left" },
+  ]}
+/>
+
+<CalloutBox type="warning" title="Fail-safe Is a Last Resort">
+  Fail-safe is **not** a backup strategy. It exists only for catastrophic failure scenarios and can only be accessed by Snowflake staff. Do not rely on Fail-safe as your data recovery plan — use Time Travel and Zero-Copy Clones proactively.
+</CalloutBox>
+
+<Flashcard
+  client:load
+  category="Data Protection"
+  question="What is the Fail-safe period in Snowflake and who can access it?"
+  answer="Fail-safe is a fixed 7-day non-configurable period after the Time Travel period expires. Only Snowflake Support can access Fail-safe data — it is not self-service. It applies to permanent tables only (not transient or temporary)."
+/>
+
+---
+
+## Configuring Retention Periods
+
+You can set the `DATA_RETENTION_TIME_IN_DAYS` parameter at the account, database, schema, or table level. More specific levels override broader settings.
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Setting Retention Periods"
+  code={`-- Set retention at account level (applies to all objects by default)
+ALTER ACCOUNT SET DATA_RETENTION_TIME_IN_DAYS = 30;
+
+-- Override at database level
+ALTER DATABASE sales_db SET DATA_RETENTION_TIME_IN_DAYS = 90;
+
+-- Override at schema level
+ALTER SCHEMA sales_db.staging SET DATA_RETENTION_TIME_IN_DAYS = 1;
+
+-- Disable Time Travel for a specific table (0 = off)
+ALTER TABLE large_staging_table SET DATA_RETENTION_TIME_IN_DAYS = 0;
+
+-- Create a transient table (max 1 day, no Fail-safe)
+CREATE TRANSIENT TABLE temp_calculations (
+  id INT,
+  result FLOAT
+) DATA_RETENTION_TIME_IN_DAYS = 0;
+
+-- Check current retention setting for a table
+SHOW TABLES LIKE 'orders';`}
+/>
+
+<CalloutBox type="note" title="Transient vs. Temporary Tables">
+  **Transient tables** persist across sessions and have no Fail-safe, with max 1-day Time Travel. **Temporary tables** only exist for the session duration and also have no Fail-safe. Both are useful for reducing storage costs on intermediate/staging data.
+</CalloutBox>
+
+<Diagram
+  client:load
+  title="Retention Period Inheritance"
+  description="How DATA_RETENTION_TIME_IN_DAYS cascades from account → database → schema → table level, with more specific settings overriding broader ones"
+  altText="Hierarchy diagram showing Account at top flowing down to Database, Schema, and Table, with override arrows at each level"
+/>
+
+---
+
+## Storage Cost Considerations
+
+Time Travel and Fail-safe data count towards your Snowflake storage bill. Understanding cost drivers is important for both the exam and real-world usage.
+
+<CheatSheet
+  client:load
+  title="Storage Cost Reference"
+  sections={[
+    {
+      title: "What Gets Billed",
+      icon: "💰",
+      items: [
+        { label: "Active", value: "Current data in tables — always billed", note: "" },
+        { label: "TT", value: "Historical data within retention period — billed per TB", note: "" },
+        { label: "FS", value: "7-day Fail-safe storage beyond TT — billed per TB", note: "Permanent tables only" },
+        { label: "Stage", value: "Internal stages — billed same as table storage", note: "" },
+      ]
+    },
+    {
+      title: "Cost Reduction Strategies",
+      icon: "📉",
+      items: [
+        { label: "Transient", value: "Use transient tables for staging data — no Fail-safe", note: "Saves 7 days of Fail-safe cost" },
+        { label: "0 days", value: "Set DATA_RETENTION_TIME_IN_DAYS = 0 where TT not needed", note: "Eliminates TT cost" },
+        { label: "Clone", value: "Clone instead of CTAS for large table copies", note: "Zero initial storage cost" },
+        { label: "Monitor", value: "Query TABLE_STORAGE_METRICS to find high-cost tables", note: "SNOWFLAKE.ACCOUNT_USAGE schema" },
+      ]
+    },
+  ]}
+/>
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Monitoring Storage Costs"
+  code={`-- View Time Travel and Fail-safe storage by table
+SELECT
+  table_name,
+  active_bytes / POWER(1024, 3)       AS active_gb,
+  time_travel_bytes / POWER(1024, 3)  AS time_travel_gb,
+  failsafe_bytes / POWER(1024, 3)     AS failsafe_gb,
+  retained_for_clone_bytes / POWER(1024, 3) AS clone_gb
+FROM SNOWFLAKE.ACCOUNT_USAGE.TABLE_STORAGE_METRICS
+WHERE deleted = FALSE
+ORDER BY (time_travel_bytes + failsafe_bytes) DESC
+LIMIT 20;`}
+/>
+
+---
+
+## Practice Quiz
+
+<Quiz
+  client:load
+  category="Data Protection"
+  question="A table in Snowflake Enterprise Edition was accidentally dropped 5 days ago. The table had DATA_RETENTION_TIME_IN_DAYS = 3. Can you recover this table?"
+  options={[
+    { label: "A", text: "Yes — use UNDROP TABLE. The 5-day-old drop is within the 7-day Fail-safe period." },
+    { label: "B", text: "No — the retention period was 3 days, so Time Travel has expired. Fail-safe is Snowflake-only." },
+    { label: "C", text: "Yes — UNDROP always works within 90 days in Enterprise Edition." },
+    { label: "D", text: "No — UNDROP only works for schemas and databases, not tables." },
+  ]}
+  correct="B"
+  explanation="The table's Time Travel retention was set to 3 days, which has now expired (5 days ago). Even though you are on Enterprise Edition, the specific table's retention overrides the account/edition maximum. Fail-safe data cannot be accessed by users — only Snowflake Support can recover it, and only in extreme circumstances. The answer is B."
+/>
+
+<Quiz
+  client:load
+  category="Data Protection"
+  question="Which of the following table types does NOT have a Fail-safe period?"
+  options={[
+    { label: "A", text: "Permanent tables" },
+    { label: "B", text: "Transient tables" },
+    { label: "C", text: "External tables" },
+    { label: "D", text: "Both B and C" },
+  ]}
+  correct="D"
+  explanation="Both transient tables AND external tables have no Fail-safe period. Transient tables have a maximum 1-day Time Travel window and no Fail-safe. External tables reference data stored outside Snowflake (e.g., in S3), so Snowflake has no control over Fail-safe. Only permanent (standard) tables have the full 7-day Fail-safe period."
+/>
+
+<Quiz
+  client:load
+  category="Data Protection"
+  question="You need to create a point-in-time backup of a 2 TB production table before running a major migration. Which approach minimises both time and cost?"
+  options={[
+    { label: "A", text: "CREATE TABLE backup AS SELECT * FROM production — creates a full copy" },
+    { label: "B", text: "CREATE TABLE backup CLONE production — zero-copy clone with metadata only" },
+    { label: "C", text: "Use COPY INTO to export data to an S3 stage, then reload after migration" },
+    { label: "D", text: "Increase the Data Retention Period to 90 days before running the migration" },
+  ]}
+  correct="B"
+  explanation="Zero-Copy Cloning (option B) is the correct answer. It creates an instant clone by copying only metadata — no physical data is duplicated. The clone initially costs nothing extra in storage and takes seconds, regardless of table size. Option A physically duplicates all 2 TB immediately. Option C involves significant data movement and latency. Option D only helps if you need to recover via UNDROP later, not for a backup-before-migration scenario."
+/>
+
+---
+
+## Flashcard Review
+
+<Flashcard
+  client:load
+  category="Exam Prep"
+  question="What is the maximum Time Travel retention period, and which edition is required?"
+  answer="90 days maximum. Requires Enterprise Edition or higher. Standard Edition is limited to 1 day maximum. The default for all editions is 1 day."
+/>
+
+<Flashcard
+  client:load
+  category="Exam Prep"
+  question="A transient table has DATA_RETENTION_TIME_IN_DAYS = 5. Is this valid?"
+  answer="No — transient and temporary tables have a maximum retention of 1 day, regardless of how you set the parameter. Setting it to 5 on a transient table will result in an error or be capped at 1."
+/>
+
+<Flashcard
+  client:load
+  category="Exam Prep"
+  question="What happens to Time Travel data when a table's retention period expires?"
+  answer="After Time Travel expires, the data moves into Fail-safe for 7 days (permanent tables only). After Fail-safe, the data is permanently purged. You lose self-service access when Time Travel expires."
+/>
+
+<Flashcard
+  client:load
+  category="Exam Prep"
+  question="Can you use Time Travel across different accounts in Snowflake?"
+  answer="No. Time Travel is scoped to the account where the data lives. You cannot query historical data from another account using AT/BEFORE. Data sharing shares live data only."
+/>
+
+<Flashcard
+  client:load
+  category="Exam Prep"
+  question="True or False: Setting DATA_RETENTION_TIME_IN_DAYS = 0 on a table still provides Fail-safe protection."
+  answer="FALSE. Setting retention to 0 disables Time Travel AND removes Fail-safe protection. The data is immediately eligible for removal with no recovery options from Fail-safe."
+/>
+
+---
+
+## Additional Resources
+
+### Official Snowflake Documentation
+- [Understanding & Using Time Travel](https://docs.snowflake.com/en/user-guide/data-time-travel)
+- [Understanding & Using Fail-safe](https://docs.snowflake.com/en/user-guide/data-failsafe)
+- [Table Types](https://docs.snowflake.com/en/user-guide/tables-temp-transient)
+- [Zero-Copy Cloning](https://docs.snowflake.com/en/user-guide/object-clone)
+
+---
+
+## Next Steps
+
+- [Zero-Copy Cloning Deep Dive](/data-protection/cloning)
+- [Snowflake Security & Access Control](/security/overview)
+- [Performance Optimisation](/performance/queries)
