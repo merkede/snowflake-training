@@ -32,6 +32,9 @@ import Layout from '../layouts/Layout.astro';
           <a href="/flashcards" class="btn-secondary text-lg px-8 py-4 bg-white/10 text-white hover:bg-white/20 no-underline">
             Flashcards & Revision
           </a>
+          <a href="/about" class="btn-secondary text-lg px-8 py-4 bg-white/10 text-white hover:bg-white/20 no-underline" style="border: 1px solid rgba(41, 181, 232, 0.4);">
+            About Me
+          </a>
         </div>
 
         <!-- Stats -->
@@ -53,66 +56,8 @@ import Layout from '../layouts/Layout.astro';
     </div>
   </section>
 
-  <!-- Features -->
+  <!-- Training Domains (moved up) -->
   <section class="py-20">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-16">
-        <h2 class="mb-4">Why This Training Resource?</h2>
-        <p class="text-xl text-slate-600 max-w-2xl mx-auto">
-          Built specifically for our teams to get up to speed with Snowflake quickly and thoroughly
-        </p>
-      </div>
-
-      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-        <!-- Feature 1 -->
-        <div class="card text-center">
-          <div class="w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
-            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
-          </div>
-          <h3 class="text-lg font-bold mb-2">Comprehensive Content</h3>
-          <p class="text-slate-600 text-sm">Covers all 6 COF-C02 exam domains with in-depth explanations, real SQL examples, and architecture diagrams</p>
-        </div>
-
-        <!-- Feature 2 -->
-        <div class="card text-center">
-          <div class="w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
-            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <h3 class="text-lg font-bold mb-2">Interactive Learning</h3>
-          <p class="text-slate-600 text-sm">Flip-card flashcards, quizzes, code blocks, and cheat sheets for active recall and better retention</p>
-        </div>
-
-        <!-- Feature 3 -->
-        <div class="card text-center">
-          <div class="w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
-            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-          </div>
-          <h3 class="text-lg font-bold mb-2">Track Progress</h3>
-          <p class="text-slate-600 text-sm">Monitor your learning journey with built-in progress tracking across all 23 modules</p>
-        </div>
-
-        <!-- Feature 4 -->
-        <div class="card text-center">
-          <div class="w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
-            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-          </div>
-          <h3 class="text-lg font-bold mb-2">Built for Our Teams</h3>
-          <p class="text-slate-600 text-sm">Tailored for Hastings Direct's Data Analytics and Data Science teams with practical, role-relevant content</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Exam Domains -->
-  <section class="bg-slate-50 py-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="text-center mb-16">
         <h2 class="mb-4">Training Domains</h2>
@@ -203,6 +148,39 @@ import Layout from '../layouts/Layout.astro';
     </div>
   </section>
 
+  <!-- About Me (concise) -->
+  <section class="bg-slate-50 py-20">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid md:grid-cols-3 gap-10 items-center">
+        <!-- Photo -->
+        <div class="text-center">
+          <img
+            src="/hamzah-javaid.jpeg"
+            alt="Hamzah Javaid"
+            class="w-40 h-40 rounded-2xl object-cover mx-auto shadow-lg"
+            style="border: 3px solid var(--color-snowflake-blue);"
+          />
+          <h3 class="text-xl font-bold text-slate-900 mt-4">Hamzah Javaid</h3>
+          <p class="text-sm font-medium" style="color: var(--color-snowflake-blue);">Hastings Direct</p>
+        </div>
+
+        <!-- Bio -->
+        <div class="md:col-span-2">
+          <h2 class="text-2xl font-bold text-slate-900 mb-4">About the Author</h2>
+          <p class="text-slate-700 leading-relaxed mb-4">
+            I'm a data professional at Hastings Direct working across data analytics, data science, and modern cloud platforms. I specialise in building scalable data pipelines, designing analytical frameworks, and enabling self-service analytics &mdash; bridging the gap between technical data engineering and the strategic thinking that drives real business decisions.
+          </p>
+          <p class="text-slate-700 leading-relaxed mb-6">
+            I built this training resource because our teams needed something tailored &mdash; not generic courses, but a practical guide that speaks directly to how we work with Snowflake every day. Every module is structured around the SnowPro Core (COF-C02) blueprint, with interactive flashcards, quizzes, and cheat sheets designed for active recall and lasting retention.
+          </p>
+          <a href="/about" class="btn-primary inline-block no-underline">
+            Read More About Me
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- CTA Section -->
   <section class="py-20">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -214,8 +192,8 @@ import Layout from '../layouts/Layout.astro';
         <a href="/modules" class="btn-primary text-lg px-8 py-4 inline-block no-underline">
           Start Your First Module
         </a>
-        <a href="/about" class="btn-secondary text-lg px-8 py-4 inline-block no-underline">
-          About This Project
+        <a href="/cheatsheets" class="btn-secondary text-lg px-8 py-4 inline-block no-underline">
+          Quick Reference Cheat Sheets
         </a>
       </div>
     </div>
