@@ -1,0 +1,510 @@
+---
+layout: ../../layouts/CourseLayout.astro
+title: "Search Optimisation Service"
+description: "Master the Snowflake Search Optimisation Service (SOS) — how it works, when to use it, costs, and how it differs from clustering keys for the SnowPro Core exam"
+moduleId: "search-optimization"
+domain: "Performance"
+---
+
+import KeyTerms from '../../components/KeyTerms.tsx';
+import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
+import Diagram from '../../components/Diagram.tsx';
+import CalloutBox from '../../components/CalloutBox.tsx';
+import CodeBlock from '../../components/CodeBlock.tsx';
+import CompareTable from '../../components/CompareTable.tsx';
+import StepByStep from '../../components/StepByStep.tsx';
+import CheatSheet from '../../components/CheatSheet.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import Flashcard from '../../components/Flashcard.tsx';
+
+## Search Optimisation Service
+
+The **Search Optimisation Service (SOS)** is a Snowflake Enterprise-tier feature designed to dramatically accelerate **point lookup queries** on large tables. Unlike clustering keys — which help range-based scans — SOS is purpose-built for queries that search for specific values in large datasets, such as finding a customer by ID or filtering on a phone number.
+
+Understanding the distinction between SOS, clustering keys, and the result cache is a frequent topic on the **SnowPro Core COF-C02 exam**.
+
+<KeyTerms
+  client:load
+  title="Key Terms: Search Optimisation Service"
+  terms={[
+    {
+      term: "Search Optimisation Service",
+      abbr: "SOS",
+      definition: "A Snowflake Enterprise feature that builds and maintains a persistent search access path (similar to an index) on table columns to accelerate point lookup queries."
+    },
+    {
+      term: "Search Access Path",
+      definition: "A persistent structure maintained by Snowflake alongside table data that allows SOS to short-circuit standard partition scanning for qualifying queries."
+    },
+    {
+      term: "Point Lookup Query",
+      definition: "A query that searches for one or more specific values — e.g. WHERE user_id = 99 or WHERE email IN (...) — rather than scanning a range of rows."
+    },
+    {
+      term: "Micro-partition Pruning",
+      definition: "Snowflake's default mechanism for skipping irrelevant micro-partitions based on metadata (min/max column values). SOS operates independently of this."
+    },
+    {
+      term: "Automatic Clustering",
+      definition: "A Snowflake service that keeps micro-partitions sorted on specified cluster keys, improving range-based query pruning. Separate from and complementary to SOS."
+    },
+    {
+      term: "Serverless Credits",
+      definition: "A compute model where Snowflake manages resources on your behalf. SOS maintenance is billed via serverless credits, not your virtual warehouse."
+    },
+    {
+      term: "Equality Predicate",
+      definition: "A WHERE clause condition using = or IN operators. This is the primary query type that SOS is optimised to accelerate."
+    },
+    {
+      term: "ILIKE",
+      definition: "Snowflake's case-insensitive pattern matching operator. SOS supports substring and pattern search using ILIKE and LIKE predicates on configured columns."
+    }
+  ]}
+/>
+
+---
+
+## Why SOS Exists: The Problem It Solves
+
+Standard Snowflake query performance relies on **micro-partition pruning** — Snowflake reads the min/max metadata for each micro-partition and skips those that cannot contain the desired values. This works exceptionally well for **range queries** and **sorted data**, but breaks down for random point lookups.
+
+Consider a table of 500 million customer records. If you query `WHERE customer_id = 'C-00019284'`, Snowflake must scan potentially thousands of micro-partitions because customer IDs are randomly distributed — no pruning is possible without a sort order on that column.
+
+The Search Optimisation Service solves this by building a **persistent search access path** — effectively a specialised index structure — that allows Snowflake to identify precisely which micro-partitions contain the target value, skipping the rest entirely.
+
+<YouTubeEmbed
+  client:load
+  videoId="NLTCDGhJDCA"
+  title="Snowflake Search Optimisation Service Deep Dive"
+  description="📹 Snowflake engineering walkthrough of the Search Optimisation Service architecture, supported predicate types, and performance benchmarks"
+/>
+
+---
+
+## How SOS Works Internally
+
+<Diagram
+  client:load
+  title="Search Optimisation Service Architecture"
+  description="Files arrive in a stage. Snowflake builds a persistent Search Access Path alongside table micro-partitions. When a point lookup query runs, SOS identifies qualifying micro-partitions, short-circuiting the standard full-partition scan. The warehouse then reads only the identified partitions."
+  altText="Architecture diagram showing table micro-partitions on the left, a Search Access Path structure in the centre built and maintained by serverless compute, and a query flow that bypasses unnecessary micro-partitions via the access path"
+/>
+
+The process works as follows:
+
+1. **Build Phase** — When SOS is enabled on a table, Snowflake's serverless background compute builds the initial search access path. This is a one-time build cost charged in serverless credits.
+2. **Maintenance Phase** — As DML operations (INSERT, UPDATE, DELETE, MERGE) change the table, Snowflake continuously and automatically updates the access path. Each update consumes additional serverless credits.
+3. **Query Phase** — When a qualifying query arrives (e.g. a `WHERE id = ?` predicate on an SOS-configured column), the query optimiser consults the access path to determine which micro-partitions are relevant. Only those partitions are read by the virtual warehouse.
+
+<CalloutBox type="important" title="SOS is Separate from Table Data">
+The search access path is stored separately from the table's micro-partitions. It consumes additional storage, which is billed at Snowflake's standard storage rates. Factor this into cost modelling alongside the serverless compute credits for maintenance.
+</CalloutBox>
+
+---
+
+## Supported Predicate Types
+
+SOS does not help every query type. The exam tests whether you know exactly which predicates benefit.
+
+<Diagram
+  client:load
+  title="SOS Supported vs Unsupported Predicates"
+  description="SOS accelerates: equality predicates (=), IN lists, ILIKE/LIKE substring search, and geospatial predicates (ST_WITHIN, ST_INTERSECTS). SOS does NOT help: range predicates alone (>, <, BETWEEN), full table scans, JOIN performance, aggregations, or queries already pruning well via clustering keys."
+  altText="Two-column diagram. Left column labelled Supported shows equality equals, IN lists, ILIKE pattern matching, and geospatial predicates. Right column labelled Not Supported shows range predicates, full scans, JOINs, and aggregate queries."
+/>
+
+### What SOS Accelerates
+
+| Predicate Type | Example | Notes |
+|---|---|---|
+| Equality | `WHERE id = 'ABC123'` | Most common use case |
+| IN list | `WHERE id IN ('A', 'B', 'C')` | Can include large IN lists |
+| Substring / pattern | `WHERE name ILIKE '%john%'` | Case-insensitive supported |
+| LIKE | `WHERE code LIKE 'UK-%'` | Prefix and wildcard patterns |
+| Geospatial | `ST_WITHIN(point, region)` | Requires GEOGRAPHY columns |
+
+### What SOS Does NOT Help
+
+- **Range predicates** alone: `WHERE created_at > '2024-01-01'` — clustering keys are better here
+- **Full table scans** with no selective predicate
+- **JOIN performance** — SOS does not accelerate join operations
+- **Aggregate queries**: `COUNT(*)`, `SUM()`, `AVG()` without selective filters
+- Queries that **already prune well** via clustering keys (SOS adds cost without benefit)
+
+<CalloutBox type="exam" title="Exam Trap: Range Predicates">
+The exam may present a scenario with a date range filter — e.g. `WHERE order_date BETWEEN '2024-01-01' AND '2024-03-31'` — and ask which feature helps most. The answer is **clustering keys**, not SOS. SOS is for point lookups, not ranges.
+</CalloutBox>
+
+---
+
+## Enabling Search Optimisation Service
+
+SOS requires **Snowflake Enterprise Edition or higher**. It cannot be used on Standard Edition accounts.
+
+### Method 1: Enable on All Columns (Full Table)
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Enable SOS on Entire Table"
+  code={`-- Enable Search Optimisation Service on all columns
+-- Snowflake determines which column types are supported
+ALTER TABLE customer_events
+  ADD SEARCH OPTIMIZATION;
+
+-- Verify configuration
+DESCRIBE SEARCH OPTIMIZATION ON TABLE customer_events;`}
+/>
+
+### Method 2: Enable on Specific Columns and Predicate Types
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Enable SOS on Specific Columns"
+  code={`-- Enable equality search on specific columns only
+ALTER TABLE customer_events
+  ADD SEARCH OPTIMIZATION ON
+    EQUALITY(customer_id, session_id, email)
+    SUBSTRING(full_name, description)
+    GEO(location_point);
+
+-- Remove SOS from specific columns without disabling entirely
+ALTER TABLE customer_events
+  DROP SEARCH OPTIMIZATION ON
+    EQUALITY(session_id);
+
+-- Remove SOS entirely from the table
+ALTER TABLE customer_events
+  DROP SEARCH OPTIMIZATION;`}
+/>
+
+### Monitoring SOS
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Monitoring Search Optimisation Service"
+  code={`-- Check SOS configuration and optimised columns
+DESCRIBE SEARCH OPTIMIZATION ON TABLE customer_events;
+
+-- View SOS build and maintenance history (serverless credit usage)
+SELECT *
+FROM TABLE(
+  INFORMATION_SCHEMA.SEARCH_OPTIMIZATION_HISTORY(
+    DATE_RANGE_START => DATEADD('day', -7, CURRENT_DATE()),
+    DATE_RANGE_END   => CURRENT_DATE()
+  )
+)
+ORDER BY start_time DESC;
+
+-- Confirm SOS is active on a table via SHOW TABLES
+SHOW TABLES LIKE 'customer_events';
+-- Look for the search_optimization_progress column (100 = fully built)`}
+/>
+
+<CalloutBox type="tip" title="Use Targeted Column Enablement">
+Enabling SOS on the entire table (`ADD SEARCH OPTIMIZATION` with no column list) can result in unnecessary storage and maintenance costs for columns that are never used in point lookups. Always prefer `ADD SEARCH OPTIMIZATION ON EQUALITY(col1, col2)` to target only the columns your queries actually filter on.
+</CalloutBox>
+
+---
+
+## Step-by-Step: Implementing SOS
+
+<StepByStep
+  client:load
+  title="Enabling Search Optimisation Service on a Table"
+  steps={[
+    {
+      title: "Confirm Enterprise Edition",
+      description: "SOS is only available on Enterprise Edition and above. Check your account edition before proceeding.",
+      code: "SELECT SYSTEM$BOOTSTRAP_DATA_REQUEST('ACCOUNT');",
+      tip: "You can also check your edition in Snowsight under Admin > Account."
+    },
+    {
+      title: "Identify High-Cardinality Point Lookup Columns",
+      description: "Analyse your query patterns. SOS benefits columns used in equality filters where data is not naturally clustered — e.g. UUID-based IDs, email addresses, phone numbers. Run EXPLAIN on slow queries to confirm full partition scans.",
+      code: "EXPLAIN SELECT * FROM orders WHERE order_uuid = '550e8400-e29b-41d4-a716-446655440000';",
+      tip: "Look for 'TableScan' with high partition counts in the EXPLAIN output. These are prime SOS candidates."
+    },
+    {
+      title: "Enable SOS on Target Columns",
+      description: "Use targeted column-level enablement to control costs. Specify the predicate types you actually use.",
+      code: "ALTER TABLE orders\n  ADD SEARCH OPTIMIZATION ON\n    EQUALITY(order_uuid, customer_id)\n    SUBSTRING(customer_name);",
+      tip: "Start with equality — it covers most point lookup use cases."
+    },
+    {
+      title: "Monitor the Build Progress",
+      description: "The initial build runs in the background via serverless compute. Track progress using SHOW TABLES.",
+      code: "SHOW TABLES LIKE 'orders';\n-- Check search_optimization_progress column (0-100)",
+      tip: "Large tables may take some time to fully index. Queries will progressively benefit as the build proceeds."
+    },
+    {
+      title: "Validate Query Improvement",
+      description: "Run your point lookup queries and compare query profiles before and after SOS enablement. Look for reduced 'Partitions scanned' in the Query Profile.",
+      tip: "In Snowsight Query Profile, compare 'Partitions scanned' vs 'Partitions total'. SOS should reduce the scanned count dramatically."
+    },
+    {
+      title: "Monitor Ongoing Costs",
+      description: "Query SEARCH_OPTIMIZATION_HISTORY regularly to track serverless credit consumption from maintenance operations as data changes.",
+      code: "SELECT SUM(credits_used) AS total_sos_credits\nFROM TABLE(\n  INFORMATION_SCHEMA.SEARCH_OPTIMIZATION_HISTORY(\n    DATE_RANGE_START => DATEADD('month', -1, CURRENT_DATE()),\n    DATE_RANGE_END   => CURRENT_DATE()\n  )\n);"
+    }
+  ]}
+/>
+
+---
+
+## SOS vs Clustering Keys vs Result Cache
+
+These three features are frequently compared on the exam. They are not mutually exclusive — tables can have both SOS and clustering keys simultaneously.
+
+<CompareTable
+  client:load
+  title="SOS vs Clustering Keys vs Result Cache"
+  leftLabel="Search Optimisation Service"
+  rightLabel="Clustering Keys"
+  rows={[
+    {
+      feature: "Best for",
+      left: "Point lookups (equality, IN, ILIKE)",
+      right: "Range scans (dates, numeric ranges, large sequential reads)",
+      winner: "none"
+    },
+    {
+      feature: "Edition required",
+      left: "Enterprise Edition+",
+      right: "Any edition (Automatic Clustering needs Enterprise+)",
+      winner: "right"
+    },
+    {
+      feature: "Setup cost",
+      left: "Serverless credits for initial build",
+      right: "Free to define; Automatic Clustering uses serverless credits",
+      winner: "none"
+    },
+    {
+      feature: "Ongoing maintenance cost",
+      left: "Serverless credits per DML change",
+      right: "Serverless credits (Automatic Clustering only)",
+      winner: "none"
+    },
+    {
+      feature: "Storage overhead",
+      left: "Additional storage for access path",
+      right: "Rewrites micro-partitions; storage similar",
+      winner: "none"
+    },
+    {
+      feature: "Query type benefited",
+      left: "Selective point lookups on any column",
+      right: "Queries filtering on cluster key columns (ranges)",
+      winner: "none"
+    },
+    {
+      feature: "Can be combined?",
+      left: "Yes — both can coexist on same table",
+      right: "Yes — both can coexist on same table",
+      winner: "none"
+    },
+    {
+      feature: "Requires data to be sorted?",
+      left: "No — works regardless of data order",
+      right: "Yes — effectiveness depends on data being clustered",
+      winner: "left"
+    }
+  ]}
+/>
+
+<CalloutBox type="info" title="Result Cache vs SOS">
+The **result cache** serves identical query results instantly (free, 24-hour TTL). It helps when the exact same query text is repeated. SOS helps when query **structure** is the same but **values differ** — e.g. looking up a different customer ID each time. These two features solve different problems and complement each other.
+</CalloutBox>
+
+---
+
+## Cost Breakdown
+
+<CalloutBox type="warning" title="SOS Has Two Distinct Cost Components">
+Many candidates overlook one of the two SOS cost components. The exam may test both:
+
+1. **Build cost** — A one-time serverless credit charge when SOS is first enabled and the initial access path is constructed.
+2. **Maintenance cost** — Ongoing serverless credits consumed each time the access path is updated due to DML changes (INSERTs, UPDATEs, DELETEs, MERGEs).
+
+Additionally, the search access path consumes **storage**, billed at standard Snowflake storage rates.
+
+Query execution itself still uses your **virtual warehouse** — SOS reduces the data scanned but does not eliminate warehouse usage entirely.
+</CalloutBox>
+
+---
+
+## CheatSheet: Search Optimisation Service
+
+<CheatSheet
+  client:load
+  title="Search Optimisation Service — COF-C02 Cheat Sheet"
+  sections={[
+    {
+      title: "Edition & Requirements",
+      icon: "🏢",
+      items: [
+        { label: "Minimum edition", value: "Enterprise Edition", note: "Not available on Standard" },
+        { label: "Setup command", value: "ALTER TABLE t ADD SEARCH OPTIMIZATION", note: "Enables on all supported columns" },
+        { label: "Targeted setup", value: "ADD SEARCH OPTIMIZATION ON EQUALITY(col)", note: "Preferred for cost control" },
+        { label: "Remove SOS", value: "ALTER TABLE t DROP SEARCH OPTIMIZATION", note: "Removes all access paths" }
+      ]
+    },
+    {
+      title: "Supported Predicates",
+      icon: "✅",
+      items: [
+        { label: "Equality", value: "WHERE col = 'value'", note: "Most common use case" },
+        { label: "IN list", value: "WHERE col IN ('a', 'b', 'c')", note: "Works for large lists too" },
+        { label: "Substring", value: "WHERE col ILIKE '%pattern%'", note: "Case-insensitive supported" },
+        { label: "Geospatial", value: "ST_WITHIN, ST_INTERSECTS", note: "Requires GEOGRAPHY column type" }
+      ]
+    },
+    {
+      title: "NOT Supported",
+      icon: "❌",
+      items: [
+        { label: "Range predicates alone", value: "WHERE date > '2024-01-01'", note: "Use clustering keys instead" },
+        { label: "Full table scans", value: "SELECT * FROM t (no filter)", note: "No selective predicate" },
+        { label: "JOINs", value: "JOIN performance", note: "SOS does not help JOINs" },
+        { label: "Aggregations", value: "COUNT, SUM, AVG", note: "Without selective filter" }
+      ]
+    },
+    {
+      title: "Cost Components",
+      icon: "💰",
+      items: [
+        { label: "Build cost", value: "One-time serverless credits", note: "Charged when SOS first enabled" },
+        { label: "Maintenance cost", value: "Ongoing serverless credits", note: "Per DML change to table" },
+        { label: "Storage", value: "Additional storage billed", note: "Access path stored separately" },
+        { label: "Query cost", value: "Still uses virtual warehouse", note: "Less data scanned = lower cost" }
+      ]
+    },
+    {
+      title: "Monitoring Commands",
+      icon: "📊",
+      items: [
+        { label: "View config", value: "DESCRIBE SEARCH OPTIMIZATION ON TABLE t", note: "Shows optimised columns" },
+        { label: "Credit history", value: "INFORMATION_SCHEMA.SEARCH_OPTIMIZATION_HISTORY", note: "Serverless credit usage" },
+        { label: "Build progress", value: "SHOW TABLES LIKE 't'", note: "search_optimization_progress column" }
+      ]
+    },
+    {
+      title: "SOS vs Other Features",
+      icon: "⚖️",
+      items: [
+        { label: "SOS vs Clustering", value: "SOS=point lookups, Clustering=range scans", note: "Can use both simultaneously" },
+        { label: "SOS vs Result Cache", value: "SOS helps varied values, Cache helps identical queries", note: "Complementary features" },
+        { label: "SOS vs Pruning", value: "SOS independent of micro-partition pruning", note: "Both active simultaneously" }
+      ]
+    }
+  ]}
+/>
+
+---
+
+## Flashcards: Search Optimisation Service
+
+<Flashcard
+  client:load
+  category="Search Optimisation Service"
+  question="Which Snowflake edition is required to use the Search Optimisation Service?"
+  answer="Enterprise Edition or higher. SOS is not available on Standard Edition accounts."
+/>
+
+<Flashcard
+  client:load
+  category="Search Optimisation Service"
+  question="What are the two cost components of the Search Optimisation Service?"
+  answer="1. Build cost — one-time serverless credits to construct the initial search access path. 2. Maintenance cost — ongoing serverless credits consumed each time DML changes (INSERTs, UPDATEs, DELETEs) update the access path. Storage for the access path is also billed separately."
+/>
+
+<Flashcard
+  client:load
+  category="Search Optimisation Service"
+  question="A query uses WHERE order_date BETWEEN '2024-01-01' AND '2024-03-31'. Will SOS help this query?"
+  answer="No. SOS does not accelerate range predicates. For date range queries, clustering keys (or Automatic Clustering) are the appropriate feature. SOS is designed for equality predicates, IN lists, and substring pattern matching."
+/>
+
+<Flashcard
+  client:load
+  category="Search Optimisation Service"
+  question="What SQL command removes SOS from a specific column without disabling it on the whole table?"
+  answer="ALTER TABLE t DROP SEARCH OPTIMIZATION ON EQUALITY(column_name); — This removes the access path for the specified predicate type and column while leaving SOS active on other columns."
+/>
+
+<Flashcard
+  client:load
+  category="Search Optimisation Service"
+  question="Can a table have both Search Optimisation Service and Clustering Keys enabled at the same time?"
+  answer="Yes. SOS and clustering keys are complementary and can coexist on the same table. Clustering helps range queries; SOS helps point lookups. Using both together allows the table to efficiently serve both query patterns."
+/>
+
+---
+
+## Knowledge Check: Quiz
+
+<Quiz
+  client:load
+  category="Search Optimisation Service"
+  question="A data analyst frequently runs queries like: SELECT * FROM users WHERE email = 'user@example.com'; The users table has 800 million rows and email values are randomly distributed. Which feature would most improve this query's performance?"
+  options={[
+    { label: "A", text: "Adding a clustering key on the email column" },
+    { label: "B", text: "Enabling Search Optimisation Service on the email column with EQUALITY" },
+    { label: "C", text: "Increasing the virtual warehouse size" },
+    { label: "D", text: "Enabling the result cache" }
+  ]}
+  correct="B"
+  explanation="This is a classic point lookup query on a high-cardinality, randomly distributed column. SOS with EQUALITY(email) builds a search access path that identifies exactly which micro-partitions contain the target email, eliminating the need to scan all 800 million rows. Clustering keys would help range queries but not random equality lookups. Increasing warehouse size speeds processing but doesn't reduce data scanned. The result cache only helps if the identical query (same email value) is repeated."
+/>
+
+<Quiz
+  client:load
+  category="Search Optimisation Service"
+  question="Which of the following queries would NOT benefit from Search Optimisation Service?"
+  options={[
+    { label: "A", text: "SELECT * FROM products WHERE product_id IN ('P001', 'P002', 'P003')" },
+    { label: "B", text: "SELECT * FROM customers WHERE name ILIKE '%smith%'" },
+    { label: "C", text: "SELECT COUNT(*) FROM orders WHERE created_at > '2024-06-01'" },
+    { label: "D", text: "SELECT * FROM sessions WHERE session_id = 'abc-123-def'" }
+  ]}
+  correct="C"
+  explanation="The COUNT(*) query with a range predicate (created_at >) would NOT benefit from SOS. SOS does not accelerate range predicates or aggregate queries. The appropriate feature for date range queries is clustering keys. Options A (IN list), B (ILIKE substring), and D (equality) are all predicate types that SOS is specifically designed to accelerate."
+/>
+
+<Quiz
+  client:load
+  category="Search Optimisation Service"
+  question="A Snowflake architect enables Search Optimisation Service on a large table that receives millions of INSERT and DELETE operations per day. Which cost concern should they flag with stakeholders?"
+  options={[
+    { label: "A", text: "SOS will block INSERT operations until the access path is updated" },
+    { label: "B", text: "The ongoing maintenance cost in serverless credits may be significant due to frequent DML" },
+    { label: "C", text: "The virtual warehouse must be suspended before SOS can update the access path" },
+    { label: "D", text: "SOS cannot be enabled on tables that receive DML operations" }
+  ]}
+  correct="B"
+  explanation="SOS maintenance is driven by DML activity — every INSERT, UPDATE, DELETE, and MERGE triggers background updates to the search access path, each consuming serverless credits. On a table with millions of daily DML operations, this maintenance cost can be substantial. SOS does not block DML operations (A is false). Warehouses do not need to be suspended (C is false). SOS works fine on tables that receive DML (D is false) — that is precisely when maintenance costs arise."
+/>
+
+---
+
+## Summary
+
+The Search Optimisation Service fills a specific gap in Snowflake's performance toolkit. When your workload includes frequent point lookups on high-cardinality, randomly distributed columns — and clustering keys cannot help — SOS delivers dramatic performance improvements by short-circuiting partition scanning.
+
+The key exam takeaways are:
+
+- **Edition**: Enterprise Edition or higher required
+- **Use case**: Point lookups — equality, IN lists, ILIKE, geospatial
+- **Not for**: Range predicates, JOINs, aggregations, or full table scans
+- **Costs**: Build cost (one-time) + maintenance cost (ongoing, per DML) + storage
+- **Monitoring**: `DESCRIBE SEARCH OPTIMIZATION ON TABLE t` and `SEARCH_OPTIMIZATION_HISTORY`
+- **SOS vs Clustering**: Complementary, not competitive — can use both simultaneously
+- **SOS vs Result Cache**: Different problems — varied values vs identical queries
+
+<CalloutBox type="exam" title="Final Exam Reminder">
+Remember the three-way comparison: **Result Cache** (identical queries, free, 24h TTL) vs **Clustering Keys** (range scans, any edition) vs **SOS** (point lookups, Enterprise+, serverless credit cost). If you see a scenario asking which feature helps a `WHERE id = ?` query on a 500-million row table with no natural sort order — the answer is SOS.
+</CalloutBox>

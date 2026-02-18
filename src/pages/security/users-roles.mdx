@@ -1,0 +1,781 @@
+---
+layout: ../../layouts/CourseLayout.astro
+title: "User & Role Management"
+description: "Master Snowflake user creation, system roles, role hierarchy, privilege grants, and future grants for the COF-C02 exam."
+moduleId: "user-management"
+domain: "Security"
+---
+
+import Flashcard from '../../components/Flashcard.tsx';
+import CodeBlock from '../../components/CodeBlock.tsx';
+import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
+import Diagram from '../../components/Diagram.tsx';
+import CalloutBox from '../../components/CalloutBox.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import CompareTable from '../../components/CompareTable.tsx';
+import KeyTerms from '../../components/KeyTerms.tsx';
+import StepByStep from '../../components/StepByStep.tsx';
+import CheatSheet from '../../components/CheatSheet.tsx';
+
+# User & Role Management
+
+Snowflake's access control model is built on a **role-based access control (RBAC)** framework. Users are granted roles, roles hold privileges, and roles can be granted to other roles to form a hierarchy. Understanding the system roles, their responsibilities, and how to configure users correctly is one of the most heavily tested areas of the COF-C02 exam.
+
+<CalloutBox client:load type="exam" title="Exam Domain Coverage">
+This module covers the **Account Access & Security** domain of the COF-C02 exam. Expect 4–6 questions on system role responsibilities, the role hierarchy, user creation properties, future grants, and ACCOUNTADMIN best practices. This is consistently one of the highest-yield security topics.
+</CalloutBox>
+
+---
+
+## 1. Creating Users
+
+Users in Snowflake are created with the `CREATE USER` statement. Only the **login name** (which defaults to the user name) is required — all other properties are optional but important to understand for the exam.
+
+<CodeBlock client:load
+  language="sql"
+  title="CREATE USER — Full Syntax with All Key Properties"
+  code={`-- Minimum viable user creation (name is the only mandatory element)
+CREATE USER analyst_jane;
+
+-- Full user creation with all commonly tested properties
+CREATE USER analyst_jane
+    PASSWORD             = 'InitialPassword123!'   -- Login password (hashed, never readable)
+    LOGIN_NAME           = 'jane.smith@company.com' -- What the user types at login (defaults to user name)
+    DISPLAY_NAME         = 'Jane Smith'             -- Name shown in Snowsight UI
+    EMAIL                = 'jane.smith@company.com' -- Email address (used for notifications)
+    DEFAULT_ROLE         = analyst_role             -- Active role when Jane connects
+    DEFAULT_WAREHOUSE    = analytics_wh             -- Warehouse used for queries by default
+    DEFAULT_NAMESPACE    = analytics_db.public      -- Default database.schema context
+    MUST_CHANGE_PASSWORD = TRUE                     -- Forces password reset on first login
+    DISABLED             = FALSE                    -- TRUE = user cannot log in at all
+    COMMENT              = 'Analytics team member';
+
+-- Verify the user was created
+SHOW USERS LIKE 'ANALYST_JANE';
+
+-- Get detailed information about a specific user
+DESCRIBE USER analyst_jane;`}
+/>
+
+<CalloutBox client:load type="tip" title="LOGIN_NAME vs User Name">
+The **user name** (the identifier used in SQL like `GRANT ROLE ... TO USER analyst_jane`) and the **LOGIN_NAME** (what the user types at the login screen) are two different things. By default they are the same, but you can set LOGIN_NAME to an email address while keeping the SQL identifier shorter. This distinction is tested in the exam.
+</CalloutBox>
+
+### Altering and Managing Existing Users
+
+<CodeBlock client:load
+  language="sql"
+  title="ALTER USER — Modifying User Properties"
+  code={`-- Change a user's default role
+ALTER USER analyst_jane SET DEFAULT_ROLE = senior_analyst_role;
+
+-- Reset a user's password and force change on next login
+ALTER USER analyst_jane SET
+    PASSWORD             = 'TemporaryReset456!'
+    MUST_CHANGE_PASSWORD = TRUE;
+
+-- Disable a user account (prevents login without dropping the user)
+ALTER USER analyst_jane SET DISABLED = TRUE;
+
+-- Re-enable a disabled user
+ALTER USER analyst_jane SET DISABLED = FALSE;
+
+-- Remove a property (reset to null/default)
+ALTER USER analyst_jane UNSET EMAIL;
+
+-- Change the default warehouse
+ALTER USER analyst_jane SET DEFAULT_WAREHOUSE = 'reporting_wh';
+
+-- Change the default namespace (database.schema)
+ALTER USER analyst_jane SET DEFAULT_NAMESPACE = 'sales_db.public';
+
+-- Drop a user permanently
+DROP USER analyst_jane;
+
+-- List all users in the account (requires SECURITYADMIN or ACCOUNTADMIN)
+SHOW USERS;
+
+-- Filter users with a pattern
+SHOW USERS LIKE '%analyst%';`}
+/>
+
+<CalloutBox client:load type="warning" title="Who Can Create and Alter Users?">
+By default, only **SECURITYADMIN** and **ACCOUNTADMIN** can create, alter, and drop users. The **USERADMIN** system role can also create and manage users and roles — that is its specific purpose. Custom roles can be granted the `CREATE USER` privilege on the account, but this is less common.
+</CalloutBox>
+
+---
+
+## 2. System Roles
+
+Snowflake provides five **system-defined roles** that exist in every Snowflake account. These roles form the foundation of the role hierarchy and have specific, non-configurable responsibilities. Memorising each role's purpose is essential for the COF-C02 exam.
+
+<YouTubeEmbed client:load
+  videoId="PWbzL8RDMqI"
+  title="Snowflake System Roles & Role Hierarchy Explained"
+  description="A complete walkthrough of all five Snowflake system roles — ACCOUNTADMIN, SYSADMIN, SECURITYADMIN, USERADMIN, and PUBLIC — their specific responsibilities, the role hierarchy they form, and best practices for enterprise deployments. Essential viewing for the COF-C02 security domain."
+/>
+
+<Diagram client:load
+  title="Snowflake System Role Hierarchy"
+  description="The five system roles form a hierarchy where higher roles inherit all privileges of the roles below them. ACCOUNTADMIN sits at the top and inherits from both SYSADMIN and SECURITYADMIN. SECURITYADMIN inherits from USERADMIN. PUBLIC is granted to every user automatically. Custom roles should be created under SYSADMIN to ensure their objects are manageable by the organisation."
+  altText="Tree diagram: ACCOUNTADMIN at top, with arrows showing inheritance from SYSADMIN and SECURITYADMIN. SECURITYADMIN has an arrow from USERADMIN. PUBLIC sits separately as a role granted to all users. A separate branch shows CUSTOM_ROLE granted to SYSADMIN as per best practice."
+/>
+
+### The Five System Roles in Detail
+
+<CalloutBox client:load type="important" title="ACCOUNTADMIN — The Highest Privilege Role">
+**ACCOUNTADMIN** is the top-level role in Snowflake. It combines the privileges of SYSADMIN and SECURITYADMIN and adds account-level administration capabilities that no other role has. Responsibilities include: viewing and managing billing and usage data, creating and managing resource monitors, managing account parameters, managing network policies, viewing the SNOWFLAKE database (account usage views), and performing all operations available to SYSADMIN and SECURITYADMIN.
+</CalloutBox>
+
+<CalloutBox client:load type="info" title="SYSADMIN — Database & Warehouse Management">
+**SYSADMIN** is granted the ability to create and manage all **database objects** — databases, schemas, tables, views, stages, file formats, pipes, tasks, warehouses, and sequences. It is the appropriate role for day-to-day object management in most organisations. By convention, custom roles are granted to SYSADMIN so that SYSADMIN can manage objects owned by those custom roles.
+</CalloutBox>
+
+<CalloutBox client:load type="info" title="SECURITYADMIN — Access Control Management">
+**SECURITYADMIN** manages **users, roles, and grants** across the account. It inherits all USERADMIN privileges and additionally has the ability to manage grants on any object in the account (it holds the MANAGE GRANTS privilege). Use SECURITYADMIN when you need to grant or revoke privileges on objects without being ACCOUNTADMIN.
+</CalloutBox>
+
+<CalloutBox client:load type="info" title="USERADMIN — User and Role Creation Only">
+**USERADMIN** can **create and manage users and roles** only. It does not have the ability to manage grants, create databases, or manage warehouses. It is a limited-privilege role suitable for delegating user provisioning to an IT team without giving them full security administration capabilities.
+</CalloutBox>
+
+<CalloutBox client:load type="note" title="PUBLIC — The Default Role for All Users">
+**PUBLIC** is automatically granted to every user in the account. By default it has no privileges, but you can grant privileges to PUBLIC to make them available to all users. Objects created by PUBLIC are accessible to all users. In practice, avoid granting meaningful privileges to PUBLIC to maintain least-privilege security.
+</CalloutBox>
+
+---
+
+## 3. System Role Comparison
+
+<CompareTable client:load
+  title="System Roles: Capability Comparison"
+  leftLabel="Can Do"
+  rightLabel="Cannot Do"
+  rows={[
+    {
+      feature: "ACCOUNTADMIN",
+      left: "Everything: billing, usage data, account params, network policies, resource monitors, all SYSADMIN + SECURITYADMIN actions",
+      right: "Nothing is restricted for ACCOUNTADMIN within the account",
+      winner: "none"
+    },
+    {
+      feature: "SYSADMIN",
+      left: "Create/manage databases, schemas, tables, views, warehouses, stages, pipes, tasks, sequences",
+      right: "Cannot manage users, roles, or grants. Cannot view billing data or manage account-level settings.",
+      winner: "none"
+    },
+    {
+      feature: "SECURITYADMIN",
+      left: "Create/manage users and roles, manage grants on any object (MANAGE GRANTS privilege), all USERADMIN actions",
+      right: "Cannot create databases, warehouses, or other database objects. Cannot view billing data.",
+      winner: "none"
+    },
+    {
+      feature: "USERADMIN",
+      left: "Create and manage users (CREATE USER), create and manage roles (CREATE ROLE)",
+      right: "Cannot manage grants. Cannot create databases, warehouses. Cannot view other users' roles without explicit grant.",
+      winner: "none"
+    },
+    {
+      feature: "PUBLIC",
+      left: "Log in and execute queries (if granted warehouse usage). Can own objects created under this role.",
+      right: "Has no default privileges on any data objects. Cannot create databases or warehouses.",
+      winner: "none"
+    }
+  ]}
+/>
+
+---
+
+## 4. Role Hierarchy and Privilege Inheritance
+
+Snowflake's RBAC model supports **role hierarchies** — a role can be granted to another role, causing the parent role to **inherit all privileges** of the child role. This is how Snowflake's system roles are structured, and it is the recommended pattern for custom roles as well.
+
+<Diagram client:load
+  title="Custom Role Hierarchy — Best Practice Pattern"
+  description="Custom roles should be created beneath SYSADMIN in the role hierarchy. Each functional team gets a custom role (e.g., analytics_role, data_engineer_role). These custom roles own their respective database objects and are granted to users. All custom roles roll up to SYSADMIN, ensuring SYSADMIN can always manage objects owned by those roles. This prevents orphaned objects that only ACCOUNTADMIN can manage."
+  altText="Hierarchy diagram: ACCOUNTADMIN at top → SYSADMIN → analytics_role, data_engineer_role, reporting_role (all as children of SYSADMIN). Users jane, bob, and carol are granted their respective custom roles. Arrows show privilege inheritance flowing upward."
+/>
+
+<CodeBlock client:load
+  language="sql"
+  title="Building a Role Hierarchy — Complete Example"
+  code={`-- Step 1: Create custom roles (use SECURITYADMIN or ACCOUNTADMIN)
+USE ROLE securityadmin;
+
+CREATE ROLE analytics_role    COMMENT = 'Read access to analytics database';
+CREATE ROLE data_engineer_role COMMENT = 'Write access to staging and transformation schemas';
+CREATE ROLE reporting_role    COMMENT = 'Read-only access to reporting views';
+
+-- Step 2: Roll custom roles up to SYSADMIN (best practice)
+-- This ensures SYSADMIN can manage objects owned by these roles
+GRANT ROLE analytics_role     TO ROLE sysadmin;
+GRANT ROLE data_engineer_role TO ROLE sysadmin;
+GRANT ROLE reporting_role     TO ROLE sysadmin;
+
+-- Step 3: Grant object privileges to the custom roles
+USE ROLE sysadmin;
+
+-- Grant warehouse usage
+GRANT USAGE ON WAREHOUSE analytics_wh TO ROLE analytics_role;
+GRANT USAGE ON WAREHOUSE analytics_wh TO ROLE data_engineer_role;
+
+-- Grant database/schema access
+GRANT USAGE ON DATABASE analytics_db TO ROLE analytics_role;
+GRANT USAGE ON SCHEMA analytics_db.public TO ROLE analytics_role;
+
+-- Grant table-level privileges
+GRANT SELECT ON ALL TABLES IN SCHEMA analytics_db.public TO ROLE analytics_role;
+GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA analytics_db.staging TO ROLE data_engineer_role;
+
+-- Step 4: Assign custom roles to users
+USE ROLE securityadmin;
+
+GRANT ROLE analytics_role     TO USER analyst_jane;
+GRANT ROLE data_engineer_role TO USER engineer_bob;
+GRANT ROLE reporting_role     TO USER manager_carol;
+
+-- Grant a role to another role (inheritance)
+-- reporting_role will inherit all privileges of analytics_role
+GRANT ROLE analytics_role TO ROLE reporting_role;
+
+-- Verify the hierarchy
+SHOW GRANTS OF ROLE analytics_role;  -- Who has this role?
+SHOW GRANTS TO ROLE analytics_role;  -- What does this role have?`}
+/>
+
+<CalloutBox client:load type="exam" title="Exam Tip: GRANT ROLE TO ROLE vs GRANT ROLE TO USER">
+The exam tests the difference between these two patterns:
+- `GRANT ROLE child_role TO ROLE parent_role` — creates a **role hierarchy** (parent inherits child's privileges)
+- `GRANT ROLE my_role TO USER jane` — **assigns** a role to a specific user
+
+When rolling custom roles up to SYSADMIN, you always use `GRANT ROLE custom_role TO ROLE sysadmin`.
+</CalloutBox>
+
+---
+
+## 5. Creating and Managing Custom Roles
+
+<StepByStep client:load
+  title="Setting Up a Complete Custom Role for a New Team"
+  steps={[
+    {
+      title: "Plan the role's scope and naming convention",
+      description: "Before creating any roles, define what database objects the team needs to access, what operations they need to perform (SELECT, INSERT, etc.), and establish a consistent naming convention (e.g., <team>_<access_level>_role).",
+      tip: "Good naming: analytics_read_role, etl_write_role. Poor naming: role1, my_role. Consistent naming makes SHOW ROLES output much easier to audit."
+    },
+    {
+      title: "Create the role as SECURITYADMIN",
+      description: "Switch to SECURITYADMIN to create the role. Include a COMMENT to document its purpose — this is visible in SHOW ROLES and INFORMATION_SCHEMA.APPLICABLE_ROLES.",
+      code: `USE ROLE securityadmin;
+CREATE ROLE analytics_read_role
+    COMMENT = 'Read-only access to analytics_db for the Analytics team';`,
+      tip: "Always add a COMMENT. Without it, role audits become very difficult in large accounts with dozens of roles."
+    },
+    {
+      title: "Roll the role up to SYSADMIN",
+      description: "Grant the new role to SYSADMIN. This is the single most important best practice — it ensures SYSADMIN can always manage objects owned by this role, preventing orphaned objects.",
+      code: "GRANT ROLE analytics_read_role TO ROLE sysadmin;",
+      tip: "If you forget this step and the role creates a table, only ACCOUNTADMIN will be able to manage that table — SYSADMIN cannot. This is a common exam scenario."
+    },
+    {
+      title: "Grant object privileges to the role",
+      description: "Switch to SYSADMIN to grant object-level privileges. You need to grant USAGE on the database, USAGE on the schema, and then SELECT on tables. All three are required for a user to query a table.",
+      code: `USE ROLE sysadmin;
+
+-- Database access (required first)
+GRANT USAGE ON DATABASE analytics_db TO ROLE analytics_read_role;
+
+-- Schema access (required second)
+GRANT USAGE ON SCHEMA analytics_db.public TO ROLE analytics_read_role;
+
+-- Table privileges
+GRANT SELECT ON ALL TABLES IN SCHEMA analytics_db.public TO ROLE analytics_read_role;
+
+-- Warehouse access (required to execute queries)
+GRANT USAGE ON WAREHOUSE analytics_wh TO ROLE analytics_read_role;`,
+      tip: "Forgetting USAGE on the database or schema is a very common mistake. A user can have SELECT on a table but still get 'Object does not exist' errors if schema or database USAGE is missing."
+    },
+    {
+      title: "Set up future grants so new tables are automatically covered",
+      description: "The privileges granted in step 4 only apply to EXISTING tables. Use GRANT ... ON FUTURE TABLES to automatically grant SELECT on any tables created in this schema in the future.",
+      code: `GRANT SELECT ON FUTURE TABLES IN SCHEMA analytics_db.public
+    TO ROLE analytics_read_role;`,
+      tip: "Future grants are one of the most important privilege management tools in Snowflake. Without them, every new table requires a manual re-grant."
+    },
+    {
+      title: "Assign the role to users and set as default",
+      description: "Switch back to SECURITYADMIN to assign the role to users. Optionally set it as each user's default role if it is their primary role.",
+      code: `USE ROLE securityadmin;
+
+GRANT ROLE analytics_read_role TO USER analyst_jane;
+GRANT ROLE analytics_read_role TO USER analyst_mike;
+
+-- Set as default role for Jane
+ALTER USER analyst_jane SET DEFAULT_ROLE = analytics_read_role;`,
+      tip: "A user can be granted multiple roles. The DEFAULT_ROLE is the active role when they connect. They can switch roles during a session with USE ROLE."
+    }
+  ]}
+/>
+
+---
+
+## 6. Default Roles and Role Switching
+
+Every user has a **default role** — the role that becomes active when they establish a new Snowflake connection. Users can hold multiple roles and switch between them during a session.
+
+<CodeBlock client:load
+  language="sql"
+  title="Working with Default Roles and Role Switching"
+  code={`-- Check the current active role in a session
+SELECT CURRENT_ROLE();     -- Returns the active role name as a string
+SELECT CURRENT_USER();     -- Returns the current user name
+
+-- Switch to a different role mid-session
+USE ROLE sysadmin;
+USE ROLE analytics_read_role;
+USE ROLE accountadmin;    -- Only works if the user has been granted ACCOUNTADMIN
+
+-- Set a user's default role (the role active on connection)
+ALTER USER analyst_jane SET DEFAULT_ROLE = analytics_read_role;
+
+-- Check all roles granted to a specific user
+SHOW GRANTS TO USER analyst_jane;
+
+-- Check what privileges a specific role has
+SHOW GRANTS TO ROLE analytics_read_role;
+
+-- Check who has been granted a specific role
+SHOW GRANTS OF ROLE analytics_read_role;
+
+-- Check all grants on a specific object
+SHOW GRANTS ON TABLE analytics_db.public.sales;
+SHOW GRANTS ON DATABASE analytics_db;
+SHOW GRANTS ON WAREHOUSE analytics_wh;`}
+/>
+
+<CalloutBox client:load type="tip" title="CURRENT_ROLE() in Queries">
+`CURRENT_ROLE()` is a useful context function you can embed in queries for auditing and row-level security policies. For example, you can use it in a row access policy expression: `CURRENT_ROLE() = 'ANALYTICS_READ_ROLE'` to restrict rows based on the active session role.
+</CalloutBox>
+
+---
+
+## 7. ACCOUNTADMIN Best Practices
+
+ACCOUNTADMIN is the most powerful role in Snowflake. Misusing it is a significant security risk. Snowflake and the COF-C02 exam both emphasise specific best practices for managing ACCOUNTADMIN access.
+
+<Diagram client:load
+  title="ACCOUNTADMIN Security Best Practices"
+  description="The ACCOUNTADMIN role should be held by a minimum of two users (to avoid account lockout if one user is unavailable), never set as anyone's default role, always protected with multi-factor authentication, and used only for specific administrative tasks — never for day-to-day query work. Operational work should be performed with SYSADMIN, SECURITYADMIN, or a custom role."
+  altText="Diagram showing ACCOUNTADMIN with four best-practice annotations: '2+ users assigned', 'Never set as DEFAULT_ROLE', 'Always use MFA', 'Use only for admin tasks — not daily queries'. A crossed-out icon shows a developer running SELECT queries as ACCOUNTADMIN, labelled as bad practice."
+/>
+
+<CalloutBox client:load type="warning" title="ACCOUNTADMIN Best Practices — Exam Critical">
+The COF-C02 exam frequently tests ACCOUNTADMIN best practices. Memorise all four:
+
+1. **Assign ACCOUNTADMIN to at least 2 users** — if the sole ACCOUNTADMIN user is unavailable (forgotten password, employee departure), the account becomes unmanageable. Snowflake recommends a minimum of 2.
+2. **Never set ACCOUNTADMIN as a user's DEFAULT_ROLE** — it should only be used when specifically needed for administrative tasks. Day-to-day connections should use a less-privileged default role.
+3. **Enable MFA (Multi-Factor Authentication) for all ACCOUNTADMIN users** — ACCOUNTADMIN can access billing data, modify account parameters, and perform destructive operations. MFA is a critical security control.
+4. **Restrict ACCOUNTADMIN to the most trusted personnel only** — typically limited to senior DBAs, security administrators, or a dedicated service account for automation.
+</CalloutBox>
+
+<CodeBlock client:load
+  language="sql"
+  title="ACCOUNTADMIN Access Management"
+  code={`-- Grant ACCOUNTADMIN to a second administrator (requires existing ACCOUNTADMIN session)
+USE ROLE accountadmin;
+GRANT ROLE accountadmin TO USER admin_bob;
+
+-- Verify who currently has ACCOUNTADMIN
+SHOW GRANTS OF ROLE accountadmin;
+
+-- Verify a user's default role is NOT accountadmin
+DESCRIBE USER admin_bob;
+-- Check the "default_role" property in the output
+
+-- Ensure ACCOUNTADMIN is never someone's default role
+-- If it is, correct it immediately:
+ALTER USER admin_bob SET DEFAULT_ROLE = sysadmin;
+
+-- Enforce MFA policy (typically via network policy or Snowflake's MFA enrollment)
+-- Check MFA status for users (requires ACCOUNTADMIN)
+SELECT
+    name,
+    login_name,
+    default_role,
+    has_mfa,         -- Shows whether MFA is enrolled
+    disabled
+FROM SNOWFLAKE.ACCOUNT_USAGE.USERS
+WHERE default_role = 'ACCOUNTADMIN';
+-- If any rows are returned, those users have ACCOUNTADMIN as their default — fix this!`}
+/>
+
+---
+
+## 8. Future Grants
+
+**Future grants** are one of the most powerful privilege management tools in Snowflake. They automatically apply a privilege to all objects of a given type that are created in the future within a specified scope (schema or database).
+
+Without future grants, every time a new table, view, or other object is created, a DBA must manually grant privileges to the relevant roles. Future grants eliminate this operational burden.
+
+<CodeBlock client:load
+  language="sql"
+  title="Future Grants — Complete Reference"
+  code={`-- Grant SELECT on all future tables in a schema
+GRANT SELECT ON FUTURE TABLES IN SCHEMA analytics_db.public
+    TO ROLE analytics_read_role;
+
+-- Grant SELECT on all future tables in an entire database
+GRANT SELECT ON FUTURE TABLES IN DATABASE analytics_db
+    TO ROLE analytics_read_role;
+
+-- Grant multiple privileges as future grants
+GRANT SELECT, INSERT ON FUTURE TABLES IN SCHEMA analytics_db.staging
+    TO ROLE data_engineer_role;
+
+-- Future grants work for other object types too:
+GRANT USAGE ON FUTURE SCHEMAS IN DATABASE analytics_db
+    TO ROLE analytics_read_role;
+
+GRANT SELECT ON FUTURE VIEWS IN SCHEMA analytics_db.public
+    TO ROLE reporting_role;
+
+GRANT ALL ON FUTURE SEQUENCES IN SCHEMA analytics_db.public
+    TO ROLE data_engineer_role;
+
+-- View all future grants in a schema
+SHOW FUTURE GRANTS IN SCHEMA analytics_db.public;
+
+-- View all future grants in a database
+SHOW FUTURE GRANTS IN DATABASE analytics_db;
+
+-- Revoke a future grant
+REVOKE SELECT ON FUTURE TABLES IN SCHEMA analytics_db.public
+    FROM ROLE analytics_read_role;
+
+-- IMPORTANT: Future grants do NOT retroactively apply to existing objects.
+-- To grant on existing objects + future objects, run both:
+GRANT SELECT ON ALL TABLES IN SCHEMA analytics_db.public TO ROLE analytics_read_role;
+GRANT SELECT ON FUTURE TABLES IN SCHEMA analytics_db.public TO ROLE analytics_read_role;`}
+/>
+
+<CalloutBox client:load type="exam" title="Critical Exam Point: Future Grants Are Not Retroactive">
+Future grants apply **only to objects created after the grant statement runs**. They do NOT apply to objects that already exist at the time the future grant is executed. To cover both existing and future objects, you must run two separate grant statements: one with `ON ALL TABLES` (for existing) and one with `ON FUTURE TABLES` (for future). This distinction is a common exam trap.
+</CalloutBox>
+
+---
+
+## 9. SHOW GRANTS — Auditing Privileges
+
+Snowflake provides multiple `SHOW GRANTS` variants for auditing who has what access across the account. These are critical for security audits and are tested in the exam.
+
+<CodeBlock client:load
+  language="sql"
+  title="SHOW GRANTS — All Variants"
+  code={`-- Show all privileges granted TO a specific role
+-- (what can this role do?)
+SHOW GRANTS TO ROLE analytics_read_role;
+
+-- Show all roles granted OF a specific role
+-- (who holds this role? Users and parent roles)
+SHOW GRANTS OF ROLE analytics_read_role;
+
+-- Show all privileges granted TO a specific user
+-- (what roles does this user have?)
+SHOW GRANTS TO USER analyst_jane;
+
+-- Show all privileges granted ON a specific object
+-- (who has access to this table?)
+SHOW GRANTS ON TABLE analytics_db.public.sales;
+SHOW GRANTS ON DATABASE analytics_db;
+SHOW GRANTS ON SCHEMA analytics_db.public;
+SHOW GRANTS ON WAREHOUSE analytics_wh;
+SHOW GRANTS ON VIEW analytics_db.public.sales_summary;
+
+-- Show all future grants in a schema or database
+SHOW FUTURE GRANTS IN SCHEMA analytics_db.public;
+SHOW FUTURE GRANTS IN DATABASE analytics_db;
+
+-- Comprehensive audit query using ACCOUNT_USAGE
+-- Find all users with direct or inherited ACCOUNTADMIN access
+SELECT
+    grantee_name,
+    granted_on,
+    privilege,
+    name AS object_name,
+    granted_by
+FROM SNOWFLAKE.ACCOUNT_USAGE.GRANTS_TO_ROLES
+WHERE role = 'ACCOUNTADMIN'
+  AND deleted_on IS NULL
+ORDER BY grantee_name;
+
+-- Find all objects a specific role can SELECT from
+SELECT
+    table_catalog,
+    table_schema,
+    table_name,
+    privilege_type
+FROM SNOWFLAKE.ACCOUNT_USAGE.OBJECT_PRIVILEGES
+WHERE grantee = 'ANALYTICS_READ_ROLE'
+  AND privilege_type = 'SELECT'
+ORDER BY table_catalog, table_schema, table_name;`}
+/>
+
+<CalloutBox client:load type="info" title="SHOW GRANTS vs ACCOUNT_USAGE Views">
+`SHOW GRANTS` returns the **current state** of grants — ideal for interactive checks. The `SNOWFLAKE.ACCOUNT_USAGE.GRANTS_TO_ROLES` and `SNOWFLAKE.ACCOUNT_USAGE.OBJECT_PRIVILEGES` views provide **historical grant data** with up to a 45-minute latency, but support full SQL filtering and aggregation. Use ACCOUNT_USAGE views for automated audit reporting and compliance queries.
+</CalloutBox>
+
+---
+
+## 10. Managed Access Schemas
+
+A **managed access schema** is a special schema type where only the schema owner (or SECURITYADMIN/ACCOUNTADMIN) can grant privileges on objects within it — not the object owners themselves. This centralises privilege management and prevents privilege escalation.
+
+<CodeBlock client:load
+  language="sql"
+  title="Managed Access Schemas"
+  code={`-- Create a managed access schema
+CREATE SCHEMA analytics_db.secure_data
+    WITH MANAGED ACCESS;
+
+-- In a managed access schema:
+-- Object OWNERS cannot grant privileges on their own objects
+-- Only the SCHEMA OWNER (or SECURITYADMIN/ACCOUNTADMIN) can grant privileges
+
+-- This prevents the situation where a developer creates a table
+-- and then grants SELECT on it to unauthorised users
+
+-- Convert an existing schema to managed access
+ALTER SCHEMA analytics_db.public ENABLE MANAGED ACCESS;
+
+-- Revert to normal (non-managed) access
+ALTER SCHEMA analytics_db.public DISABLE MANAGED ACCESS;
+
+-- Check if a schema uses managed access
+SHOW SCHEMAS IN DATABASE analytics_db;
+-- Look at the "managed_access" column in the output`}
+/>
+
+---
+
+## Key Terms
+
+<KeyTerms client:load
+  title="User & Role Management Key Terms"
+  terms={[
+    {
+      term: "Role-Based Access Control",
+      definition: "The access control model used by Snowflake. Privileges are granted to roles, roles are granted to users (or other roles). Users inherit privileges from all roles in their role hierarchy.",
+      abbr: "RBAC"
+    },
+    {
+      term: "ACCOUNTADMIN",
+      definition: "The highest-privilege system role in Snowflake. Inherits SYSADMIN and SECURITYADMIN privileges and adds account-level administration: billing, usage data, network policies, resource monitors, account parameters.",
+      abbr: ""
+    },
+    {
+      term: "SYSADMIN",
+      definition: "System role responsible for creating and managing database objects (databases, schemas, tables, warehouses, views, stages, etc.). Custom roles should be granted to SYSADMIN to allow it to manage their objects.",
+      abbr: ""
+    },
+    {
+      term: "SECURITYADMIN",
+      definition: "System role responsible for managing users, roles, and grants. Holds the MANAGE GRANTS privilege, allowing it to grant/revoke privileges on any object in the account.",
+      abbr: ""
+    },
+    {
+      term: "USERADMIN",
+      definition: "System role with the ability to create and manage users and roles only. Cannot manage grants, databases, or warehouses. A subset of SECURITYADMIN's capabilities.",
+      abbr: ""
+    },
+    {
+      term: "PUBLIC",
+      definition: "A system role automatically granted to every user in the account. Has no default privileges. Granting privileges to PUBLIC makes them available to all users — use with caution.",
+      abbr: ""
+    },
+    {
+      term: "Default role",
+      definition: "The role that becomes active when a user establishes a new session. Set with ALTER USER ... SET DEFAULT_ROLE. If not set, defaults to PUBLIC.",
+      abbr: ""
+    },
+    {
+      term: "Future grant",
+      definition: "A privilege grant that automatically applies to all objects of a specified type created in the future within a schema or database. Does not retroactively apply to existing objects.",
+      abbr: ""
+    },
+    {
+      term: "Managed access schema",
+      definition: "A schema type where only the schema owner (or SECURITYADMIN/ACCOUNTADMIN) can grant privileges on objects within it, centralising access control and preventing object owners from sharing their own objects.",
+      abbr: ""
+    },
+    {
+      term: "Role hierarchy",
+      definition: "The structure created when a role is granted to another role, causing the parent role to inherit all privileges of the child role. ACCOUNTADMIN → SYSADMIN → custom roles is the recommended pattern.",
+      abbr: ""
+    },
+    {
+      term: "LOGIN_NAME",
+      definition: "The credential a user types at the Snowflake login screen. Can be set independently from the user's SQL identifier name — for example, set to an email address while keeping the SQL name shorter.",
+      abbr: ""
+    },
+    {
+      term: "MUST_CHANGE_PASSWORD",
+      definition: "A user property that forces the user to set a new password the first time they log in. Used when creating users with a temporary initial password.",
+      abbr: ""
+    }
+  ]}
+/>
+
+---
+
+## Flashcard Review
+
+<Flashcard client:load
+  question="What are the five Snowflake system roles and their primary responsibilities?"
+  answer="1. ACCOUNTADMIN — highest privilege, manages billing, account settings, inherits SYSADMIN + SECURITYADMIN. 2. SYSADMIN — creates and manages databases, schemas, tables, warehouses. 3. SECURITYADMIN — manages users, roles, and grants (holds MANAGE GRANTS). 4. USERADMIN — creates users and roles only (no grant management). 5. PUBLIC — automatically granted to all users, no default privileges."
+  category="System Roles"
+/>
+
+<Flashcard client:load
+  question="What are the four ACCOUNTADMIN best practices that appear on the COF-C02 exam?"
+  answer="1. Assign ACCOUNTADMIN to a minimum of 2 users to prevent lockout. 2. Never set ACCOUNTADMIN as anyone's DEFAULT_ROLE — use it only when needed for admin tasks. 3. Enable MFA (Multi-Factor Authentication) for all ACCOUNTADMIN users. 4. Restrict ACCOUNTADMIN to the most trusted staff only — do not use it for day-to-day queries."
+  category="ACCOUNTADMIN"
+/>
+
+<Flashcard client:load
+  question="What is the difference between GRANT ROLE child TO ROLE parent versus GRANT ROLE my_role TO USER jane?"
+  answer="GRANT ROLE child TO ROLE parent creates a role hierarchy — parent inherits all of child's privileges. GRANT ROLE my_role TO USER jane assigns a role directly to a user, giving them access to that role's privileges. Both are needed: custom roles must be granted to SYSADMIN (role-to-role) AND granted to users (role-to-user)."
+  category="Role Hierarchy"
+/>
+
+<Flashcard client:load
+  question="Are future grants retroactive? What must you do to cover both existing and future objects?"
+  answer="No. Future grants (GRANT SELECT ON FUTURE TABLES IN SCHEMA ...) only apply to objects created AFTER the grant is executed. They do NOT apply to tables that already exist. To cover both, run two statements: GRANT SELECT ON ALL TABLES IN SCHEMA ... (for existing objects) AND GRANT SELECT ON FUTURE TABLES IN SCHEMA ... (for new objects)."
+  category="Future Grants"
+/>
+
+<Flashcard client:load
+  question="What is the difference between LOGIN_NAME and the user name in Snowflake?"
+  answer="The user name is the SQL identifier used in GRANT/ALTER/DROP USER statements (e.g., analyst_jane). The LOGIN_NAME is the credential the user types at the Snowflake login screen — it can be set to an email address (e.g., jane.smith@company.com) while the SQL identifier remains shorter. They default to the same value if LOGIN_NAME is not specified at CREATE USER."
+  category="User Management"
+/>
+
+---
+
+## Practice Quizzes
+
+<Quiz client:load
+  question="A Snowflake account has only one user assigned to the ACCOUNTADMIN role. That user suddenly becomes unavailable. What risk does this create and what is the best practice to prevent it?"
+  options={[
+    { label: "A", text: "The account will be automatically deleted after 30 days of inactivity. Snowflake recommends archiving the account." },
+    { label: "B", text: "The account becomes unmanageable for tasks requiring ACCOUNTADMIN — such as billing management or adding new users — because no one can access that role. The best practice is to always assign ACCOUNTADMIN to a minimum of 2 trusted users." },
+    { label: "C", text: "SYSADMIN automatically inherits ACCOUNTADMIN privileges when no ACCOUNTADMIN user is available." },
+    { label: "D", text: "Snowflake Support can log in as ACCOUNTADMIN on the customer's behalf using a master key." }
+  ]}
+  correct="B"
+  explanation="Having only one ACCOUNTADMIN user is a critical operational risk. If that user is unavailable (forgotten password, employment termination, MFA device lost), the account cannot perform account-level tasks. Snowflake strongly recommends assigning ACCOUNTADMIN to at least 2 trusted users. SYSADMIN does not inherit ACCOUNTADMIN — it is the other way around (ACCOUNTADMIN inherits SYSADMIN). Snowflake Support cannot impersonate customers."
+  category="ACCOUNTADMIN Best Practices"
+/>
+
+<Quiz client:load
+  question="A data engineer creates a new table in the analytics_db.public schema. The analytics_read_role was previously granted SELECT on ALL TABLES in that schema, but users with analytics_read_role report they cannot query the new table. What is the MOST likely cause?"
+  options={[
+    { label: "A", text: "The table was created in the wrong schema — users need to check the full table path." },
+    { label: "B", text: "SELECT on ALL TABLES only applied to tables existing at the time of the grant. A future grant (GRANT SELECT ON FUTURE TABLES IN SCHEMA ...) was not set up, so the new table was not automatically covered." },
+    { label: "C", text: "Newly created tables have a 24-hour privilege propagation delay in Snowflake." },
+    { label: "D", text: "The analytics_read_role must be dropped and recreated to pick up new tables." }
+  ]}
+  correct="B"
+  explanation="GRANT SELECT ON ALL TABLES grants access to all tables existing at the moment the statement runs. Tables created afterwards are NOT automatically covered. To automatically grant SELECT on new tables, a future grant must also be set up: GRANT SELECT ON FUTURE TABLES IN SCHEMA analytics_db.public TO ROLE analytics_read_role. There is no 24-hour delay, and dropping/recreating the role would not help — the new table simply needs an explicit or future grant."
+  category="Future Grants"
+/>
+
+<Quiz client:load
+  question="Which of the following SQL statements creates a role hierarchy where the analytics_role inherits all privileges of the reporting_role?"
+  options={[
+    { label: "A", text: "GRANT ROLE analytics_role TO ROLE reporting_role;" },
+    { label: "B", text: "GRANT ROLE reporting_role TO ROLE analytics_role;" },
+    { label: "C", text: "GRANT ALL PRIVILEGES OF reporting_role TO analytics_role;" },
+    { label: "D", text: "ALTER ROLE analytics_role INHERIT FROM reporting_role;" }
+  ]}
+  correct="B"
+  explanation="In Snowflake's GRANT ROLE syntax, the role being granted (the child) is the one whose privileges are inherited by the grantee (the parent). GRANT ROLE reporting_role TO ROLE analytics_role makes analytics_role the parent — it inherits everything reporting_role has. Option A is the reverse: it would make reporting_role the parent that inherits analytics_role's privileges. Options C and D are not valid Snowflake syntax."
+  category="Role Hierarchy"
+/>
+
+---
+
+## Cheat Sheet
+
+<CheatSheet client:load
+  title="User & Role Management — COF-C02 Quick Reference"
+  sections={[
+    {
+      title: "User Creation Properties",
+      icon: "👤",
+      items: [
+        { label: "Mandatory", value: "Name (identifier)", note: "Only required element" },
+        { label: "PASSWORD", value: "Initial login password", note: "Hashed — never readable" },
+        { label: "LOGIN_NAME", value: "What user types at login", note: "Defaults to user name" },
+        { label: "DEFAULT_ROLE", value: "Active role on connection", note: "Defaults to PUBLIC if not set" },
+        { label: "DEFAULT_WAREHOUSE", value: "Warehouse used by default", note: "" },
+        { label: "DEFAULT_NAMESPACE", value: "database.schema context", note: "" },
+        { label: "MUST_CHANGE_PASSWORD", value: "TRUE = force reset on login", note: "" },
+        { label: "DISABLED", value: "TRUE = cannot log in", note: "Does not drop user" }
+      ]
+    },
+    {
+      title: "System Roles Summary",
+      icon: "🔐",
+      items: [
+        { label: "ACCOUNTADMIN", value: "Everything — billing, account params, inherits all", note: "Min 2 users, never default" },
+        { label: "SYSADMIN", value: "Creates DBs, schemas, tables, warehouses", note: "Custom roles roll up here" },
+        { label: "SECURITYADMIN", value: "Manages users, roles, grants (MANAGE GRANTS)", note: "Inherits USERADMIN" },
+        { label: "USERADMIN", value: "CREATE USER, CREATE ROLE only", note: "No grant management" },
+        { label: "PUBLIC", value: "Granted to all users, no default privileges", note: "Avoid granting data access" }
+      ]
+    },
+    {
+      title: "Key GRANT Patterns",
+      icon: "🗝️",
+      items: [
+        { label: "Role to user", value: "GRANT ROLE r TO USER u", note: "Assigns role to user" },
+        { label: "Role to role", value: "GRANT ROLE child TO ROLE parent", note: "Parent inherits child privileges" },
+        { label: "Object privilege", value: "GRANT SELECT ON TABLE t TO ROLE r", note: "" },
+        { label: "Future grant", value: "GRANT SELECT ON FUTURE TABLES IN SCHEMA s TO ROLE r", note: "Not retroactive!" },
+        { label: "Show grants", value: "SHOW GRANTS TO/OF ROLE r", note: "TO = what it has, OF = who has it" }
+      ]
+    },
+    {
+      title: "Audit Commands",
+      icon: "🔍",
+      items: [
+        { label: "List all users", value: "SHOW USERS", note: "Requires SECURITYADMIN+" },
+        { label: "User details", value: "DESCRIBE USER username", note: "" },
+        { label: "Role privileges", value: "SHOW GRANTS TO ROLE r", note: "" },
+        { label: "Role holders", value: "SHOW GRANTS OF ROLE r", note: "" },
+        { label: "Object access", value: "SHOW GRANTS ON TABLE t", note: "" },
+        { label: "Future grants", value: "SHOW FUTURE GRANTS IN SCHEMA s", note: "" },
+        { label: "Switch role", value: "USE ROLE role_name", note: "" },
+        { label: "Current role", value: "SELECT CURRENT_ROLE()", note: "" }
+      ]
+    }
+  ]}
+/>
+
+---
+
+## Summary
+
+Snowflake's access control is built on a **role-based model** where privileges flow from objects to roles to users. The five system roles — **ACCOUNTADMIN, SYSADMIN, SECURITYADMIN, USERADMIN, and PUBLIC** — each have specific, non-overlapping responsibilities that the COF-C02 exam tests in detail.
+
+For the exam, internalise these key principles:
+
+- **ACCOUNTADMIN** is the top of the hierarchy — minimum 2 users, never a default role, always MFA-protected
+- **SYSADMIN** creates objects — custom roles must roll up to SYSADMIN to prevent orphaned objects
+- **SECURITYADMIN** manages access — it holds MANAGE GRANTS and inherits USERADMIN
+- **USERADMIN** creates users and roles only — no grant management
+- **Future grants** are essential but not retroactive — always pair with `ON ALL` for existing objects
+- `SHOW GRANTS TO ROLE r` shows what a role can do; `SHOW GRANTS OF ROLE r` shows who holds it
+- Every user needs: USAGE on warehouse + USAGE on database + USAGE on schema + object privilege (e.g. SELECT) to successfully query a table
+- Custom roles should be created by SECURITYADMIN and then granted to SYSADMIN for object management

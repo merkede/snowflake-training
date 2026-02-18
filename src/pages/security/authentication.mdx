@@ -1,0 +1,681 @@
+---
+layout: ../../layouts/CourseLayout.astro
+title: "Authentication & SSO"
+description: "Master Snowflake authentication methods — key-pair auth, MFA, SAML 2.0 SSO, and OAuth for the SnowPro Core exam"
+moduleId: "authentication"
+domain: "Security"
+---
+
+import KeyTerms from '../../components/KeyTerms';
+import YouTubeEmbed from '../../components/YouTubeEmbed';
+import Diagram from '../../components/Diagram';
+import CalloutBox from '../../components/CalloutBox';
+import CodeBlock from '../../components/CodeBlock';
+import CompareTable from '../../components/CompareTable';
+import StepByStep from '../../components/StepByStep';
+import CheatSheet from '../../components/CheatSheet';
+import Quiz from '../../components/Quiz';
+import Flashcard from '../../components/Flashcard';
+
+# Authentication & SSO
+
+Snowflake supports multiple authentication mechanisms, ranging from simple username/password to enterprise-grade federated identity via SAML 2.0. This module walks through every method tested on the COF-C02 exam, explains the underlying security model, and shows you exactly which SQL commands to know on exam day.
+
+<KeyTerms client:load title="Key Terms — Authentication & SSO" terms={[
+  { term: "Authentication", definition: "The process of verifying the identity of a user or service before granting access to Snowflake resources." },
+  { term: "MFA", abbr: "Multi-Factor Authentication", definition: "Requires users to present two or more verification factors. Snowflake uses Duo Security for push notifications and TOTP codes." },
+  { term: "SAML 2.0", abbr: "Security Assertion Markup Language 2.0", definition: "An XML-based open standard for federated authentication. Allows an external identity provider to authenticate users on behalf of Snowflake." },
+  { term: "IdP", abbr: "Identity Provider", definition: "An external system (Okta, Azure AD, ADFS, PingFederate) that stores user credentials and issues SAML assertions to Snowflake." },
+  { term: "SSO", abbr: "Single Sign-On", definition: "Allows users to authenticate once with their corporate identity provider and access Snowflake without entering Snowflake-specific credentials." },
+  { term: "OAuth 2.0", definition: "An authorisation framework that allows third-party applications (Tableau, Power BI, dbt) to access Snowflake on behalf of a user without sharing passwords." },
+  { term: "Security Integration", definition: "A Snowflake object (CREATE SECURITY INTEGRATION) used to configure external authentication mechanisms including SAML2, OAuth, and SCIM." },
+  { term: "SCIM", abbr: "System for Cross-domain Identity Management", definition: "An open standard protocol that automates user and group provisioning from an identity provider into Snowflake." },
+  { term: "JWT", abbr: "JSON Web Token", definition: "A compact, signed token used with key-pair authentication and External OAuth. Tokens contain claims and carry an expiry time." },
+  { term: "Key-Pair Authentication", definition: "An alternative to password login using an RSA 2048-bit public/private key pair. The private key stays on the client; the public key is registered on the Snowflake user object." },
+  { term: "Session Policy", definition: "A Snowflake policy object that controls session timeout and MFA requirements. Applied at account or user level." },
+  { term: "SCIM Token", definition: "A bearer token generated in Snowflake that authorises an IdP to make SCIM API calls for automated provisioning." }
+]} />
+
+---
+
+## Why Authentication Matters for COF-C02
+
+The exam dedicates a meaningful slice of questions to the Security domain, and authentication sits at the foundation of that domain. Expect questions on:
+
+- Which authentication method requires a Security Integration object
+- The commands to configure key-pair authentication on a user
+- How MFA token caching works and how long it lasts
+- The difference between Snowflake OAuth and External OAuth
+- How SCIM relates to user provisioning (not authentication itself)
+
+<CalloutBox type="exam" title="Exam Domain Weighting">
+Security, Governance & Data Protection accounts for approximately **15%** of the COF-C02 exam. Authentication is one of the most directly testable topics within this domain because the configuration steps map to exact SQL commands.
+</CalloutBox>
+
+---
+
+## 1. Username and Password Authentication
+
+The default authentication method. Every Snowflake user has a username and password unless an alternative method is configured.
+
+### Password Policies
+
+Snowflake allows accounts to enforce password complexity via password policy objects. Only users with the **ACCOUNTADMIN** role (or a role granted the CREATE PASSWORD POLICY privilege) can create and apply these policies.
+
+<CodeBlock client:load language="sql" title="Creating and Applying a Password Policy" code={`-- Create a password policy
+CREATE PASSWORD POLICY corporate_password_policy
+  PASSWORD_MIN_LENGTH = 12
+  PASSWORD_MAX_LENGTH = 64
+  PASSWORD_MIN_UPPER_CASE_CHARS = 1
+  PASSWORD_MIN_LOWER_CASE_CHARS = 1
+  PASSWORD_MIN_NUMERIC_CHARS = 1
+  PASSWORD_MIN_SPECIAL_CHARS = 1
+  PASSWORD_MAX_AGE_DAYS = 90
+  PASSWORD_MAX_RETRIES = 5
+  PASSWORD_LOCKOUT_TIME_MINS = 15
+  COMMENT = 'Corporate security standard password policy';
+
+-- Apply to the entire account
+ALTER ACCOUNT SET PASSWORD_POLICY = corporate_password_policy;
+
+-- Apply to a specific user
+ALTER USER jsmith SET PASSWORD_POLICY = corporate_password_policy;
+
+-- Force a user to change password on next login
+ALTER USER jsmith SET MUST_CHANGE_PASSWORD = TRUE;
+
+-- Show existing password policies
+SHOW PASSWORD POLICIES;
+
+-- Describe a specific policy
+DESCRIBE PASSWORD POLICY corporate_password_policy;`} />
+
+<CalloutBox type="tip" title="MUST_CHANGE_PASSWORD">
+The `MUST_CHANGE_PASSWORD = TRUE` flag is particularly useful when creating new user accounts. It ensures users set their own password before doing any work, rather than using a temporary password you may have shared. Snowflake prompts for a new password on the very first login.
+</CalloutBox>
+
+---
+
+## 2. Key-Pair Authentication
+
+Key-pair authentication replaces the password with an RSA public/private key pair. The **private key** never leaves the client machine. The **public key** is registered against the Snowflake user. When the client connects, it signs a JWT using the private key; Snowflake validates the signature using the stored public key.
+
+This method is strongly preferred for service accounts, scripts, and CI/CD pipelines because:
+- No password to rotate or leak
+- Supports key rotation without downtime (two keys: `RSA_PUBLIC_KEY` and `RSA_PUBLIC_KEY_2`)
+- Compatible with SnowSQL, Python Connector, JDBC Driver, ODBC Driver, and Go Snowflake Driver
+
+<Diagram client:load
+  title="Key-Pair Authentication Flow"
+  description="A detailed flow diagram showing the key-pair authentication handshake. On the left side, the Client (laptop or CI/CD server) holds a private key file (rsa_key.p8). An arrow labelled 'Sign JWT with private key' points to a JWT token object in the centre. This JWT is sent over HTTPS to Snowflake Cloud Services on the right. Snowflake Cloud Services holds the RSA_PUBLIC_KEY that was registered on the user object via ALTER USER. An arrow labelled 'Verify JWT signature using public key' points from the JWT back into Cloud Services. If valid, a green tick and 'Session granted' label appear. The entire flow is contained within an encrypted TLS channel. A note at the bottom states: The private key is NEVER transmitted. Only the signed JWT travels over the wire."
+  altText="Diagram showing RSA key-pair authentication flow between a client, a signed JWT, and Snowflake Cloud Services public key validation"
+/>
+
+<StepByStep client:load title="Configuring Key-Pair Authentication Step by Step" steps={[
+  {
+    title: "Generate an RSA private key",
+    description: "Use OpenSSL on your local machine to generate a 2048-bit RSA private key. You can optionally encrypt it with a passphrase using the -aes256 flag for an extra layer of protection.",
+    code: `# Generate an unencrypted private key (2048-bit RSA)
+openssl genrsa 2048 | openssl pkcs8 -topk8 -inform PEM -out rsa_key.p8 -nocrypt
+
+# Or generate with passphrase protection
+openssl genrsa 2048 | openssl pkcs8 -topk8 -v2 aes-256-cbc -inform PEM -out rsa_key.p8`,
+    tip: "Store rsa_key.p8 in a secrets manager (AWS Secrets Manager, Azure Key Vault, HashiCorp Vault) rather than on the filesystem in production."
+  },
+  {
+    title: "Extract the public key",
+    description: "Derive the corresponding public key from the private key file. This is the value you will register in Snowflake.",
+    code: `# Extract the public key in PEM format
+openssl rsa -in rsa_key.p8 -pubout -out rsa_key.pub
+
+# View the public key contents
+cat rsa_key.pub`
+  },
+  {
+    title: "Register the public key on the Snowflake user",
+    description: "Copy the public key content (excluding the header/footer lines) and set it on the Snowflake user using ALTER USER. This requires SECURITYADMIN or higher.",
+    code: `-- Register the public key on a user
+ALTER USER service_account
+  SET RSA_PUBLIC_KEY='MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...';
+
+-- Verify the key was set (shows fingerprint, not the raw key)
+DESC USER service_account;`,
+    tip: "Remove the -----BEGIN PUBLIC KEY----- and -----END PUBLIC KEY----- lines and all newlines before pasting into the SQL statement."
+  },
+  {
+    title: "Configure the client to use key-pair auth",
+    description: "Update your SnowSQL config file or Python Connector connection parameters to reference the private key instead of a password.",
+    code: `# SnowSQL config (~/.snowsql/config)
+[connections.myconn]
+accountname = myaccount
+username = service_account
+private_key_path = /path/to/rsa_key.p8
+
+# Python Connector example
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
+import snowflake.connector
+
+with open('/path/to/rsa_key.p8', 'rb') as f:
+    private_key = serialization.load_pem_private_key(
+        f.read(), password=None, backend=default_backend()
+    )
+pkb = private_key.private_bytes(
+    encoding=serialization.Encoding.DER,
+    format=serialization.PrivateFormat.PKCS8,
+    encryption_algorithm=serialization.NoEncryption()
+)
+conn = snowflake.connector.connect(
+    account='myaccount',
+    user='service_account',
+    private_key=pkb
+)`
+  },
+  {
+    title: "Rotate keys without downtime",
+    description: "Snowflake supports two simultaneous public keys (RSA_PUBLIC_KEY and RSA_PUBLIC_KEY_2). Register the new key as the second key first, then update your clients, then remove the old key.",
+    code: `-- Step 1: Register the new key as key 2
+ALTER USER service_account
+  SET RSA_PUBLIC_KEY_2='MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEB...';
+
+-- Step 2: Update clients to use new private key
+-- Step 3: Remove the old key after confirming clients work
+ALTER USER service_account UNSET RSA_PUBLIC_KEY;`,
+    tip: "This zero-downtime rotation is one of the reasons key-pair auth is preferred over passwords for service accounts."
+  }
+]} />
+
+---
+
+## 3. Multi-Factor Authentication (MFA)
+
+Snowflake's MFA integration is powered by **Duo Security**. Users self-enrol through their Snowsight profile settings. Once enrolled, each login triggers either a Duo push notification to the user's mobile device or prompts for a TOTP (Time-based One-Time Password) code.
+
+### MFA Token Caching
+
+To reduce friction for users who run many short queries in a session, Snowflake supports **MFA token caching**. After a successful MFA challenge, Snowflake issues a temporary token valid for **20 minutes** by default. Subsequent connections within that window do not require a new MFA challenge.
+
+<CodeBlock client:load language="sql" title="MFA and Session Policy Management" code={`-- Create a session policy requiring MFA
+CREATE SESSION POLICY require_mfa_policy
+  SESSION_IDLE_TIMEOUT_MINS = 30
+  SESSION_UI_IDLE_TIMEOUT_MINS = 30
+  COMMENT = 'Requires MFA; 30-minute idle timeout';
+
+-- Apply the session policy to the entire account
+ALTER ACCOUNT SET SESSION_POLICY = require_mfa_policy;
+
+-- Apply to a specific user
+ALTER USER analyst01 SET SESSION_POLICY = require_mfa_policy;
+
+-- Apply to a specific role (all users assigned this role inherit it)
+ALTER ROLE data_engineer SET SESSION_POLICY = require_mfa_policy;
+
+-- Show session policies
+SHOW SESSION POLICIES;
+
+-- Describe a session policy
+DESCRIBE SESSION POLICY require_mfa_policy;
+
+-- Remove a session policy from a user
+ALTER USER analyst01 UNSET SESSION_POLICY;`} />
+
+<CalloutBox type="warning" title="MFA Cannot Be Enforced via ALTER USER Alone">
+Simply enabling MFA for your account does not force users to enrol. Administrators use the `SESSION_POLICY` object with appropriate settings to enforce MFA behaviour at scale. Individual MFA enrolment is still initiated by each user through their profile in Snowsight. Monitor unenrolled users via the LOGIN_HISTORY view.
+</CalloutBox>
+
+---
+
+## 4. SAML 2.0 / Single Sign-On (SSO)
+
+Federated authentication via SAML 2.0 allows your organisation's Identity Provider (IdP) to authenticate users. Users log in once with their corporate credentials; the IdP issues a SAML assertion that Snowflake trusts.
+
+### How SAML 2.0 SSO Works
+
+<Diagram client:load
+  title="SAML 2.0 Federated Authentication Flow"
+  description="A sequence diagram showing SAML 2.0 SSO between a user's browser, an Identity Provider (IdP), and Snowflake. Step 1: The user navigates to Snowsight login page and clicks 'Sign in with SSO'. Step 2: Snowflake redirects the browser to the IdP (e.g. Okta or Azure AD) with a SAML AuthnRequest. Step 3: The IdP presents a login page; the user enters their corporate credentials (username + password + MFA if configured at IdP level). Step 4: The IdP authenticates the user and generates a signed SAML Assertion XML document containing user attributes (email, name, roles). Step 5: The IdP posts the SAML Response back to Snowflake's Assertion Consumer Service (ACS) URL. Step 6: Snowflake validates the SAML signature using the IdP's X.509 certificate stored in the Security Integration. Step 7: Snowflake maps the SAML subject (usually email) to a Snowflake user account, then grants access and opens a session. Throughout, the user never types a Snowflake password."
+  altText="Sequence diagram of SAML 2.0 SSO flow: browser to IdP authentication, SAML assertion issued, Snowflake validates and grants session"
+/>
+
+### Supported Identity Providers
+
+Snowflake officially supports:
+- **Okta** — most commonly tested in the exam
+- **Microsoft Azure AD / Entra ID**
+- **Microsoft ADFS (Active Directory Federation Services)**
+- **PingFederate**
+- Any SAML 2.0-compliant IdP
+
+### Configuring a SAML 2.0 Security Integration
+
+<CodeBlock client:load language="sql" title="SAML 2.0 Security Integration Setup" code={`-- Create a SAML2 Security Integration for Okta
+CREATE SECURITY INTEGRATION okta_sso
+  TYPE = SAML2
+  ENABLED = TRUE
+  SAML2_ISSUER = 'http://www.okta.com/exk9x1234567890'
+  SAML2_SSO_URL = 'https://mycompany.okta.com/app/snowflake/exk9x1234567890/sso/saml'
+  SAML2_PROVIDER = 'OKTA'
+  SAML2_X509_CERT = 'MIIDpDCCAoygAwIBAgIGAW...'
+  SAML2_SP_INITIATED_LOGIN_PAGE_LABEL = 'Okta SSO'
+  SAML2_ENABLE_SP_INITIATED = TRUE;
+
+-- View the integration details (includes ACS URL and Entity ID for IdP config)
+DESCRIBE INTEGRATION okta_sso;
+
+-- Show all security integrations
+SHOW INTEGRATIONS;
+
+-- Show only security integrations of a specific type
+SHOW SECURITY INTEGRATIONS;
+
+-- Disable SSO temporarily without deleting
+ALTER SECURITY INTEGRATION okta_sso SET ENABLED = FALSE;
+
+-- Force a specific user to always use SSO (cannot use password)
+ALTER USER sso_user SET DISABLE_LEGACY_BEHAVIOUR = TRUE;`} />
+
+<CalloutBox type="info" title="What DESCRIBE INTEGRATION Returns">
+Running `DESCRIBE INTEGRATION okta_sso` returns the **SP Entity ID** and **SP ACS URL** that you need to configure on the IdP side. The SP ACS URL is where Snowflake receives SAML responses — it follows the pattern `https://ACCOUNT.snowflakecomputing.com/fed/login`.
+</CalloutBox>
+
+---
+
+## 5. OAuth 2.0 — Delegated Authorisation
+
+OAuth 2.0 is an **authorisation** framework (not authentication). It allows a tool or application to access Snowflake resources on a user's behalf without ever receiving the user's Snowflake password. The user grants consent; the tool gets a scoped access token.
+
+### Snowflake OAuth vs External OAuth
+
+<CompareTable client:load
+  title="Snowflake OAuth vs External OAuth"
+  leftLabel="Snowflake OAuth"
+  rightLabel="External OAuth"
+  rows={[
+    {
+      feature: "Purpose",
+      left: "Integrate partner BI tools (Tableau, Power BI, Looker, dbt Cloud) with Snowflake",
+      right: "Use an existing enterprise OAuth IdP (Okta, Azure AD) to issue tokens for Snowflake",
+      winner: "none"
+    },
+    {
+      feature: "Token issuer",
+      left: "Snowflake acts as its own authorisation server",
+      right: "External IdP (Okta, Azure AD, Ping) issues the JWT access token",
+      winner: "right"
+    },
+    {
+      feature: "User password exposure",
+      left: "User never shares Snowflake password with the tool",
+      right: "User authenticates via IdP; Snowflake password never needed",
+      winner: "none"
+    },
+    {
+      feature: "Role scope",
+      left: "Can restrict which Snowflake roles the tool is allowed to use",
+      right: "Roles mapped via token claims or Snowflake role mapping",
+      winner: "left"
+    },
+    {
+      feature: "Security Integration type",
+      left: "TYPE = OAUTH",
+      right: "TYPE = EXTERNAL_OAUTH",
+      winner: "none"
+    },
+    {
+      feature: "Common use case",
+      left: "Tableau Desktop, Power BI, Sigma Computing connecting as end user",
+      right: "Centralised enterprise IAM — all apps use the same OAuth IdP",
+      winner: "right"
+    },
+    {
+      feature: "Refresh token support",
+      left: "Supported — users can stay connected without re-authorising",
+      right: "Depends on IdP configuration; typically short-lived access tokens",
+      winner: "left"
+    }
+  ]}
+/>
+
+<CodeBlock client:load language="sql" title="Snowflake OAuth and External OAuth Security Integrations" code={`-- Snowflake OAuth for Tableau
+CREATE SECURITY INTEGRATION tableau_oauth
+  TYPE = OAUTH
+  ENABLED = TRUE
+  OAUTH_CLIENT = TABLEAU_DESKTOP
+  OAUTH_ISSUE_REFRESH_TOKENS = TRUE
+  OAUTH_REFRESH_TOKEN_VALIDITY = 7776000  -- 90 days in seconds
+  BLOCKED_ROLES_LIST = ('ACCOUNTADMIN', 'SYSADMIN');
+
+-- Snowflake OAuth for a custom application
+CREATE SECURITY INTEGRATION custom_app_oauth
+  TYPE = OAUTH
+  ENABLED = TRUE
+  OAUTH_CLIENT = CUSTOM
+  OAUTH_CLIENT_TYPE = 'CONFIDENTIAL'
+  OAUTH_REDIRECT_URI = 'https://myapp.example.com/oauth/callback'
+  OAUTH_ISSUE_REFRESH_TOKENS = TRUE
+  OAUTH_REFRESH_TOKEN_VALIDITY = 86400;
+
+-- External OAuth using Okta as the token issuer
+CREATE SECURITY INTEGRATION okta_external_oauth
+  TYPE = EXTERNAL_OAUTH
+  ENABLED = TRUE
+  EXTERNAL_OAUTH_TYPE = OKTA
+  EXTERNAL_OAUTH_ISSUER = 'https://mycompany.okta.com/oauth2/default'
+  EXTERNAL_OAUTH_JWS_KEYS_URL = 'https://mycompany.okta.com/oauth2/default/v1/keys'
+  EXTERNAL_OAUTH_AUDIENCE_LIST = ('https://myaccount.snowflakecomputing.com')
+  EXTERNAL_OAUTH_TOKEN_USER_MAPPING_CLAIM = 'sub'
+  EXTERNAL_OAUTH_SNOWFLAKE_USER_MAPPING_ATTRIBUTE = 'login_name';
+
+-- Show details of any integration
+DESCRIBE INTEGRATION tableau_oauth;
+DESCRIBE INTEGRATION okta_external_oauth;`} />
+
+<CalloutBox type="exam" title="OAuth Exam Trap">
+The exam distinguishes between **Snowflake OAuth** and **External OAuth**. Snowflake OAuth is for partner tools connecting to Snowflake. External OAuth is for when your organisation already has an OAuth 2.0 IdP and you want Snowflake to trust tokens it issues. The `TYPE` value in `CREATE SECURITY INTEGRATION` is the key differentiator: `OAUTH` vs `EXTERNAL_OAUTH`.
+</CalloutBox>
+
+---
+
+## 6. SCIM — Automated User Provisioning
+
+SCIM is not an authentication method — it is a **provisioning** protocol. It automates the creation, updating, and deactivation of Snowflake user accounts and role assignments when users are added or removed in the IdP.
+
+Supported IdPs for SCIM provisioning:
+- **Okta**
+- **Azure Active Directory / Microsoft Entra ID**
+
+<CodeBlock client:load language="sql" title="SCIM Integration Configuration" code={`-- Create a SCIM integration for Okta
+CREATE SECURITY INTEGRATION okta_scim
+  TYPE = SCIM
+  SCIM_CLIENT = 'OKTA'
+  RUN_AS_ROLE = 'OKTA_PROVISIONER';
+
+-- The OKTA_PROVISIONER role must exist and have appropriate grants
+CREATE ROLE okta_provisioner;
+GRANT CREATE USER ON ACCOUNT TO ROLE okta_provisioner;
+GRANT CREATE ROLE ON ACCOUNT TO ROLE okta_provisioner;
+GRANT ROLE okta_provisioner TO USER okta_scim_service_user;
+
+-- Generate the SCIM access token (used by Okta to authenticate to Snowflake SCIM API)
+SELECT SYSTEM$GENERATE_SCIM_ACCESS_TOKEN('OKTA_SCIM');
+
+-- Azure AD SCIM integration
+CREATE SECURITY INTEGRATION azure_scim
+  TYPE = SCIM
+  SCIM_CLIENT = 'AZURE'
+  RUN_AS_ROLE = 'AAD_PROVISIONER';`} />
+
+<CalloutBox type="note" title="SCIM and SAML Are Complementary">
+SCIM handles **provisioning** (creating accounts, assigning roles). SAML handles **authentication** (logging in). You typically use both together: SCIM ensures the Snowflake user account exists before the user tries to log in via SAML SSO. Without SCIM, administrators must manually create Snowflake user accounts even if SAML SSO is configured.
+</CalloutBox>
+
+---
+
+## 7. JSON Web Tokens (JWT) in Snowflake
+
+JWTs appear in two Snowflake authentication contexts:
+
+1. **Key-pair authentication** — when you connect with a private key, the driver generates a short-lived JWT signed with your private key. Snowflake validates it against your registered public key. The JWT typically expires after **60 seconds**.
+
+2. **External OAuth** — the external IdP issues a JWT access token containing claims about the user. Snowflake validates the JWT signature using the IdP's public signing keys (retrieved from the `JWS_KEYS_URL`).
+
+JWTs are **self-contained** — they carry the user's identity and expiry time inside the token itself, eliminating the need for Snowflake to call back to the IdP on every request.
+
+---
+
+## 8. Session Policies
+
+Session policies control the lifecycle of Snowflake sessions. They can enforce idle timeouts and MFA requirements.
+
+<CodeBlock client:load language="sql" title="Session Policy Management" code={`-- Create a session policy with idle timeout
+CREATE SESSION POLICY strict_session_policy
+  SESSION_IDLE_TIMEOUT_MINS = 15
+  SESSION_UI_IDLE_TIMEOUT_MINS = 15
+  COMMENT = 'Strict policy for privileged roles';
+
+-- Apply at account level (affects all users without a specific user/role policy)
+ALTER ACCOUNT SET SESSION_POLICY = strict_session_policy;
+
+-- Override at user level (takes precedence over account-level policy)
+ALTER USER power_user SET SESSION_POLICY = strict_session_policy;
+
+-- Remove a session policy from a user (reverts to account-level)
+ALTER USER power_user UNSET SESSION_POLICY;
+
+-- Drop a session policy (must be detached first)
+ALTER ACCOUNT UNSET SESSION_POLICY;
+DROP SESSION POLICY strict_session_policy;
+
+-- View all session policies
+SHOW SESSION POLICIES;
+
+-- Check which policy is applied to a user
+DESCRIBE USER power_user;`} />
+
+---
+
+## 9. Authentication Flow — End to End
+
+<Diagram client:load
+  title="Snowflake Authentication Decision Flow"
+  description="A detailed flowchart showing the complete authentication decision process when a user or application attempts to connect to Snowflake. The flow starts at the top with a 'Connection Request' box. The first diamond decision node asks: 'Network Policy — Is the source IP address allowed?' If No, the flow goes right to a red 'Connection Rejected' terminal. If Yes, the flow continues downward to a second diamond: 'What authentication method is configured for this user?' Four branches emerge: (1) Password — leads to a 'Validate username + password against Snowflake credential store' box; (2) Key-Pair — leads to 'Validate JWT signed with private key against stored public key'; (3) SAML SSO — leads to 'Validate SAML Assertion from IdP using X.509 cert stored in Security Integration'; (4) OAuth Token — leads to 'Validate JWT access token using IdP public keys from JWS_KEYS_URL'. All four paths converge on a diamond: 'Authentication Successful?' If No, red 'Access Denied — Error returned' terminal. If Yes, another diamond: 'Is MFA required by Session Policy?' If Yes: 'Prompt for Duo push or TOTP code' — success leads forward, failure leads to 'Access Denied'. If No (or MFA cached): proceeds to 'Assign Default Role to Session' box, then 'Session Established — Query execution begins' green terminal at the bottom."
+  altText="Flowchart of Snowflake authentication process: network policy check, auth method selection (password, key-pair, SAML, OAuth), MFA requirement, session establishment"
+/>
+
+### Key Points from the Flow
+
+- **Network policies** are evaluated **before** any authentication attempt. If your IP is blocked, you never reach the auth step.
+- **Role assignment** happens after authentication. The user's `DEFAULT_ROLE` is used unless specified in the connection string.
+- **Session policies** layer on top of authentication — they can terminate idle sessions and optionally enforce MFA at the session level.
+
+---
+
+## 10. Monitoring Authentication Events
+
+<CodeBlock client:load language="sql" title="Auditing Authentication with LOGIN_HISTORY" code={`-- View recent login attempts (INFORMATION_SCHEMA — last 7 days)
+SELECT
+    event_timestamp,
+    user_name,
+    client_ip,
+    reported_client_type,
+    first_authentication_factor,
+    second_authentication_factor,
+    is_success,
+    error_message
+FROM TABLE(INFORMATION_SCHEMA.LOGIN_HISTORY(
+    DATEADD('hours', -24, CURRENT_TIMESTAMP()),
+    CURRENT_TIMESTAMP()
+))
+ORDER BY event_timestamp DESC;
+
+-- Find all failed login attempts in the last 24 hours
+SELECT
+    user_name,
+    client_ip,
+    error_message,
+    COUNT(*) AS failed_attempts
+FROM TABLE(INFORMATION_SCHEMA.LOGIN_HISTORY(
+    DATEADD('hours', -24, CURRENT_TIMESTAMP()),
+    CURRENT_TIMESTAMP()
+))
+WHERE is_success = 'NO'
+GROUP BY 1, 2, 3
+ORDER BY failed_attempts DESC;
+
+-- Long-term login history (ACCOUNT_USAGE — up to 365 days, ~2hr latency)
+SELECT
+    event_timestamp,
+    user_name,
+    first_authentication_factor,
+    second_authentication_factor,
+    is_success
+FROM SNOWFLAKE.ACCOUNT_USAGE.LOGIN_HISTORY
+WHERE event_timestamp >= DATEADD('day', -30, CURRENT_TIMESTAMP())
+ORDER BY event_timestamp DESC;
+
+-- Find users who have never used MFA
+SELECT DISTINCT user_name
+FROM SNOWFLAKE.ACCOUNT_USAGE.LOGIN_HISTORY
+WHERE second_authentication_factor IS NULL
+  AND event_timestamp >= DATEADD('day', -30, CURRENT_TIMESTAMP());`} />
+
+<Diagram client:load
+  title="Authentication Monitoring — Information Sources"
+  description="A two-column diagram comparing the two main sources for authentication monitoring data. Left column header: INFORMATION_SCHEMA.LOGIN_HISTORY (via table function). Below: retention period = last 7 days; latency = near real-time (seconds); access = any user with privileges on the schema; use case = operational monitoring, incident response, live troubleshooting; query syntax = SELECT ... FROM TABLE(INFORMATION_SCHEMA.LOGIN_HISTORY(start_time, end_time)). Right column header: SNOWFLAKE.ACCOUNT_USAGE.LOGIN_HISTORY (view). Below: retention period = 365 days; latency = approximately 2 hours; access = requires SNOWFLAKE database access (typically ACCOUNTADMIN or granted role); use case = compliance reporting, trend analysis, long-term auditing, security dashboards. A note at the bottom: Both sources include columns for user_name, client_ip, first_authentication_factor (PASSWORD, KEYPAIR, SAML), second_authentication_factor (DUO_MFA, null), is_success (YES/NO), and error_message."
+  altText="Comparison diagram of INFORMATION_SCHEMA LOGIN_HISTORY table function versus SNOWFLAKE.ACCOUNT_USAGE.LOGIN_HISTORY view, showing retention, latency, and use cases"
+/>
+
+---
+
+## CheatSheet — Authentication Commands
+
+<CheatSheet client:load title="Authentication & SSO Command Reference" sections={[
+  {
+    title: "Password & User Management",
+    icon: "🔑",
+    items: [
+      { label: "Create password policy", value: "CREATE PASSWORD POLICY p PARAMETERS...", note: "Requires ACCOUNTADMIN or CREATE PASSWORD POLICY privilege" },
+      { label: "Apply policy to account", value: "ALTER ACCOUNT SET PASSWORD_POLICY = p", note: "Affects all users without a user-level override" },
+      { label: "Apply policy to user", value: "ALTER USER u SET PASSWORD_POLICY = p", note: "Overrides account-level policy" },
+      { label: "Force password reset", value: "ALTER USER u SET MUST_CHANGE_PASSWORD = TRUE", note: "User must reset on next login" },
+      { label: "Show policies", value: "SHOW PASSWORD POLICIES", note: "Lists all password policies in current schema" }
+    ]
+  },
+  {
+    title: "Key-Pair Authentication",
+    icon: "🗝️",
+    items: [
+      { label: "Set public key", value: "ALTER USER u SET RSA_PUBLIC_KEY='...'", note: "Paste key without header/footer lines" },
+      { label: "Set secondary key", value: "ALTER USER u SET RSA_PUBLIC_KEY_2='...'", note: "Enables zero-downtime key rotation" },
+      { label: "Remove primary key", value: "ALTER USER u UNSET RSA_PUBLIC_KEY", note: "Run after clients switch to key 2" },
+      { label: "View user key fingerprint", value: "DESC USER u", note: "Shows fingerprint, not raw key" }
+    ]
+  },
+  {
+    title: "Security Integrations",
+    icon: "🛡️",
+    items: [
+      { label: "SAML2 integration", value: "CREATE SECURITY INTEGRATION ... TYPE = SAML2", note: "Required for SSO with any IdP" },
+      { label: "Snowflake OAuth", value: "CREATE SECURITY INTEGRATION ... TYPE = OAUTH", note: "For partner tools (Tableau, Power BI)" },
+      { label: "External OAuth", value: "CREATE SECURITY INTEGRATION ... TYPE = EXTERNAL_OAUTH", note: "For existing enterprise OAuth IdP" },
+      { label: "SCIM integration", value: "CREATE SECURITY INTEGRATION ... TYPE = SCIM", note: "For automated user provisioning" },
+      { label: "Show integrations", value: "SHOW INTEGRATIONS / SHOW SECURITY INTEGRATIONS", note: "Lists all or just security integrations" },
+      { label: "Describe integration", value: "DESCRIBE INTEGRATION integration_name", note: "Shows ACS URL, client ID, config details" }
+    ]
+  },
+  {
+    title: "Session Policies",
+    icon: "⏱️",
+    items: [
+      { label: "Create session policy", value: "CREATE SESSION POLICY p SESSION_IDLE_TIMEOUT_MINS = N", note: "Defaults: 240 mins for UI, 240 mins for client" },
+      { label: "Apply to account", value: "ALTER ACCOUNT SET SESSION_POLICY = p", note: "Account-wide default" },
+      { label: "Apply to user", value: "ALTER USER u SET SESSION_POLICY = p", note: "User-level override wins" },
+      { label: "Remove from user", value: "ALTER USER u UNSET SESSION_POLICY", note: "Reverts to account-level policy" }
+    ]
+  },
+  {
+    title: "MFA Token Caching",
+    icon: "📱",
+    items: [
+      { label: "Default cache duration", value: "20 minutes", note: "Re-authentication not required within this window" },
+      { label: "MFA provider", value: "Duo Security", note: "Push notification or TOTP" },
+      { label: "User enrolment", value: "Via Snowsight profile page", note: "Self-service; admins cannot enrol on behalf of users" }
+    ]
+  }
+]} />
+
+---
+
+## Practice Questions
+
+<Quiz client:load
+  category="Authentication"
+  question="A service account needs to authenticate to Snowflake from a CI/CD pipeline without storing a password. The account must support key rotation with zero downtime. Which authentication method and feature achieves this?"
+  options={[
+    { label: "A", text: "Username/password authentication with MUST_CHANGE_PASSWORD = FALSE and a password policy with a 365-day expiry" },
+    { label: "B", text: "Key-pair authentication using RSA_PUBLIC_KEY and RSA_PUBLIC_KEY_2 to allow two simultaneous keys during rotation" },
+    { label: "C", text: "SAML 2.0 SSO with an Okta integration, using the service account's corporate email as the SAML subject" },
+    { label: "D", text: "Snowflake OAuth with OAUTH_CLIENT = CUSTOM and OAUTH_ISSUE_REFRESH_TOKENS = TRUE" }
+  ]}
+  correct="B"
+  explanation="Key-pair authentication is the recommended method for service accounts and CI/CD pipelines because no password is transmitted. Snowflake supports two simultaneous registered public keys (RSA_PUBLIC_KEY and RSA_PUBLIC_KEY_2), allowing you to register a new key while the old one is still active, switch clients to the new key, then remove the old key — achieving zero-downtime rotation. SAML 2.0 is designed for human users with browser-based IdP login flows, not headless service accounts. Snowflake OAuth is for BI tools accessing data on behalf of end users."
+/>
+
+<Quiz client:load
+  category="Authentication"
+  question="A company wants to allow Tableau Desktop users to connect to Snowflake using their corporate identity without sharing their Snowflake passwords with the BI tool. Which Snowflake feature should be configured?"
+  options={[
+    { label: "A", text: "A SAML 2.0 Security Integration with SAML2_ENABLE_SP_INITIATED = TRUE" },
+    { label: "B", text: "A SCIM Security Integration with SCIM_CLIENT = 'OKTA'" },
+    { label: "C", text: "A Snowflake OAuth Security Integration with OAUTH_CLIENT = TABLEAU_DESKTOP" },
+    { label: "D", text: "An External OAuth Security Integration with EXTERNAL_OAUTH_TYPE = OKTA" }
+  ]}
+  correct="C"
+  explanation="Snowflake OAuth with OAUTH_CLIENT = TABLEAU_DESKTOP is the correct approach for partner BI tools. Snowflake OAuth allows Tableau to obtain an access token on behalf of the user through an OAuth consent flow — the user authenticates to Snowflake directly and grants Tableau permission, but never shares their Snowflake password with Tableau. SAML 2.0 handles browser-based SSO login flows, not BI tool delegated access. SCIM is for user provisioning. External OAuth uses an external IdP as the token issuer, which is a different use case from integrating Tableau specifically."
+/>
+
+<Quiz client:load
+  category="Authentication"
+  question="An administrator reviews the LOGIN_HISTORY and notices several failed authentication attempts. They want to see login history going back 6 months with details about which authentication factor was used. Which data source should they query?"
+  options={[
+    { label: "A", text: "TABLE(INFORMATION_SCHEMA.LOGIN_HISTORY()) with a date range spanning 6 months" },
+    { label: "B", text: "SNOWFLAKE.ACCOUNT_USAGE.LOGIN_HISTORY filtered to the last 6 months" },
+    { label: "C", text: "INFORMATION_SCHEMA.SESSIONS with a WHERE clause on start_time" },
+    { label: "D", text: "SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY filtered by query_start_time" }
+  ]}
+  correct="B"
+  explanation="SNOWFLAKE.ACCOUNT_USAGE.LOGIN_HISTORY retains data for up to 365 days and includes columns for first_authentication_factor, second_authentication_factor, is_success, and error_message — exactly what's needed for a 6-month review. The INFORMATION_SCHEMA LOGIN_HISTORY table function only retains the last 7 days of data, making it unsuitable for 6-month lookback. INFORMATION_SCHEMA.SESSIONS tracks active and recent sessions, not historical login attempts. ACCESS_HISTORY records data object access (which tables were queried), not authentication events."
+/>
+
+---
+
+## Flashcards
+
+<Flashcard client:load
+  category="Authentication"
+  question="What SQL command registers an RSA public key for key-pair authentication on a Snowflake user?"
+  answer="ALTER USER username SET RSA_PUBLIC_KEY='<public_key_content>'; — The public key content is pasted without the BEGIN/END header lines. A second key slot exists: RSA_PUBLIC_KEY_2, enabling zero-downtime key rotation."
+/>
+
+<Flashcard client:load
+  category="Authentication"
+  question="How long does Snowflake cache an MFA token by default, and what is the MFA provider?"
+  answer="MFA tokens are cached for 20 minutes by default, meaning a second MFA challenge is not required within that window. Snowflake uses Duo Security as its MFA provider, supporting both push notifications and TOTP codes."
+/>
+
+<Flashcard client:load
+  category="Authentication"
+  question="What is the difference between a SAML 2.0 Security Integration and a SCIM Security Integration?"
+  answer="SAML 2.0 (TYPE = SAML2) handles authentication — it allows users to log in to Snowflake via an external IdP without entering a Snowflake password. SCIM (TYPE = SCIM) handles provisioning — it automates creating, updating, and deactivating Snowflake user accounts and role memberships when users change in the IdP. They are complementary: SCIM provisions the account, SAML authenticates the login."
+/>
+
+<Flashcard client:load
+  category="Authentication"
+  question="What are the two types of OAuth supported in Snowflake, and what is the primary use case for each?"
+  answer="(1) Snowflake OAuth (TYPE = OAUTH): designed for partner BI/analytics tools (Tableau, Power BI, Sigma, dbt Cloud) to access Snowflake on behalf of a user. Snowflake acts as its own authorisation server. (2) External OAuth (TYPE = EXTERNAL_OAUTH): designed for organisations that already have an enterprise OAuth IdP (Okta, Azure AD) and want Snowflake to trust JWT tokens that IdP issues. The external system is the authorisation server."
+/>
+
+<Flashcard client:load
+  category="Authentication"
+  question="Which view or function provides login history for the last 365 days, and what is its approximate data latency?"
+  answer="SNOWFLAKE.ACCOUNT_USAGE.LOGIN_HISTORY provides up to 365 days of login history with an approximate latency of 2 hours (data may be up to 2 hours behind real time). For near real-time data within the last 7 days, use the TABLE(INFORMATION_SCHEMA.LOGIN_HISTORY()) table function instead."
+/>
+
+---
+
+<CalloutBox type="important" title="Summary — What to Know for the Exam">
+1. **Password policies** are created with `CREATE PASSWORD POLICY` and applied with `ALTER ACCOUNT SET PASSWORD_POLICY` or `ALTER USER ... SET PASSWORD_POLICY`.
+2. **Key-pair auth** uses `ALTER USER ... SET RSA_PUBLIC_KEY`. Two key slots (`RSA_PUBLIC_KEY` and `RSA_PUBLIC_KEY_2`) enable zero-downtime rotation.
+3. **MFA** uses Duo Security. Token caching lasts 20 minutes. Enforcement is via Session Policy.
+4. **SAML 2.0 SSO** requires a Security Integration with `TYPE = SAML2`. Supported IdPs: Okta, Azure AD, ADFS, PingFederate.
+5. **Snowflake OAuth** (`TYPE = OAUTH`) is for partner tools. **External OAuth** (`TYPE = EXTERNAL_OAUTH`) is for enterprise IdP token trust.
+6. **SCIM** (`TYPE = SCIM`) is provisioning, not authentication. Supported with Okta and Azure AD.
+7. **SHOW INTEGRATIONS** and **DESCRIBE INTEGRATION** are the diagnostic commands.
+8. **LOGIN_HISTORY**: INFORMATION_SCHEMA (7 days, real-time) vs ACCOUNT_USAGE (365 days, ~2hr latency).
+</CalloutBox>
+
+<YouTubeEmbed client:load
+  videoId="dQw4w9WgXcQ"
+  title="Snowflake Authentication Methods Deep Dive"
+  description="📹 A comprehensive walkthrough of all Snowflake authentication options including key-pair setup, SSO configuration, and OAuth flows — covering the concepts most frequently tested in the COF-C02 exam."
+/>

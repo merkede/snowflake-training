@@ -1,0 +1,215 @@
+---
+layout: ../../layouts/CourseLayout.astro
+title: "Snowpipe & Continuous Loading"
+description: "Master Snowflake's Snowpipe serverless continuous data loading — event notifications, REST API, pipe management, and Snowpipe Streaming for the SnowPro Core exam"
+moduleId: "snowpipe"
+domain: "Data Loading"
+---
+
+import Flashcard from '../../components/Flashcard.tsx';
+import CodeBlock from '../../components/CodeBlock.tsx';
+import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
+import Diagram from '../../components/Diagram.tsx';
+import CalloutBox from '../../components/CalloutBox.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import CompareTable from '../../components/CompareTable.tsx';
+import KeyTerms from '../../components/KeyTerms.tsx';
+import StepByStep from '../../components/StepByStep.tsx';
+import CheatSheet from '../../components/CheatSheet.tsx';
+
+<KeyTerms client:load title="Key Terms — Snowpipe" terms={[
+  { term: "Snowpipe", abbr: "—", definition: "Serverless continuous data loading service that automatically ingests files as they arrive in a stage. No virtual warehouse required." },
+  { term: "Auto-Ingest", abbr: "—", definition: "Snowpipe mode where cloud event notifications (SQS, Event Grid, Pub/Sub) automatically trigger file loading." },
+  { term: "REST API", abbr: "—", definition: "Snowpipe's programmatic interface for manually triggering file ingestion via insertFiles() and checking status via insertReport()." },
+  { term: "Pipe", abbr: "—", definition: "A Snowflake object (CREATE PIPE) that defines the COPY INTO statement used by Snowpipe." },
+  { term: "Snowpipe Streaming", abbr: "—", definition: "Low-latency row-by-row ingestion via the Snowflake Ingest SDK — sub-second latency without staging files." },
+]} />
+
+---
+
+## What is Snowpipe?
+
+Snowpipe is a **serverless continuous data ingestion** service. Unlike bulk COPY INTO which you run manually or on a schedule, Snowpipe automatically loads data as files arrive in a stage — with no virtual warehouse needed.
+
+<Diagram client:load title="Snowpipe Architecture" description="Flow diagram: 1) Files arrive in cloud storage (S3/Blob/GCS). 2) Cloud event notification triggers (SQS for AWS, Event Grid for Azure, Pub/Sub for GCP). 3) Snowflake Cloud Services layer receives notification. 4) Serverless compute loads file into target table. 5) Load metadata updated. No virtual warehouse involved — all serverless." altText="Flow from file arrival through cloud notification to serverless loading into Snowflake table" />
+
+<CalloutBox type="exam" title="Exam Focus: Snowpipe vs COPY INTO">
+  Snowpipe = **continuous, serverless, event-driven, per-file billing**. COPY INTO = **batch, warehouse-based, manual/scheduled**. Snowpipe tracks loaded files for **14 days** vs COPY INTO's **64 days**.
+</CalloutBox>
+
+---
+
+## Auto-Ingest Mode
+
+The recommended approach uses cloud event notifications to trigger Snowpipe automatically:
+
+<CheatSheet client:load title="Auto-Ingest by Cloud Provider" sections={[
+  { title: "AWS", icon: "🟠", items: [
+    { label: "Service", value: "S3 Event Notification → SQS Queue → Snowpipe", note: "" },
+    { label: "Setup", value: "Configure S3 event on ObjectCreated → SQS → Snowflake notification integration", note: "" },
+  ]},
+  { title: "Azure", icon: "🔵", items: [
+    { label: "Service", value: "Azure Event Grid → Snowpipe", note: "" },
+    { label: "Setup", value: "Configure Blob Storage events → Event Grid → Snowflake notification integration", note: "" },
+  ]},
+  { title: "GCP", icon: "🟢", items: [
+    { label: "Service", value: "Google Cloud Pub/Sub → Snowpipe", note: "" },
+    { label: "Setup", value: "Configure GCS notifications → Pub/Sub topic → Snowflake notification integration", note: "" },
+  ]},
+]} />
+
+<CodeBlock client:load language="sql" title="Creating a Snowpipe with Auto-Ingest" code={`-- Create notification integration (AWS example)
+CREATE NOTIFICATION INTEGRATION my_s3_notification
+  ENABLED = TRUE
+  TYPE = QUEUE
+  NOTIFICATION_PROVIDER = AWS_SQS
+  DIRECTION = INBOUND
+  AWS_SQS_ARN = 'arn:aws:sqs:us-east-1:123456789:my-queue';
+
+-- Create the pipe with AUTO_INGEST
+CREATE OR REPLACE PIPE sales_pipe
+  AUTO_INGEST = TRUE
+AS
+  COPY INTO sales.raw_orders
+  FROM @sales_stage
+  FILE_FORMAT = (TYPE = JSON STRIP_OUTER_ARRAY = TRUE)
+  MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE;`} />
+
+---
+
+## REST API Mode
+
+For custom orchestration, use Snowpipe's REST API:
+
+<CodeBlock client:load language="sql" title="REST API Endpoints" code={`-- insertFiles: submit files for loading
+-- POST https://<account>.snowflakecomputing.com/v1/data/pipes/<pipe>/insertFiles
+-- Body: { "files": [{"path": "file1.csv"}, {"path": "file2.csv"}] }
+
+-- insertReport: check load status
+-- GET https://<account>.snowflakecomputing.com/v1/data/pipes/<pipe>/insertReport
+
+-- loadHistoryScan: scan load history
+-- GET https://<account>.snowflakecomputing.com/v1/data/pipes/<pipe>/loadHistoryScan`} />
+
+---
+
+## Pipe Management
+
+<CodeBlock client:load language="sql" title="Managing Pipes" code={`-- Check pipe status
+SELECT SYSTEM$PIPE_STATUS('sales_pipe');
+-- Returns: executionState, pendingFileCount, lastIngestedTimestamp
+
+-- Pause a pipe
+ALTER PIPE sales_pipe SET PIPE_EXECUTION_PAUSED = TRUE;
+
+-- Resume a pipe
+ALTER PIPE sales_pipe SET PIPE_EXECUTION_PAUSED = FALSE;
+
+-- View pipe definition
+DESCRIBE PIPE sales_pipe;
+SHOW PIPES;
+
+-- View load history
+SELECT * FROM TABLE(INFORMATION_SCHEMA.COPY_HISTORY(
+  TABLE_NAME => 'RAW_ORDERS',
+  START_TIME => DATEADD('hour', -24, CURRENT_TIMESTAMP())
+));`} />
+
+---
+
+## Snowpipe vs COPY INTO
+
+<CompareTable client:load title="Snowpipe vs Bulk COPY INTO" leftLabel="Snowpipe" rightLabel="COPY INTO" rows={[
+  { feature: "Trigger", left: "Event-driven (automatic) or REST API", right: "Manual or scheduled (Task)", winner: "left" },
+  { feature: "Compute", left: "Serverless — no warehouse needed", right: "Virtual warehouse required", winner: "left" },
+  { feature: "Billing", left: "Per-file serverless credits", right: "Per-second warehouse credits", winner: "none" },
+  { feature: "Latency", left: "Near real-time (minutes)", right: "Depends on schedule", winner: "left" },
+  { feature: "Load metadata", left: "14 days", right: "64 days", winner: "right" },
+  { feature: "Best for", left: "Continuous small-file ingestion", right: "Large batch loads", winner: "none" },
+]} />
+
+<CalloutBox type="important" title="14 Days vs 64 Days">
+  Snowpipe tracks loaded files for **14 days**. COPY INTO tracks for **64 days**. Re-loading the same file within this window is skipped by default (unless FORCE = TRUE for COPY INTO).
+</CalloutBox>
+
+---
+
+## Snowpipe Streaming
+
+<Diagram client:load title="Snowpipe Streaming Architecture" description="Unlike regular Snowpipe which requires files in a stage, Snowpipe Streaming uses the Snowflake Ingest SDK to write rows directly to Snowflake tables with sub-second latency. No intermediate files needed. Flow: Application → Snowflake Ingest SDK (Java/Python) → Snowflake table directly." altText="Direct row ingestion from application through SDK to Snowflake without staging files" />
+
+<CalloutBox type="info" title="Snowpipe Streaming vs Regular Snowpipe">
+  Regular Snowpipe: files → stage → load (minutes latency). Snowpipe Streaming: rows → SDK → table directly (sub-second latency). Streaming uses the Snowflake Ingest SDK for Java or Python. Popular for IoT, clickstream, and real-time event data.
+</CalloutBox>
+
+---
+
+## StepByStep: Setting Up Snowpipe
+
+<StepByStep client:load title="Setting Up Snowpipe End-to-End" steps={[
+  { title: "Create a stage", description: "Create an external stage pointing to your cloud storage bucket.", code: `CREATE STAGE sales_stage\n  URL = 's3://my-bucket/sales/'\n  STORAGE_INTEGRATION = my_s3_int\n  FILE_FORMAT = (TYPE = CSV SKIP_HEADER = 1);` },
+  { title: "Create the target table", description: "Create the table that Snowpipe will load data into.", code: `CREATE TABLE sales.raw_orders (\n  order_id INT, customer_id INT,\n  order_date DATE, amount DECIMAL(12,2)\n);` },
+  { title: "Create the pipe", description: "Define the COPY INTO statement as a pipe with AUTO_INGEST = TRUE.", code: `CREATE PIPE sales_pipe AUTO_INGEST = TRUE\nAS COPY INTO sales.raw_orders\nFROM @sales_stage;`, tip: "The COPY INTO in the pipe definition is fixed — you cannot parameterise it." },
+  { title: "Configure cloud notifications", description: "Set up S3/Blob/GCS event notifications to send to Snowflake's SQS queue. Get the notification channel ARN from DESCRIBE PIPE.", code: `DESCRIBE PIPE sales_pipe;\n-- Note the notification_channel value for AWS SQS configuration` },
+  { title: "Verify", description: "Upload a test file and check the status.", code: `SELECT SYSTEM$PIPE_STATUS('sales_pipe');\nSELECT COUNT(*) FROM sales.raw_orders;` },
+]} />
+
+---
+
+## Cheat Sheet
+
+<CheatSheet client:load title="Snowpipe Quick Reference" sections={[
+  { title: "Key Facts", icon: "🚰", items: [
+    { label: "Compute", value: "Serverless — no warehouse needed", note: "" },
+    { label: "Latency", value: "Minutes (regular) or sub-second (Streaming)", note: "" },
+    { label: "Metadata", value: "Tracks loaded files for 14 days", note: "vs 64 for COPY INTO" },
+    { label: "Status", value: "SYSTEM$PIPE_STATUS('pipe_name')", note: "" },
+    { label: "History", value: "PIPE_USAGE_HISTORY in ACCOUNT_USAGE", note: "" },
+  ]},
+  { title: "Commands", icon: "⌨️", items: [
+    { label: "Create", value: "CREATE PIPE p AUTO_INGEST=TRUE AS COPY INTO ...", note: "" },
+    { label: "Pause", value: "ALTER PIPE p SET PIPE_EXECUTION_PAUSED = TRUE", note: "" },
+    { label: "Resume", value: "ALTER PIPE p SET PIPE_EXECUTION_PAUSED = FALSE", note: "" },
+    { label: "Describe", value: "DESCRIBE PIPE p — shows notification_channel", note: "" },
+  ]},
+]} />
+
+---
+
+## Practice Quiz
+
+<Quiz client:load category="Data Loading" question="How long does Snowpipe track previously loaded files to prevent duplicate loading?" options={[{label:"A",text:"7 days"},{label:"B",text:"14 days"},{label:"C",text:"64 days"},{label:"D",text:"90 days"}]} correct="B" explanation="Snowpipe tracks loaded files for 14 days. Within this window, re-submitting the same file will not re-load it. COPY INTO tracks for 64 days." />
+
+<Quiz client:load category="Data Loading" question="Which compute resource does Snowpipe use to load data?" options={[{label:"A",text:"The default virtual warehouse assigned to the pipe"},{label:"B",text:"The SYSTEM warehouse"},{label:"C",text:"Serverless compute managed by Snowflake"},{label:"D",text:"The Cloud Services layer only"}]} correct="C" explanation="Snowpipe uses serverless compute — no user virtual warehouse is involved. This is billed as per-file serverless credits, separate from warehouse credits." />
+
+<Quiz client:load category="Data Loading" question="What is the key difference between Snowpipe and Snowpipe Streaming?" options={[{label:"A",text:"Snowpipe Streaming uses larger warehouses"},{label:"B",text:"Snowpipe Streaming ingests rows directly via SDK without staging files"},{label:"C",text:"Snowpipe Streaming only works with JSON data"},{label:"D",text:"Snowpipe Streaming requires Business Critical edition"}]} correct="B" explanation="Snowpipe Streaming uses the Snowflake Ingest SDK to write rows directly to tables without needing intermediate files in a stage. This enables sub-second latency vs minutes for regular Snowpipe." />
+
+---
+
+## Flashcards
+
+<Flashcard client:load category="Data Loading" question="What are the two modes of triggering Snowpipe?" answer="1) Auto-ingest: cloud event notifications (SQS/Event Grid/Pub-Sub) automatically trigger loading when files arrive. 2) REST API: programmatically call insertFiles() to submit specific files for loading." />
+
+<Flashcard client:load category="Data Loading" question="How is Snowpipe billed compared to COPY INTO?" answer="Snowpipe: per-file serverless credits — no warehouse needed. COPY INTO: per-second warehouse credits based on warehouse size. Snowpipe is cost-efficient for frequent small files; COPY INTO is better for large batch loads." />
+
+<Flashcard client:load category="Data Loading" question="What does SYSTEM$PIPE_STATUS return?" answer="JSON object with: executionState (RUNNING/PAUSED), pendingFileCount (files waiting to load), lastIngestedTimestamp, and other status information about the pipe." />
+
+<Flashcard client:load category="Data Loading" question="How long does Snowpipe track loaded files vs COPY INTO?" answer="Snowpipe: 14 days. COPY INTO: 64 days. Within these windows, re-submitting the same file is skipped to prevent duplicates." />
+
+<Flashcard client:load category="Data Loading" question="What is the typical latency for Snowpipe vs Snowpipe Streaming?" answer="Regular Snowpipe: minutes (near real-time). Snowpipe Streaming: sub-second latency. Streaming uses the Snowflake Ingest SDK to bypass file staging entirely." />
+
+---
+
+## Resources
+
+- [Snowpipe Documentation](https://docs.snowflake.com/en/user-guide/data-load-snowpipe-intro)
+- [Snowpipe REST API](https://docs.snowflake.com/en/user-guide/data-load-snowpipe-rest)
+- [Snowpipe Streaming](https://docs.snowflake.com/en/user-guide/data-load-snowpipe-streaming-overview)
+
+---
+
+## Next Steps
+
+- [Stages & File Formats](/data-loading/stages)
+- [Bulk Data Loading](/data-loading/bulk)
+- [Data Unloading](/data-loading/unloading)

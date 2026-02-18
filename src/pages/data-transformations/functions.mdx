@@ -1,0 +1,279 @@
+---
+layout: ../../layouts/CourseLayout.astro
+title: "UDFs, UDTFs & Stored Procedures"
+description: "Master Snowflake User-Defined Functions, Table Functions, Stored Procedures, and External Functions for the SnowPro Core exam"
+moduleId: "functions"
+domain: "Transformations"
+---
+
+import Flashcard from '../../components/Flashcard.tsx';
+import CodeBlock from '../../components/CodeBlock.tsx';
+import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
+import Diagram from '../../components/Diagram.tsx';
+import CalloutBox from '../../components/CalloutBox.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import CompareTable from '../../components/CompareTable.tsx';
+import KeyTerms from '../../components/KeyTerms.tsx';
+import StepByStep from '../../components/StepByStep.tsx';
+import CheatSheet from '../../components/CheatSheet.tsx';
+
+<KeyTerms client:load title="Key Terms — Functions & Procedures" terms={[
+  { term: "UDF", abbr: "User-Defined Function", definition: "A custom scalar function that returns a single value per input row. Can be written in SQL, JavaScript, Python, or Java." },
+  { term: "UDTF", abbr: "User-Defined Table Function", definition: "A custom function that returns a set of rows (a table). Called with TABLE() in the FROM clause." },
+  { term: "Stored Procedure", abbr: "SP", definition: "A procedural block that can perform DDL/DML, control flow, and return a single value. Supports SQL, JavaScript, Python, Java, and Scala." },
+  { term: "External Function", abbr: "—", definition: "A UDF that calls an external API (via API Gateway + Lambda/Cloud Function). Snowflake sends data out and receives results back." },
+  { term: "Owner's Rights", abbr: "—", definition: "Default for stored procedures — executes with the privileges of the procedure owner, not the caller." },
+  { term: "Caller's Rights", abbr: "—", definition: "Optional mode where the procedure executes with the caller's privileges. Set with EXECUTE AS CALLER." },
+]} />
+
+---
+
+## UDFs (User-Defined Functions)
+
+UDFs are **scalar functions** — they take input values and return a single value per row. They are used in SELECT, WHERE, and other expression contexts.
+
+<CodeBlock client:load language="sql" title="SQL UDF" code={`-- Simple SQL UDF
+CREATE OR REPLACE FUNCTION mask_email(email VARCHAR)
+RETURNS VARCHAR
+LANGUAGE SQL
+AS
+$$
+  CONCAT(LEFT(email, 2), '****@', SPLIT_PART(email, '@', 2))
+$$;
+
+-- Usage
+SELECT mask_email('john.smith@company.com');
+-- Result: jo****@company.com`} />
+
+<CodeBlock client:load language="sql" title="JavaScript UDF" code={`-- JavaScript UDF
+CREATE OR REPLACE FUNCTION calculate_bmi(weight_kg FLOAT, height_m FLOAT)
+RETURNS FLOAT
+LANGUAGE JAVASCRIPT
+AS
+$$
+  return WEIGHT_KG / (HEIGHT_M * HEIGHT_M);
+$$;
+
+-- Note: JavaScript UDFs receive column names in UPPERCASE`} />
+
+<CodeBlock client:load language="sql" title="Python UDF" code={`-- Python UDF (requires Snowpark)
+CREATE OR REPLACE FUNCTION sentiment_score(text VARCHAR)
+RETURNS FLOAT
+LANGUAGE PYTHON
+RUNTIME_VERSION = '3.8'
+HANDLER = 'score'
+AS
+$$
+def score(text):
+    positive = ['good', 'great', 'excellent', 'love']
+    words = text.lower().split()
+    matches = sum(1 for w in words if w in positive)
+    return matches / max(len(words), 1)
+$$;`} />
+
+<CalloutBox type="exam" title="Exam Focus: UDF Languages">
+  UDFs support **SQL, JavaScript, Python, and Java**. JavaScript UDFs receive column names in UPPERCASE. Python UDFs require specifying RUNTIME_VERSION and HANDLER. SQL UDFs are the simplest and most performant.
+</CalloutBox>
+
+---
+
+## UDTFs (User-Defined Table Functions)
+
+UDTFs return **a set of rows** rather than a single value. They are called using TABLE() in the FROM clause.
+
+<CodeBlock client:load language="sql" title="JavaScript UDTF" code={`-- UDTF that splits a string into rows
+CREATE OR REPLACE FUNCTION split_to_rows(input VARCHAR, delimiter VARCHAR)
+RETURNS TABLE (value VARCHAR, position INT)
+LANGUAGE JAVASCRIPT
+AS
+$$
+{
+  processRow: function(row, rowWriter, context) {
+    var parts = row.INPUT.split(row.DELIMITER);
+    for (var i = 0; i < parts.length; i++) {
+      rowWriter.writeRow({VALUE: parts[i].trim(), POSITION: i + 1});
+    }
+  }
+}
+$$;
+
+-- Usage: call with TABLE() and OVER()
+SELECT t.value, t.position
+FROM TABLE(split_to_rows('apple,banana,cherry', ',')) AS t;`} />
+
+<CalloutBox type="info" title="UDTF vs FLATTEN">
+  For simple array/object expansion, use the built-in FLATTEN function. UDTFs are for custom row-generating logic that FLATTEN cannot handle.
+</CalloutBox>
+
+---
+
+## Stored Procedures
+
+Stored procedures can execute **DDL, DML, and control flow** logic. Unlike UDFs, they are not called in expressions — you invoke them with CALL.
+
+<CodeBlock client:load language="sql" title="SQL Stored Procedure" code={`-- SQL Scripting stored procedure
+CREATE OR REPLACE PROCEDURE archive_old_orders(cutoff_date DATE)
+RETURNS VARCHAR
+LANGUAGE SQL
+AS
+$$
+BEGIN
+  INSERT INTO sales.orders_archive
+  SELECT * FROM sales.orders WHERE order_date < :cutoff_date;
+
+  DELETE FROM sales.orders WHERE order_date < :cutoff_date;
+
+  RETURN 'Archive complete';
+END;
+$$;
+
+-- Call the procedure
+CALL archive_old_orders('2023-01-01');`} />
+
+<CodeBlock client:load language="sql" title="JavaScript Stored Procedure" code={`-- JavaScript stored procedure with error handling
+CREATE OR REPLACE PROCEDURE refresh_summary(schema_name VARCHAR)
+RETURNS VARCHAR
+LANGUAGE JAVASCRIPT
+EXECUTE AS OWNER
+AS
+$$
+  try {
+    var stmt = snowflake.createStatement({
+      sqlText: 'TRUNCATE TABLE ' + SCHEMA_NAME + '.daily_summary'
+    });
+    stmt.execute();
+
+    stmt = snowflake.createStatement({
+      sqlText: 'INSERT INTO ' + SCHEMA_NAME + '.daily_summary SELECT * FROM ' + SCHEMA_NAME + '.v_daily_summary'
+    });
+    var result = stmt.execute();
+    return 'Refreshed ' + result.getNumRowsInserted() + ' rows';
+  } catch (err) {
+    return 'Error: ' + err.message;
+  }
+$$;`} />
+
+---
+
+## UDF vs Stored Procedure
+
+<CompareTable client:load title="UDF vs Stored Procedure" leftLabel="UDF (Function)" rightLabel="Stored Procedure" rows={[
+  { feature: "Returns", left: "A value per row (scalar) or rows (UDTF)", right: "A single value (status/result)", winner: "none" },
+  { feature: "Usage", left: "In SELECT, WHERE, expressions", right: "CALL statement only", winner: "none" },
+  { feature: "DDL/DML", left: "Cannot execute DDL or DML", right: "Can execute DDL and DML", winner: "right" },
+  { feature: "Side effects", left: "No side effects — pure function", right: "Can modify data and objects", winner: "none" },
+  { feature: "Transaction", left: "Runs within caller's transaction", right: "Can manage its own transactions", winner: "right" },
+  { feature: "Languages", left: "SQL, JavaScript, Python, Java", right: "SQL, JavaScript, Python, Java, Scala", winner: "right" },
+]} />
+
+<CalloutBox type="exam" title="Exam Focus: When to Use Which">
+  **UDF**: custom calculations, transformations, data masking — used in queries. **Stored Procedure**: ETL orchestration, admin tasks, DDL operations — called independently with CALL. The exam frequently tests this distinction.
+</CalloutBox>
+
+---
+
+## Owner's Rights vs Caller's Rights
+
+<CompareTable client:load title="Owner's vs Caller's Rights" leftLabel="Owner's Rights (Default)" rightLabel="Caller's Rights" rows={[
+  { feature: "Privileges used", left: "Procedure owner's privileges", right: "Calling user's privileges", winner: "none" },
+  { feature: "Syntax", left: "EXECUTE AS OWNER (default)", right: "EXECUTE AS CALLER", winner: "none" },
+  { feature: "Security", left: "Caller does not need direct table access", right: "Caller must have all required privileges", winner: "left" },
+  { feature: "Use case", left: "Controlled data access, encapsulation", right: "User-context operations, session variables", winner: "none" },
+  { feature: "Applies to", left: "Stored procedures only", right: "Stored procedures only", winner: "none" },
+]} />
+
+<CalloutBox type="important" title="UDFs Are Always Caller's Rights">
+  UDFs always run with the **caller's privileges**. Only stored procedures support the Owner's Rights / Caller's Rights distinction.
+</CalloutBox>
+
+---
+
+## External Functions
+
+External functions call an **external API** outside Snowflake. Data is sent to an API Gateway (AWS API Gateway, Azure API Management, or GCP API Gateway) which forwards to a Lambda/Cloud Function.
+
+<Diagram client:load title="External Function Architecture" description="Flow: 1) Snowflake sends rows to API Integration endpoint. 2) API Gateway (AWS API Gateway / Azure APIM / GCP API Gateway) receives the request. 3) Gateway forwards to compute service (Lambda / Azure Function / Cloud Function). 4) Compute processes data and returns results. 5) Results flow back through API Gateway to Snowflake. All communication is HTTPS." altText="Flow from Snowflake through API Gateway to cloud function and back" />
+
+<CodeBlock client:load language="sql" title="Creating an External Function" code={`-- Step 1: Create API integration
+CREATE API INTEGRATION my_api_integration
+  API_PROVIDER = aws_api_gateway
+  API_AWS_ROLE_ARN = 'arn:aws:iam::123456789:role/my-role'
+  API_ALLOWED_PREFIXES = ('https://abc123.execute-api.us-east-1.amazonaws.com/')
+  ENABLED = TRUE;
+
+-- Step 2: Create the external function
+CREATE EXTERNAL FUNCTION translate_text(text VARCHAR, target_lang VARCHAR)
+RETURNS VARCHAR
+API_INTEGRATION = my_api_integration
+AS 'https://abc123.execute-api.us-east-1.amazonaws.com/prod/translate';
+
+-- Step 3: Use like any function
+SELECT translate_text(description, 'fr') FROM products;`} />
+
+<CalloutBox type="warning" title="External Function Limitations">
+  External functions are **slower** than native UDFs due to network latency. Data leaves Snowflake — consider security implications. They are billed per row processed and have rate limits.
+</CalloutBox>
+
+---
+
+## Cheat Sheet
+
+<CheatSheet client:load title="Functions & Procedures Quick Reference" sections={[
+  { title: "UDFs", icon: "🔧", items: [
+    { label: "Type", value: "Scalar (one value per row) or tabular (UDTF)", note: "" },
+    { label: "Languages", value: "SQL, JavaScript, Python, Java", note: "" },
+    { label: "Usage", value: "In SELECT, WHERE, JOIN conditions", note: "" },
+    { label: "Rights", value: "Always caller's rights", note: "" },
+  ]},
+  { title: "Stored Procedures", icon: "⚙️", items: [
+    { label: "Languages", value: "SQL, JavaScript, Python, Java, Scala", note: "" },
+    { label: "Invocation", value: "CALL procedure_name(args)", note: "" },
+    { label: "Default rights", value: "Owner's rights (EXECUTE AS OWNER)", note: "" },
+    { label: "Can do DDL/DML", value: "Yes — CREATE, INSERT, DELETE, etc.", note: "" },
+  ]},
+  { title: "External Functions", icon: "🌐", items: [
+    { label: "Mechanism", value: "API Integration + API Gateway + Cloud Function", note: "" },
+    { label: "Transport", value: "HTTPS (data leaves Snowflake)", note: "" },
+    { label: "Performance", value: "Slower due to network round-trip", note: "" },
+  ]},
+]} />
+
+---
+
+## Practice Quiz
+
+<Quiz client:load category="Transformations" question="Which of the following can a stored procedure do that a UDF cannot?" options={[{label:"A",text:"Return a value"},{label:"B",text:"Accept parameters"},{label:"C",text:"Execute DDL statements like CREATE TABLE"},{label:"D",text:"Be written in JavaScript"}]} correct="C" explanation="Stored procedures can execute DDL (CREATE, ALTER, DROP) and DML (INSERT, UPDATE, DELETE). UDFs are pure functions that cannot modify database objects. Both can return values, accept parameters, and be written in JavaScript." />
+
+<Quiz client:load category="Transformations" question="What is the default execution mode for stored procedures?" options={[{label:"A",text:"Caller's rights"},{label:"B",text:"Owner's rights"},{label:"C",text:"ACCOUNTADMIN rights"},{label:"D",text:"SYSADMIN rights"}]} correct="B" explanation="Stored procedures default to Owner's Rights (EXECUTE AS OWNER). The procedure runs with the privileges of the role that created it, not the role calling it. Use EXECUTE AS CALLER to change this." />
+
+<Quiz client:load category="Transformations" question="How do you call a UDTF in a query?" options={[{label:"A",text:"In the SELECT clause like a scalar function"},{label:"B",text:"Using CALL statement"},{label:"C",text:"Using TABLE() in the FROM clause"},{label:"D",text:"Using FLATTEN()"}]} correct="C" explanation="UDTFs return rows, so they are called using TABLE(function_name(args)) in the FROM clause, similar to how you use FLATTEN or GENERATOR." />
+
+---
+
+## Flashcards
+
+<Flashcard client:load category="Transformations" question="What languages can Snowflake UDFs be written in?" answer="SQL, JavaScript, Python, and Java. JavaScript UDFs receive column names in UPPERCASE. Python UDFs require RUNTIME_VERSION and HANDLER parameters." />
+
+<Flashcard client:load category="Transformations" question="What is the difference between a UDF and a stored procedure?" answer="UDFs return values and are used in queries (SELECT/WHERE). Stored procedures are called with CALL, can execute DDL/DML, and manage transactions. UDFs cannot modify data; stored procedures can." />
+
+<Flashcard client:load category="Transformations" question="What are Owner's Rights vs Caller's Rights?" answer="Owner's Rights (default): procedure runs with the owner's privileges — caller does not need direct access to underlying objects. Caller's Rights (EXECUTE AS CALLER): runs with the caller's privileges. Only applies to stored procedures — UDFs are always caller's rights." />
+
+<Flashcard client:load category="Transformations" question="How do external functions work in Snowflake?" answer="Snowflake sends data via HTTPS to an API Gateway (AWS/Azure/GCP), which forwards to a cloud function (Lambda/Azure Function). Results are returned the same way. Requires an API Integration object. Data leaves Snowflake, so consider security." />
+
+<Flashcard client:load category="Transformations" question="When should you use a UDTF instead of a UDF?" answer="Use a UDTF when you need to return multiple rows per input row (one-to-many). UDFs return exactly one value per input row (one-to-one). UDTFs are called with TABLE() in the FROM clause." />
+
+---
+
+## Resources
+
+- [UDF Overview](https://docs.snowflake.com/en/developer-guide/udf/udf-overview)
+- [Stored Procedures](https://docs.snowflake.com/en/developer-guide/stored-procedure/stored-procedures-overview)
+- [External Functions](https://docs.snowflake.com/en/sql-reference/external-functions-introduction)
+
+---
+
+## Next Steps
+
+- [SQL Basics & Transformations](/data-transformations/sql-basics)
+- [Streams & Tasks](/data-transformations/streams-tasks)
+- [Semi-Structured Data](/data-transformations/semi-structured)

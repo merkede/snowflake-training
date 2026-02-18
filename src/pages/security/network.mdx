@@ -1,0 +1,540 @@
+---
+layout: ../../layouts/CourseLayout.astro
+title: "Network Policies & Security"
+description: "Control network access to your Snowflake account with IP allowlists, network policies, Private Link, and MFA for the SnowPro Core exam"
+moduleId: "network-security"
+domain: "Security"
+---
+
+import Flashcard from '../../components/Flashcard.tsx';
+import CodeBlock from '../../components/CodeBlock.tsx';
+import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
+import Diagram from '../../components/Diagram.tsx';
+import CalloutBox from '../../components/CalloutBox.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import CompareTable from '../../components/CompareTable.tsx';
+import KeyTerms from '../../components/KeyTerms.tsx';
+import StepByStep from '../../components/StepByStep.tsx';
+import CheatSheet from '../../components/CheatSheet.tsx';
+
+# Network Policies & Security
+
+Snowflake provides a comprehensive layered security model. Beyond Role-Based Access Control (RBAC), Snowflake gives administrators control over **which networks can connect** to an account, **how traffic is routed**, **how data is encrypted**, and **how users authenticate**. This module covers all network and security features tested in the COF-C02 exam.
+
+<YouTubeEmbed client:load videoId="VvAHHnqXbF0" title="Snowflake Security Features Overview" description="A walkthrough of Snowflake's end-to-end security model, covering network policies, encryption, private connectivity, MFA, and Tri-Secret Secure." />
+
+---
+
+## The Snowflake Security Model at a Glance
+
+Snowflake's security architecture operates at several distinct layers:
+
+| Layer | Feature | Edition Requirement |
+|---|---|---|
+| Network | Network Policies (IP allowlist) | All editions |
+| Network | Private Link (AWS/Azure/GCP) | Business Critical+ |
+| Authentication | Multi-Factor Authentication (MFA) | All editions |
+| Authentication | SSO via SAML / OAuth | All editions |
+| Encryption | TLS 1.2+ in transit | All editions (automatic) |
+| Encryption | AES-256 at rest | All editions (automatic) |
+| Encryption | Periodic Rekeying | Enterprise+ |
+| Encryption | Tri-Secret Secure (customer-managed keys) | Business Critical+ |
+
+<KeyTerms client:load title="Key Terms — Network Security" terms={[
+  {term: "Network Policy", abbr: "NP", definition: "A Snowflake object that restricts account or user access to specified IP address ranges. Consists of an ALLOWED_IP_LIST and an optional BLOCKED_IP_LIST."},
+  {term: "CIDR Notation", abbr: "CIDR", definition: "Classless Inter-Domain Routing notation (e.g., 192.168.1.0/24) used to specify a range of IP addresses in network policy rules."},
+  {term: "PrivateLink", abbr: "", definition: "A cloud provider mechanism (AWS PrivateLink, Azure Private Link, GCP Private Service Connect) that routes traffic between your VPC/VNet and Snowflake without traversing the public internet."},
+  {term: "Tri-Secret Secure", abbr: "TSS", definition: "Business Critical feature that encrypts Snowflake data using a composite key — one half held by Snowflake, the other held by the customer in their own KMS. Neither party alone can decrypt the data."},
+  {term: "MFA", abbr: "Multi-Factor Authentication", definition: "A second authentication factor beyond username and password, implemented via Duo Security integration in Snowflake. Can be enforced at the account or user level."},
+  {term: "TLS", abbr: "Transport Layer Security", definition: "The cryptographic protocol used to encrypt all data transmitted between Snowflake clients and the Snowflake service. Snowflake requires TLS 1.2 or higher."},
+  {term: "AES-256", abbr: "", definition: "Advanced Encryption Standard with 256-bit keys, used by Snowflake to encrypt all data at rest in cloud storage."},
+  {term: "Security Integration", abbr: "", definition: "A Snowflake object created with CREATE SECURITY INTEGRATION that configures external authentication providers such as OAuth or SAML SSO."},
+  {term: "Periodic Rekeying", abbr: "", definition: "An Enterprise+ feature where Snowflake automatically re-encrypts stored data with new encryption keys on a periodic basis, limiting the exposure window if a key is ever compromised."}
+]} />
+
+---
+
+## Network Policies
+
+A **network policy** controls which IP addresses can connect to your Snowflake account. It is the first line of defence — checked even before authentication is attempted.
+
+### How Network Policies Work
+
+<Diagram client:load title="Network Policy Enforcement Flow" description="Flowchart showing what happens when a client attempts to connect to Snowflake. Step 1: Client sends connection request with its IP address. Step 2: Snowflake checks if a user-level network policy is applied to this user. If yes, it evaluates that policy. If no, it checks the account-level network policy. Step 3: The IP is checked against the BLOCKED_IP_LIST first — if found, the connection is refused. Step 4: The IP is checked against the ALLOWED_IP_LIST. If found (or if the list is empty), the connection proceeds to authentication. If not found, the connection is refused. Step 5: Authentication proceeds (username/password, MFA, SSO, etc.)." altText="Snowflake network policy enforcement flowchart" />
+
+### Rules for Network Policies
+
+- If **ALLOWED_IP_LIST is empty**, all IP addresses are allowed (no restriction).
+- If an IP appears in **both** ALLOWED_IP_LIST and BLOCKED_IP_LIST, the **BLOCKED_IP_LIST takes precedence** — the IP is denied.
+- **User-level** network policies **override** account-level network policies for that specific user.
+- Only **ACCOUNTADMIN** (or a role with the ATTACH POLICY privilege) can apply a network policy.
+
+<CalloutBox type="exam" title="Critical Rule — Block List Takes Precedence">
+If an IP address appears in **both** the ALLOWED_IP_LIST and the BLOCKED_IP_LIST of the same network policy, the connection is **BLOCKED**. The block list always wins.
+
+This is a commonly tested edge case in the COF-C02 exam.
+</CalloutBox>
+
+---
+
+## CREATE NETWORK POLICY Syntax
+
+<CodeBlock client:load language="sql" title="Creating and Managing Network Policies" code={`-- Create a network policy with an allowed IP range and a blocked IP
+CREATE NETWORK POLICY corporate_policy
+  ALLOWED_IP_LIST = (
+    '203.0.113.0/24',    -- Corporate office CIDR range
+    '198.51.100.10',     -- Specific VPN endpoint IP
+    '10.0.0.0/8'         -- Internal network range
+  )
+  BLOCKED_IP_LIST = (
+    '203.0.113.100'      -- Blocked specific host within allowed range
+  );
+
+-- View all network policies in the account
+SHOW NETWORK POLICIES;
+
+-- Inspect the details of a specific policy
+DESCRIBE NETWORK POLICY corporate_policy;
+
+-- Modify an existing network policy
+ALTER NETWORK POLICY corporate_policy
+  SET ALLOWED_IP_LIST = (
+    '203.0.113.0/24',
+    '198.51.100.10',
+    '10.0.0.0/8',
+    '172.16.0.0/12'   -- Add new range for branch offices
+  );
+
+-- Drop a network policy (fails if currently applied)
+DROP NETWORK POLICY corporate_policy;`} />
+
+---
+
+## Applying Network Policies
+
+Network policies can be applied at two levels: **account-wide** or to a **specific user**.
+
+<CodeBlock client:load language="sql" title="Applying Network Policies to Account or User" code={`-- Apply a network policy at the ACCOUNT level
+-- All users connecting to this account are subject to this policy
+-- (unless they have a user-level policy that overrides it)
+ALTER ACCOUNT SET NETWORK_POLICY = corporate_policy;
+
+-- Remove the account-level network policy
+ALTER ACCOUNT UNSET NETWORK_POLICY;
+
+-- Apply a network policy to a SPECIFIC USER
+-- This overrides the account-level policy for this user only
+ALTER USER alice SET NETWORK_POLICY = developer_policy;
+
+-- Remove the user-level network policy
+-- User then falls back to the account-level policy
+ALTER USER alice UNSET NETWORK_POLICY;
+
+-- View what policy is applied to a user
+DESCRIBE USER alice;
+
+-- View the current account-level network policy
+SHOW PARAMETERS LIKE 'NETWORK_POLICY' IN ACCOUNT;`} />
+
+<Flashcard client:load category="Network Security" question="If a Snowflake account has an account-level network policy and a user also has a user-level network policy, which takes precedence?" answer="The USER-LEVEL network policy takes precedence for that specific user. All other users without a user-level policy remain subject to the account-level policy." />
+
+<Quiz client:load category="Network Security" question="A Snowflake account has a network policy with ALLOWED_IP_LIST = ('10.0.0.0/8') and BLOCKED_IP_LIST = ('10.0.0.50'). A user attempts to connect from IP 10.0.0.50. What happens?" options={[{label:"A",text:"The connection succeeds because 10.0.0.50 is within the allowed range 10.0.0.0/8"},{label:"B",text:"The connection fails because BLOCKED_IP_LIST takes precedence over ALLOWED_IP_LIST"},{label:"C",text:"Snowflake prompts the user for additional MFA verification"},{label:"D",text:"The connection succeeds only if the user has ACCOUNTADMIN role"}]} correct="B" explanation="When an IP address appears in both ALLOWED_IP_LIST and BLOCKED_IP_LIST, the BLOCKED_IP_LIST always takes precedence. The connection from 10.0.0.50 is refused, even though that IP is within the allowed /8 CIDR range." />
+
+---
+
+## SHOW and DESCRIBE Commands for Network Policies
+
+<CodeBlock client:load language="sql" title="Inspecting Network Policy Configuration" code={`-- List all network policies defined in the account
+SHOW NETWORK POLICIES;
+
+-- Describe a specific policy to see its IP lists
+DESCRIBE NETWORK POLICY corporate_policy;
+
+-- See which network policy is active at account level
+SHOW PARAMETERS LIKE '%NETWORK%' IN ACCOUNT;
+
+-- See which network policy a specific user has assigned
+SHOW PARAMETERS LIKE '%NETWORK%' IN USER alice;`} />
+
+---
+
+## Private Connectivity (Business Critical+)
+
+For organisations with strict security requirements, Snowflake supports private connectivity that routes traffic **entirely within the cloud provider's network** — bypassing the public internet.
+
+<Diagram client:load title="Private Link vs Public Internet Connectivity to Snowflake" description="Side-by-side diagram comparing two connectivity models. On the left: Standard connectivity. Client in a corporate VPC sends traffic over the public internet to Snowflake's public endpoint. Traffic is encrypted with TLS but traverses multiple public network hops. On the right: Private Link connectivity. Client in a corporate VPC connects to a VPC endpoint (AWS) or Private Endpoint (Azure) or Service Attachment (GCP) within their own cloud environment. Traffic travels entirely within the cloud provider's internal backbone network and arrives at Snowflake's private endpoint without ever touching the public internet. Both paths encrypt data in transit, but Private Link eliminates public internet exposure entirely." altText="Comparison diagram of standard vs private link connectivity to Snowflake" />
+
+| Provider | Technology | Snowflake Support |
+|---|---|---|
+| AWS | AWS PrivateLink | Yes (Business Critical+) |
+| Azure | Azure Private Link | Yes (Business Critical+) |
+| GCP | GCP Private Service Connect | Yes (Business Critical+) |
+
+<CalloutBox type="exam" title="Private Link — Edition Requirement">
+Private connectivity (AWS PrivateLink, Azure Private Link, GCP Private Service Connect) requires **Business Critical edition or higher**. This is frequently tested. Standard, Premier, and Enterprise editions do **not** support private link connectivity.
+</CalloutBox>
+
+<Flashcard client:load category="Network Security" question="Which Snowflake editions support AWS PrivateLink for private connectivity?" answer="Business Critical edition and above. Private connectivity is not available on Standard or Enterprise editions." />
+
+---
+
+## Tri-Secret Secure (Business Critical+)
+
+Tri-Secret Secure is an advanced encryption option where **customer-managed keys** are combined with Snowflake-managed keys to create a composite encryption key. Neither Snowflake nor the customer alone can decrypt the data.
+
+<Diagram client:load title="Tri-Secret Secure Key Hierarchy" description="Diagram illustrating the Tri-Secret Secure key model. At the top is the composite encryption key, which is derived from two components: 1) The Snowflake Master Key, held and managed by Snowflake internally. 2) The Customer Master Key, held by the customer in their cloud KMS (AWS KMS, Azure Key Vault, or GCP Cloud KMS). The composite key is created by combining both components at query time. Data encrypted with this composite key cannot be decrypted by Snowflake alone (they only have half the key) and cannot be decrypted by the customer alone (they only have the other half). To revoke Snowflake's access to data, the customer simply rotates or deletes their key in the KMS — Snowflake can no longer form the composite key and all data becomes inaccessible." altText="Tri-Secret Secure encryption key hierarchy diagram" />
+
+### Supported KMS Providers for Tri-Secret Secure
+
+| Cloud Provider | KMS Service |
+|---|---|
+| AWS | AWS Key Management Service (KMS) |
+| Azure | Azure Key Vault |
+| GCP | Google Cloud Key Management Service |
+
+<CalloutBox type="warning" title="Tri-Secret Secure — Data Access Revocation">
+Because the composite key requires the customer's key to function, the customer can **revoke Snowflake's ability to access their data** at any time simply by rotating or disabling their key in their KMS. This provides ultimate data sovereignty — even Snowflake cannot access your data without your key.
+
+This is a **Business Critical+** feature only.
+</CalloutBox>
+
+<Flashcard client:load category="Network Security" question="What is Tri-Secret Secure and which Snowflake edition is required?" answer="Tri-Secret Secure uses a composite encryption key made up of a Snowflake-managed key AND a customer-managed key stored in their cloud KMS (AWS KMS, Azure Key Vault, or GCP KMS). Neither party alone can decrypt the data. It requires Business Critical edition or above." />
+
+---
+
+## Encryption — In Transit and At Rest
+
+### In Transit
+
+- All communication between Snowflake clients and the Snowflake service is encrypted using **TLS 1.2 or higher**.
+- This applies to the Snowflake web UI, SnowSQL CLI, ODBC/JDBC drivers, Python connector, and all other client interfaces.
+- Encryption in transit is **automatic** — it cannot be disabled.
+
+### At Rest
+
+- All data stored in Snowflake's cloud storage layer (S3, Azure Blob, GCS) is encrypted using **AES-256**.
+- Encryption at rest is **automatic** — no configuration is required.
+- Snowflake uses a **hierarchical key model**: file keys encrypt data files, column master keys protect file keys, account master keys protect column master keys.
+
+<CodeBlock client:load language="sql" title="Viewing Encryption-Related Account Parameters" code={`-- Check encryption settings at the account level
+SHOW PARAMETERS LIKE '%ENCRYPT%' IN ACCOUNT;
+
+-- View data retention settings (related to security posture)
+SHOW PARAMETERS LIKE '%DATA_RETENTION%' IN ACCOUNT;
+
+-- Check if periodic rekeying is enabled (Enterprise+)
+SHOW PARAMETERS LIKE '%REKEY%' IN ACCOUNT;`} />
+
+---
+
+## Periodic Rekeying (Enterprise+)
+
+**Periodic rekeying** is a feature where Snowflake automatically re-encrypts stored data with new encryption keys on a scheduled basis. This limits the **exposure window** if an encryption key is ever compromised.
+
+| Edition | Periodic Rekeying |
+|---|---|
+| Standard | Not available |
+| Enterprise | Available |
+| Business Critical | Available |
+| Virtual Private Snowflake | Available |
+
+<CalloutBox type="info" title="Why Periodic Rekeying Matters">
+Even with strong AES-256 encryption, if an encryption key is somehow compromised, all data encrypted with that key is at risk indefinitely. Periodic rekeying limits the blast radius — data older than the rekeying period is already protected by a new key, so a compromised key only exposes data from a limited recent window.
+</CalloutBox>
+
+---
+
+## Multi-Factor Authentication (MFA)
+
+Snowflake integrates with **Duo Security** to provide MFA for user accounts. MFA adds a second authentication factor beyond username and password.
+
+### MFA Enrolment and Enforcement
+
+<CodeBlock client:load language="sql" title="Managing MFA for Users" code={`-- Check MFA status for a user
+DESCRIBE USER alice;
+-- Look for ext_authn_duo in the output
+
+-- As ACCOUNTADMIN, require MFA for a specific user
+-- (User must have already enrolled via the Snowflake UI or SnowSQL)
+ALTER USER alice SET MINS_TO_BYPASS_MFA = 0;
+
+-- Allow MFA token caching for a session (reduces repeated prompts)
+-- Set the number of minutes MFA tokens can be cached per session
+ALTER USER alice SET MINS_TO_BYPASS_MFA = 60;
+
+-- Disable MFA token caching (prompt on every session)
+ALTER USER alice SET MINS_TO_BYPASS_MFA = 0;
+
+-- Check MFA-related parameters across the account
+SHOW PARAMETERS LIKE '%MFA%' IN ACCOUNT;`} />
+
+### MFA Token Caching
+
+MFA token caching reduces the frequency of MFA prompts. When enabled, a user authenticates with MFA once and their token is cached for a configurable number of minutes. Within that window, subsequent connections do not require a new MFA prompt.
+
+<CompareTable client:load title="MFA Token Caching: Enabled vs Disabled" leftLabel="Token Caching Enabled" rightLabel="Token Caching Disabled" rows={[
+  {feature: "Prompt frequency", left: "Once per cache window (configurable in minutes)", right: "Every session or connection", winner: "left"},
+  {feature: "Security level", left: "Slightly lower — window of unchallenged access", right: "Higher — every connection is verified", winner: "right"},
+  {feature: "User experience", left: "Better — fewer interruptions for data analysts", right: "Disruptive for frequent reconnects", winner: "left"},
+  {feature: "Recommended for", left: "Interactive analyst workloads with many short sessions", right: "Service accounts, high-security environments", winner: ""},
+  {feature: "Configuration parameter", left: "MINS_TO_BYPASS_MFA > 0", right: "MINS_TO_BYPASS_MFA = 0", winner: ""},
+  {feature: "Session tools", left: "Snowflake UI, SnowSQL CLI", right: "Programmatic drivers (typically use key-pair auth instead)", winner: ""}
+]} />
+
+<Flashcard client:load category="Network Security" question="Which third-party service does Snowflake integrate with to provide Multi-Factor Authentication?" answer="Duo Security. Snowflake's MFA is implemented through integration with Duo Security, which provides the second authentication factor via push notifications, SMS, or TOTP codes." />
+
+---
+
+## Setting Up Security Integrations
+
+Security integrations configure external authentication providers for OAuth and SAML-based Single Sign-On (SSO).
+
+<CodeBlock client:load language="sql" title="Creating Security Integrations for OAuth and SAML" code={`-- Create a security integration for Okta SAML SSO
+CREATE SECURITY INTEGRATION okta_sso
+  TYPE = SAML2
+  ENABLED = TRUE
+  SAML2_ISSUER = 'http://www.okta.com/exkXXXXXXXXXXX'
+  SAML2_SSO_URL = 'https://mycompany.okta.com/app/snowflake/exkXXX/sso/saml'
+  SAML2_PROVIDER = 'OKTA'
+  SAML2_X509_CERT = 'MIIDnjCCAoagAwIBAgIGAXXXXXXX...'
+  SAML2_SP_INITIATED_LOGIN_PAGE_LABEL = 'Okta SSO'
+  SAML2_ENABLE_SP_INITIATED = TRUE;
+
+-- Create a security integration for OAuth (e.g., for Tableau)
+CREATE SECURITY INTEGRATION tableau_oauth
+  TYPE = OAUTH
+  ENABLED = TRUE
+  OAUTH_CLIENT = TABLEAU_DESKTOP;
+
+-- Create a custom OAuth integration for a partner application
+CREATE SECURITY INTEGRATION my_app_oauth
+  TYPE = OAUTH
+  ENABLED = TRUE
+  OAUTH_CLIENT = CUSTOM
+  OAUTH_CLIENT_TYPE = 'CONFIDENTIAL'
+  OAUTH_REDIRECT_URI = 'https://myapp.example.com/oauth/callback'
+  OAUTH_ISSUE_REFRESH_TOKENS = TRUE
+  OAUTH_REFRESH_TOKEN_VALIDITY = 86400;
+
+-- View all security integrations
+SHOW INTEGRATIONS;
+
+-- Describe a specific security integration
+DESCRIBE INTEGRATION okta_sso;`} />
+
+<CalloutBox type="info" title="Security Integrations — Key Point for the Exam">
+Security integrations are account-level objects created with `CREATE SECURITY INTEGRATION`. They are used for:
+- **SAML2**: SSO with identity providers like Okta, Azure AD, or ADFS.
+- **OAUTH**: Delegated authorisation for partner tools (Tableau, Power BI, etc.) or custom applications.
+
+Only ACCOUNTADMIN can create security integrations.
+</CalloutBox>
+
+---
+
+## Network Security Setup — Step-by-Step
+
+<StepByStep client:load title="Implementing a Complete Network Security Configuration" steps={[
+  {title: "Plan your IP ranges", description: "Before creating network policies, collect all IP addresses and CIDR ranges that should have access: corporate office ranges, VPN endpoints, cloud service IPs, and developer home IPs if needed. Document any IPs that should be explicitly blocked.", code: `-- Document your IP ranges first (no SQL needed here)
+-- Example ranges:
+-- Corporate HQ: 203.0.113.0/24
+-- VPN endpoint: 198.51.100.10
+-- Internal network: 10.0.0.0/8
+-- Blocked IP (compromised device): 203.0.113.100`, tip: "Always include your current IP in the allowed list before applying the policy, or you will lock yourself out."},
+  {title: "Create the account-level network policy", description: "Create a network policy covering all legitimate access sources. Use CIDR notation for ranges and individual IPs for specific hosts.", code: `CREATE NETWORK POLICY corporate_access_policy
+  ALLOWED_IP_LIST = (
+    '203.0.113.0/24',
+    '198.51.100.10',
+    '10.0.0.0/8'
+  )
+  BLOCKED_IP_LIST = (
+    '203.0.113.100'
+  );
+
+-- Verify the policy was created correctly
+DESCRIBE NETWORK POLICY corporate_access_policy;`, tip: "Test from a machine with a known allowed IP before applying to avoid being locked out."},
+  {title: "Apply the policy at account level", description: "Apply the network policy to the entire Snowflake account. All users will now be subject to this policy unless they have a user-level override.", code: `-- Apply account-level network policy
+ALTER ACCOUNT SET NETWORK_POLICY = corporate_access_policy;
+
+-- Confirm the policy is applied
+SHOW PARAMETERS LIKE 'NETWORK_POLICY' IN ACCOUNT;`, tip: "As ACCOUNTADMIN, ensure you are connecting from an IP in the ALLOWED_IP_LIST before running this command."},
+  {title: "Create user-specific policies where needed", description: "For developers or service accounts that connect from different networks (e.g., home office, cloud automation), create separate policies and apply them at the user level.", code: `-- Policy for developers who work remotely
+CREATE NETWORK POLICY developer_policy
+  ALLOWED_IP_LIST = (
+    '203.0.113.0/24',   -- Office
+    '0.0.0.0/0'          -- Allow any IP (for remote work)
+  );
+
+-- Apply to specific developer users
+ALTER USER alice SET NETWORK_POLICY = developer_policy;
+ALTER USER bob SET NETWORK_POLICY = developer_policy;
+
+-- Service accounts: create tightly scoped policies
+CREATE NETWORK POLICY etl_service_policy
+  ALLOWED_IP_LIST = ('10.5.0.10', '10.5.0.11');
+
+ALTER USER etl_service_account SET NETWORK_POLICY = etl_service_policy;`, tip: "User-level policies override account-level policies. Use them for exceptions, not as the default."},
+  {title: "Enable MFA for administrative users", description: "Require MFA for all users with elevated privileges (ACCOUNTADMIN, SECURITYADMIN, SYSADMIN). Users must first self-enrol via the Snowflake UI.", code: `-- After user has enrolled in MFA via Snowflake UI,
+-- set token caching to 0 for admin accounts (always prompt)
+ALTER USER admin_alice SET MINS_TO_BYPASS_MFA = 0;
+
+-- For regular analysts, allow 60-minute MFA token caching
+ALTER USER analyst_bob SET MINS_TO_BYPASS_MFA = 60;
+
+-- Verify MFA configuration for a user
+DESCRIBE USER admin_alice;`, tip: "MFA should be mandatory for any account with ACCOUNTADMIN or SECURITYADMIN. Consider making it mandatory for all users in high-compliance environments."},
+  {title: "Configure SSO via Security Integration (optional)", description: "If your organisation uses an identity provider, configure a SAML2 or OAuth security integration to centralise authentication management.", code: `-- Example: Okta SAML integration
+CREATE SECURITY INTEGRATION okta_integration
+  TYPE = SAML2
+  ENABLED = TRUE
+  SAML2_ISSUER = 'http://www.okta.com/exkYOUR_APP_ID'
+  SAML2_SSO_URL = 'https://yourcompany.okta.com/app/snowflake/exkYOUR_APP_ID/sso/saml'
+  SAML2_PROVIDER = 'OKTA'
+  SAML2_X509_CERT = 'YOUR_CERTIFICATE_HERE'
+  SAML2_ENABLE_SP_INITIATED = TRUE;
+
+SHOW INTEGRATIONS;`, tip: "With SSO, users authenticate through your identity provider. Password policies, MFA enforcement, and account lockout are managed in your IdP, not in Snowflake."}
+]} />
+
+---
+
+## Quiz — Network Policy Precedence
+
+<Quiz client:load category="Network Security" question="User 'dave' has a user-level network policy applied that allows IPs 192.168.0.0/16. The account-level network policy allows 10.0.0.0/8. Dave connects from IP 192.168.1.50. What is the result?" options={[{label:"A",text:"Connection fails — 192.168.1.50 is not in the account-level allowed range"},{label:"B",text:"Connection succeeds — 192.168.1.50 is in dave's user-level policy, which takes precedence"},{label:"C",text:"Connection fails — both policies must allow the IP for access to be granted"},{label:"D",text:"Snowflake merges both policies and evaluates the union of both allowed lists"}]} correct="B" explanation="User-level network policies override account-level network policies for that specific user. Dave's user-level policy allows 192.168.0.0/16, which includes 192.168.1.50, so the connection succeeds. The account-level policy is not evaluated for users who have a user-level policy assigned." />
+
+---
+
+## Quiz — Private Link and Encryption
+
+<Quiz client:load category="Network Security" question="A company requires that all traffic between their AWS VPC and their Snowflake account never traverse the public internet. They also require customer-managed encryption keys. Which Snowflake edition and features are required?" options={[{label:"A",text:"Enterprise edition with periodic rekeying enabled"},{label:"B",text:"Business Critical edition with AWS PrivateLink and Tri-Secret Secure"},{label:"C",text:"Standard edition with a network policy blocking all public IPs"},{label:"D",text:"Enterprise edition with AWS PrivateLink and a custom network policy"}]} correct="B" explanation="AWS PrivateLink (for private connectivity) and Tri-Secret Secure (for customer-managed keys) are both Business Critical+ features. Enterprise edition does support periodic rekeying but does not offer PrivateLink or Tri-Secret Secure. A network policy cannot replace PrivateLink — network policies control which IPs can connect, but they cannot force traffic to stay off the public internet." />
+
+---
+
+## Comparing Snowflake Security Editions
+
+<CompareTable client:load title="Security Features by Snowflake Edition" leftLabel="Enterprise" rightLabel="Business Critical" rows={[
+  {feature: "Network Policies (IP allowlist)", left: "Yes", right: "Yes", winner: ""},
+  {feature: "MFA (Multi-Factor Authentication)", left: "Yes", right: "Yes", winner: ""},
+  {feature: "SSO / SAML / OAuth", left: "Yes", right: "Yes", winner: ""},
+  {feature: "AES-256 encryption at rest", left: "Yes (Snowflake-managed)", right: "Yes (Snowflake-managed)", winner: ""},
+  {feature: "TLS 1.2+ encryption in transit", left: "Yes", right: "Yes", winner: ""},
+  {feature: "Periodic Rekeying", left: "Yes", right: "Yes", winner: ""},
+  {feature: "AWS PrivateLink", left: "No", right: "Yes", winner: "right"},
+  {feature: "Azure Private Link", left: "No", right: "Yes", winner: "right"},
+  {feature: "GCP Private Service Connect", left: "No", right: "Yes", winner: "right"},
+  {feature: "Tri-Secret Secure (customer-managed keys)", left: "No", right: "Yes", winner: "right"},
+  {feature: "HIPAA / PCI-DSS compliance support", left: "No", right: "Yes", winner: "right"},
+  {feature: "Column-level security (masking)", left: "Yes", right: "Yes", winner: ""}
+]} />
+
+---
+
+## Encryption Architecture in Detail
+
+Snowflake uses a **hierarchical key model** to manage encryption:
+
+```
+Account Master Key (AMK)
+  └── Table Master Keys (TMK)
+        └── File Keys (FK)
+              └── Encrypted data files (in S3 / Azure Blob / GCS)
+```
+
+- **File Keys (FK)** are unique per micro-partition data file. They encrypt the actual data.
+- **Table Master Keys (TMK)** encrypt the file keys. One per table.
+- **Account Master Key (AMK)** encrypts the table master keys. One per account.
+- With **Tri-Secret Secure**, the AMK itself is a composite of Snowflake's key and the customer's KMS key.
+
+<CodeBlock client:load language="sql" title="Encryption-Related Commands" code={`-- View account-level security parameters including encryption
+SHOW PARAMETERS IN ACCOUNT;
+
+-- Check if SSMS (server-side encryption at rest) is configured
+SHOW PARAMETERS LIKE '%ENCRYPTION%' IN ACCOUNT;
+
+-- Periodic rekeying configuration
+-- (Managed by Snowflake for Enterprise+; no explicit SQL to enable)
+-- Check if rekeying is active:
+SHOW PARAMETERS LIKE '%REKEY%' IN ACCOUNT;
+
+-- Key pair authentication (alternative to password + MFA for programmatic access)
+-- Generate RSA key pair outside Snowflake, then register the public key:
+ALTER USER service_account
+  SET RSA_PUBLIC_KEY = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKC...';
+
+-- Verify key pair is registered
+DESCRIBE USER service_account;`} />
+
+<CalloutBox type="info" title="Key Pair Authentication for Service Accounts">
+For service accounts used by ETL tools, Airflow, dbt, or custom applications, Snowflake recommends **RSA key-pair authentication** instead of passwords. Key-pair auth does not require MFA prompts and is more secure than password-based auth for automated processes.
+
+Key pairs are configured with `ALTER USER ... SET RSA_PUBLIC_KEY = '...'`. The private key is stored securely by the client application.
+</CalloutBox>
+
+---
+
+## Network Security Cheat Sheet
+
+<CheatSheet client:load title="Network Security Quick Reference — COF-C02" sections={[
+  {title: "Network Policy Basics", icon: "🛡️", items: [
+    {label: "CREATE NETWORK POLICY", value: "ALLOWED_IP_LIST = (...) BLOCKED_IP_LIST = (...)", note: "Both CIDR ranges and individual IPs supported"},
+    {label: "Apply to account", value: "ALTER ACCOUNT SET NETWORK_POLICY = policy_name", note: "Applies to all users without user-level override"},
+    {label: "Apply to user", value: "ALTER USER user SET NETWORK_POLICY = policy_name", note: "Overrides account-level policy for this user"},
+    {label: "Remove from account", value: "ALTER ACCOUNT UNSET NETWORK_POLICY", note: ""},
+    {label: "Remove from user", value: "ALTER USER user UNSET NETWORK_POLICY", note: "User reverts to account-level policy"},
+    {label: "Block list precedence", value: "BLOCKED_IP_LIST wins over ALLOWED_IP_LIST", note: "IP in both lists = BLOCKED"}
+  ]},
+  {title: "SHOW / DESCRIBE Commands", icon: "🔍", items: [
+    {label: "SHOW NETWORK POLICIES", value: "List all network policies", note: ""},
+    {label: "DESCRIBE NETWORK POLICY name", value: "Show IP lists for a policy", note: ""},
+    {label: "SHOW PARAMETERS LIKE 'NETWORK_POLICY' IN ACCOUNT", value: "Show active account-level policy", note: ""},
+    {label: "SHOW PARAMETERS LIKE 'NETWORK_POLICY' IN USER name", value: "Show user-level policy", note: ""},
+    {label: "SHOW INTEGRATIONS", value: "List all security integrations", note: ""},
+    {label: "DESCRIBE INTEGRATION name", value: "Show integration details", note: ""}
+  ]},
+  {title: "Private Connectivity", icon: "🔒", items: [
+    {label: "AWS PrivateLink", value: "Routes traffic through AWS backbone", note: "Business Critical+ only"},
+    {label: "Azure Private Link", value: "Routes traffic through Azure backbone", note: "Business Critical+ only"},
+    {label: "GCP Private Service Connect", value: "Routes traffic through GCP backbone", note: "Business Critical+ only"},
+    {label: "Benefit", value: "No public internet traversal", note: "Traffic never leaves cloud provider network"}
+  ]},
+  {title: "Encryption", icon: "🔐", items: [
+    {label: "In transit", value: "TLS 1.2+ (automatic, cannot disable)", note: "All editions"},
+    {label: "At rest", value: "AES-256 (automatic, Snowflake-managed)", note: "All editions"},
+    {label: "Periodic rekeying", value: "Automatic re-encryption with new keys", note: "Enterprise+ only"},
+    {label: "Tri-Secret Secure", value: "Composite key: Snowflake key + Customer KMS key", note: "Business Critical+ only"},
+    {label: "KMS support", value: "AWS KMS, Azure Key Vault, GCP KMS", note: "For Tri-Secret Secure"}
+  ]},
+  {title: "Authentication", icon: "🔑", items: [
+    {label: "MFA provider", value: "Duo Security", note: "All editions"},
+    {label: "MINS_TO_BYPASS_MFA", value: "0 = always prompt; >0 = cache duration in minutes", note: ""},
+    {label: "SSO", value: "SAML2 or OAuth via Security Integration", note: "CREATE SECURITY INTEGRATION"},
+    {label: "Key-pair auth", value: "ALTER USER ... SET RSA_PUBLIC_KEY = '...'", note: "Recommended for service accounts"},
+    {label: "Security Integration type SAML2", value: "IdP-based SSO (Okta, Azure AD, ADFS)", note: ""},
+    {label: "Security Integration type OAUTH", value: "Delegated auth for partner tools or custom apps", note: ""}
+  ]},
+  {title: "Edition Requirements", icon: "⭐", items: [
+    {label: "Network Policies", value: "All editions", note: ""},
+    {label: "MFA", value: "All editions", note: ""},
+    {label: "Periodic Rekeying", value: "Enterprise+", note: ""},
+    {label: "PrivateLink (any cloud)", value: "Business Critical+", note: ""},
+    {label: "Tri-Secret Secure", value: "Business Critical+", note: ""},
+    {label: "HIPAA / PCI-DSS compliance", value: "Business Critical+", note: ""}
+  ]}
+]} />
+
+---
+
+## Summary
+
+Network security in Snowflake is a layered model. For the COF-C02 exam, remember these key points:
+
+1. **Network policies** restrict access by IP address. ALLOWED_IP_LIST and BLOCKED_IP_LIST are evaluated on every connection attempt — before authentication.
+2. The **block list always wins**: an IP in both lists is blocked.
+3. **User-level policies override account-level policies** for that specific user.
+4. **Private connectivity** (PrivateLink / Private Service Connect) requires **Business Critical edition** and keeps traffic entirely within the cloud provider's network.
+5. **Tri-Secret Secure** requires **Business Critical edition** and uses a composite key where neither Snowflake nor the customer alone can decrypt data.
+6. **All editions** include automatic AES-256 encryption at rest and TLS 1.2+ in transit — no configuration needed.
+7. **Periodic rekeying** is an **Enterprise+** feature that automatically re-encrypts data with new keys.
+8. **MFA** uses Duo Security. Token caching (`MINS_TO_BYPASS_MFA`) reduces prompts for interactive users.
+9. **Security integrations** enable SAML2 SSO and OAuth for partner tools and custom applications.
+10. **Key-pair authentication** is the recommended approach for service accounts and programmatic access.

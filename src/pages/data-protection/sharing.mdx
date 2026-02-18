@@ -1,0 +1,228 @@
+---
+layout: ../../layouts/CourseLayout.astro
+title: "Secure Data Sharing"
+description: "Master Snowflake Secure Data Sharing — CREATE SHARE, consumer accounts, Snowflake Marketplace, Reader accounts, and data exchange for the SnowPro Core exam"
+moduleId: "data-sharing"
+domain: "Data Protection"
+---
+
+import Flashcard from '../../components/Flashcard.tsx';
+import CodeBlock from '../../components/CodeBlock.tsx';
+import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
+import Diagram from '../../components/Diagram.tsx';
+import CalloutBox from '../../components/CalloutBox.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import CompareTable from '../../components/CompareTable.tsx';
+import KeyTerms from '../../components/KeyTerms.tsx';
+import StepByStep from '../../components/StepByStep.tsx';
+import CheatSheet from '../../components/CheatSheet.tsx';
+
+<KeyTerms client:load title="Key Terms — Secure Data Sharing" terms={[
+  { term: "Secure Data Sharing", abbr: "—", definition: "Snowflake's mechanism for sharing live, read-only data between accounts without copying data. No ETL, no file transfers — consumers query shared data in place." },
+  { term: "Share", abbr: "—", definition: "A Snowflake object (CREATE SHARE) that defines which objects (databases, schemas, tables, views) are shared and with which accounts." },
+  { term: "Provider", abbr: "—", definition: "The account that creates and owns the share — controls what data is shared and with whom." },
+  { term: "Consumer", abbr: "—", definition: "The account that receives the share and creates a read-only database from it." },
+  { term: "Reader Account", abbr: "—", definition: "A managed account created by the provider for consumers who do not have their own Snowflake account. The provider pays for the reader's compute." },
+  { term: "Snowflake Marketplace", abbr: "—", definition: "A platform for discovering and consuming shared data products from third-party providers — both free and paid listings." },
+]} />
+
+---
+
+## What is Secure Data Sharing?
+
+Secure Data Sharing allows Snowflake accounts to share **live, read-only data** without copying, moving, or transferring files. Consumers query the provider's data directly — always up to date, zero ETL.
+
+<Diagram client:load title="Secure Data Sharing Architecture" description="Diagram: Provider Account on the left owns tables stored in micro-partitions in shared cloud storage. Provider creates a SHARE object granting access to specific tables/views. Consumer Account on the right creates a database FROM SHARE, which is a read-only pointer to the provider's micro-partitions. No data is copied — the consumer queries the provider's storage directly. Both accounts must be in the same cloud region (or use replication for cross-region)." altText="Provider account sharing micro-partitions with consumer account via SHARE object, no data copy" />
+
+<CalloutBox type="exam" title="Exam Focus: No Data Movement">
+  Secure Data Sharing involves **zero data copying**. The consumer reads the provider's micro-partitions directly. This means: instant availability of new data, no storage cost for the consumer (only compute), and no ETL pipelines to maintain.
+</CalloutBox>
+
+---
+
+## Creating and Managing Shares
+
+<CodeBlock client:load language="sql" title="Provider: Creating a Share" code={`-- Step 1: Create the share
+CREATE SHARE sales_share;
+
+-- Step 2: Grant access to objects
+GRANT USAGE ON DATABASE sales_db TO SHARE sales_share;
+GRANT USAGE ON SCHEMA sales_db.public TO SHARE sales_share;
+GRANT SELECT ON TABLE sales_db.public.orders TO SHARE sales_share;
+GRANT SELECT ON TABLE sales_db.public.customers TO SHARE sales_share;
+
+-- Step 3: Add consumer accounts
+ALTER SHARE sales_share ADD ACCOUNTS = org1.consumer_acct;
+
+-- View shares
+SHOW SHARES;
+DESCRIBE SHARE sales_share;`} />
+
+<CodeBlock client:load language="sql" title="Consumer: Using a Share" code={`-- View available shares
+SHOW SHARES;
+
+-- Create a database from the share
+CREATE DATABASE shared_sales FROM SHARE provider_org.provider_acct.sales_share;
+
+-- Grant access to roles
+GRANT IMPORTED PRIVILEGES ON DATABASE shared_sales TO ROLE analyst_role;
+
+-- Query shared data (read-only)
+SELECT * FROM shared_sales.public.orders LIMIT 10;`} />
+
+<CalloutBox type="important" title="Share Constraints">
+  - Shared data is **read-only** for consumers — no INSERT, UPDATE, or DELETE
+  - Consumers can only create a **database** from a share, not individual tables
+  - The privilege granted to consumer roles is **IMPORTED PRIVILEGES**, not SELECT
+  - Shares work between accounts in the **same cloud region** by default (use database replication for cross-region)
+</CalloutBox>
+
+---
+
+## Sharing Secure Views
+
+Providers typically share **secure views** rather than base tables to control exactly what data consumers can see.
+
+<CodeBlock client:load language="sql" title="Sharing via Secure Views" code={`-- Create a secure view that filters data per consumer
+CREATE OR REPLACE SECURE VIEW sales_db.public.v_orders_shared AS
+SELECT order_id, order_date, product, amount
+FROM sales_db.public.orders
+WHERE region = CURRENT_ACCOUNT();  -- Row-level filtering
+
+-- Grant the secure view to the share
+GRANT SELECT ON VIEW sales_db.public.v_orders_shared TO SHARE sales_share;`} />
+
+<CalloutBox type="exam" title="Exam Focus: Why Secure Views?">
+  **Secure views** hide the view definition from consumers (no SHOW CREATE VIEW). This prevents consumers from reverse-engineering your data model or filter logic. Regular views expose their SQL — never share a regular view if the logic is sensitive.
+</CalloutBox>
+
+---
+
+## Sharing Objects
+
+<CompareTable client:load title="Shareable vs Non-Shareable Objects" leftLabel="Can Be Shared" rightLabel="Cannot Be Shared" rows={[
+  { feature: "Tables", left: "Yes — SELECT granted to share", right: "—", winner: "none" },
+  { feature: "Secure views", left: "Yes — recommended for row/column filtering", right: "Regular views (can share but definition is visible)", winner: "none" },
+  { feature: "Secure UDFs", left: "Yes — share custom functions", right: "Regular UDFs (definition visible)", winner: "none" },
+  { feature: "Databases/Schemas", left: "USAGE grant required on container objects", right: "Cannot share individual schemas without database", winner: "none" },
+  { feature: "Stages/Tasks/Pipes", left: "—", right: "Cannot be shared", winner: "none" },
+  { feature: "Stored procedures", left: "—", right: "Cannot be shared", winner: "none" },
+]} />
+
+---
+
+## Reader Accounts
+
+Reader accounts are for consumers who **do not have their own Snowflake account**. The provider creates and manages the reader account, and **pays for its compute**.
+
+<CodeBlock client:load language="sql" title="Creating a Reader Account" code={`-- Create a managed (reader) account
+CREATE MANAGED ACCOUNT partner_reader
+  ADMIN_NAME = 'partner_admin'
+  ADMIN_PASSWORD = 'SecurePass123!'
+  TYPE = READER;
+
+-- Add the reader account to the share
+ALTER SHARE sales_share ADD ACCOUNTS = partner_reader;`} />
+
+<CompareTable client:load title="Full Account vs Reader Account Consumer" leftLabel="Full Snowflake Account" rightLabel="Reader Account" rows={[
+  { feature: "Who pays for compute", left: "Consumer pays their own compute", right: "Provider pays for reader's compute", winner: "left" },
+  { feature: "Account management", left: "Consumer manages independently", right: "Provider creates and manages", winner: "none" },
+  { feature: "Can consume multiple shares", left: "Yes — from any provider", right: "Only from the creating provider", winner: "left" },
+  { feature: "Can create own objects", left: "Yes — full Snowflake account", right: "Limited — primarily for querying shared data", winner: "left" },
+  { feature: "Marketplace access", left: "Yes", right: "No", winner: "left" },
+]} />
+
+<CalloutBox type="exam" title="Exam Focus: Who Pays?">
+  Full account consumers pay their own compute costs. Reader account compute is billed to the **provider**. Storage is always the provider's cost since data is never copied.
+</CalloutBox>
+
+---
+
+## Snowflake Marketplace
+
+The Snowflake Marketplace is a platform where providers publish data products that any Snowflake account can discover and consume.
+
+<Diagram client:load title="Snowflake Marketplace" description="Diagram: Three layers. Top: Data Providers publish listings (free or paid) to the Marketplace. Middle: Snowflake Marketplace acts as a discovery and governance platform. Bottom: Data Consumers browse, request access, and create databases from listings. Listings can be Standard (available to all) or Personalised (customised per consumer). Paid listings use Snowflake's billing integration." altText="Marketplace connecting data providers to consumers through listings" />
+
+<CalloutBox type="info" title="Marketplace Listing Types">
+  - **Standard listings**: same data for all consumers (e.g., weather data, postcode lookups)
+  - **Personalised listings**: customised data per consumer (e.g., vendor-specific analytics)
+  - **Free listings**: no charge, instant access
+  - **Paid listings**: commercial data products with Snowflake-managed billing
+</CalloutBox>
+
+---
+
+## Data Exchange
+
+A **Data Exchange** is a private marketplace — a curated group of accounts that can share data with each other. Unlike the public Marketplace, membership is controlled by the exchange administrator.
+
+<CalloutBox type="info" title="Data Exchange vs Marketplace">
+  The public Marketplace is open to all Snowflake accounts. A Data Exchange is a **private, invite-only** group — ideal for sharing within an organisation, industry consortium, or partner network.
+</CalloutBox>
+
+---
+
+## Cheat Sheet
+
+<CheatSheet client:load title="Secure Data Sharing Quick Reference" sections={[
+  { title: "Key Facts", icon: "🔗", items: [
+    { label: "Data movement", value: "None — consumer reads provider's micro-partitions", note: "" },
+    { label: "Consumer access", value: "Read-only", note: "" },
+    { label: "Storage cost", value: "Provider only (no copy for consumer)", note: "" },
+    { label: "Compute cost", value: "Consumer pays (except Reader accounts)", note: "" },
+    { label: "Region", value: "Same region by default; replication for cross-region", note: "" },
+  ]},
+  { title: "Provider Commands", icon: "📤", items: [
+    { label: "Create share", value: "CREATE SHARE share_name", note: "" },
+    { label: "Grant objects", value: "GRANT SELECT ON TABLE t TO SHARE s", note: "" },
+    { label: "Add consumer", value: "ALTER SHARE s ADD ACCOUNTS = org.acct", note: "" },
+    { label: "Reader account", value: "CREATE MANAGED ACCOUNT ... TYPE = READER", note: "" },
+  ]},
+  { title: "Consumer Commands", icon: "📥", items: [
+    { label: "Create from share", value: "CREATE DATABASE db FROM SHARE org.acct.share", note: "" },
+    { label: "Grant access", value: "GRANT IMPORTED PRIVILEGES ON DATABASE db TO ROLE r", note: "" },
+    { label: "View shares", value: "SHOW SHARES", note: "" },
+  ]},
+]} />
+
+---
+
+## Practice Quiz
+
+<Quiz client:load category="Data Protection" question="What happens to data when a provider shares a table with a consumer?" options={[{label:"A",text:"Data is copied to the consumer's account"},{label:"B",text:"Data is exported as files to a shared stage"},{label:"C",text:"No data is copied — the consumer reads the provider's micro-partitions directly"},{label:"D",text:"Data is replicated to the consumer's region"}]} correct="C" explanation="Secure Data Sharing involves zero data copying. The consumer creates a read-only database that points to the provider's micro-partitions. Data is always live and up to date." />
+
+<Quiz client:load category="Data Protection" question="Who pays for compute when a Reader Account queries shared data?" options={[{label:"A",text:"The consumer (Reader Account)"},{label:"B",text:"The provider who created the Reader Account"},{label:"C",text:"Snowflake absorbs the cost"},{label:"D",text:"Costs are split 50/50"}]} correct="B" explanation="Reader accounts are managed by the provider. The provider pays for the reader's compute costs. This is different from full account consumers who pay their own compute." />
+
+<Quiz client:load category="Data Protection" question="What privilege does a consumer grant to roles to access a shared database?" options={[{label:"A",text:"SELECT"},{label:"B",text:"USAGE"},{label:"C",text:"IMPORTED PRIVILEGES"},{label:"D",text:"READ"}]} correct="C" explanation="Consumers grant IMPORTED PRIVILEGES on the shared database to their roles. This is a special privilege type for shared databases — not SELECT or USAGE directly." />
+
+---
+
+## Flashcards
+
+<Flashcard client:load category="Data Protection" question="How does Secure Data Sharing work at the storage level?" answer="No data is copied. The consumer creates a read-only database that references the provider's micro-partitions directly. Both accounts access the same physical storage. Consumer pays only for compute; provider pays for storage." />
+
+<Flashcard client:load category="Data Protection" question="What is a Reader Account and who pays for it?" answer="A Reader Account is a managed Snowflake account created by the provider for consumers who do not have their own Snowflake account. The provider pays for the reader's compute. Reader accounts can only consume shares from the provider that created them." />
+
+<Flashcard client:load category="Data Protection" question="Why should you share secure views instead of base tables?" answer="Secure views hide the view definition from consumers, preventing them from seeing your data model or filter logic. They also enable row-level and column-level filtering using functions like CURRENT_ACCOUNT(). Regular views expose their SQL to anyone with access." />
+
+<Flashcard client:load category="Data Protection" question="What is the difference between Snowflake Marketplace and a Data Exchange?" answer="The Marketplace is public — any Snowflake account can discover and consume listings. A Data Exchange is a private, invite-only group controlled by an administrator. Data Exchanges are ideal for intra-organisation or partner sharing." />
+
+<Flashcard client:load category="Data Protection" question="What objects can be included in a share?" answer="Tables, secure views, and secure UDFs. You must also grant USAGE on the containing database and schema. Stages, tasks, pipes, and stored procedures cannot be shared." />
+
+---
+
+## Resources
+
+- [Secure Data Sharing Overview](https://docs.snowflake.com/en/user-guide/data-sharing-intro)
+- [CREATE SHARE](https://docs.snowflake.com/en/sql-reference/sql/create-share)
+- [Snowflake Marketplace](https://docs.snowflake.com/en/user-guide/data-marketplace)
+- [Reader Accounts](https://docs.snowflake.com/en/user-guide/data-sharing-reader-create)
+
+---
+
+## Next Steps
+
+- [Zero-Copy Cloning](/data-protection/cloning)
+- [Time Travel & Fail-safe](/data-protection/time-travel)
+- [Security & Access Control](/security/rbac)

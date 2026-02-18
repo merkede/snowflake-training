@@ -1,0 +1,549 @@
+---
+layout: ../../layouts/CourseLayout.astro
+title: "Role-Based Access Control"
+description: "Master Snowflake's RBAC model — privileges, GRANT/REVOKE, object ownership, and discretionary access control for the SnowPro Core exam"
+moduleId: "rbac"
+domain: "Security"
+---
+
+import Flashcard from '../../components/Flashcard.tsx';
+import CodeBlock from '../../components/CodeBlock.tsx';
+import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
+import Diagram from '../../components/Diagram.tsx';
+import CalloutBox from '../../components/CalloutBox.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import CompareTable from '../../components/CompareTable.tsx';
+import KeyTerms from '../../components/KeyTerms.tsx';
+import StepByStep from '../../components/StepByStep.tsx';
+import CheatSheet from '../../components/CheatSheet.tsx';
+
+# Role-Based Access Control (RBAC)
+
+Role-Based Access Control is the primary security model in Snowflake. Every action a user performs — reading a table, running a query, creating a schema — is governed by **privileges** granted to **roles**, which are then assigned to **users**. Understanding RBAC thoroughly is essential for the COF-C02 exam.
+
+<YouTubeEmbed client:load videoId="M9IbMBmWgps" title="Snowflake RBAC Explained" description="A comprehensive walkthrough of Snowflake's Role-Based Access Control model, covering roles, privileges, and how they interact with securable objects." />
+
+---
+
+## How RBAC Works in Snowflake
+
+The core formula is simple:
+
+> **GRANT** *privilege* **ON** *object* **TO** *role*
+
+A user activates a role in their session, and that role determines what the user can do. If the role does not have the required privilege on the required object, the action is denied — even if the user is an ACCOUNTADMIN in another context.
+
+<Diagram client:load title="RBAC Hierarchy: Users, Roles, Privileges, and Objects" description="Diagram showing the RBAC chain: Users are assigned Roles. Roles hold Privileges. Privileges are granted ON Securable Objects (account, database, schema, table, warehouse). Role inheritance flows upward — a parent role inherits all privileges of its child roles. The ACCOUNTADMIN role sits at the top, inheriting from SYSADMIN and SECURITYADMIN. SYSADMIN inherits from any custom roles beneath it." altText="Snowflake RBAC hierarchy diagram showing users, roles, privileges, and securable objects" />
+
+---
+
+## Securable Objects
+
+A **securable object** is any object in Snowflake on which privileges can be granted. They are organised into a hierarchy:
+
+| Level | Examples |
+|---|---|
+| Account | Account-level settings, warehouses, integrations |
+| Database | Databases |
+| Schema | Schemas within a database |
+| Table / View | Tables, views, materialised views |
+| Stage / Pipe | Named stages, Snowpipe definitions |
+| Stream / Task | Change tracking streams, scheduled tasks |
+| Warehouse | Virtual warehouses |
+
+<CalloutBox type="exam" title="Exam Tip — Object Hierarchy">
+Privileges are **not inherited downward** through the object hierarchy. Granting USAGE on a database does **not** automatically grant USAGE on its schemas, nor SELECT on its tables. You must grant privileges at each level separately.
+</CalloutBox>
+
+---
+
+## System-Defined Roles
+
+Snowflake provisions five system-defined roles automatically:
+
+<KeyTerms client:load title="Key Terms — System-Defined Roles" terms={[
+  {term: "ACCOUNTADMIN", abbr: "", definition: "Top-level role combining SYSADMIN and SECURITYADMIN. Has all privileges. Should be used sparingly and always with MFA. Owns account-level settings."},
+  {term: "SECURITYADMIN", abbr: "", definition: "Manages security objects: users, roles, network policies, and grants. Can GRANT/REVOKE any privilege in the account. Reports to ACCOUNTADMIN."},
+  {term: "SYSADMIN", abbr: "", definition: "Creates and manages warehouses, databases, and other objects. Custom roles should be granted to SYSADMIN so SYSADMIN inherits their object ownership."},
+  {term: "USERADMIN", abbr: "", definition: "A sub-role of SECURITYADMIN. Can create users and roles only. Does not have GRANT privileges on all objects."},
+  {term: "PUBLIC", abbr: "", definition: "Automatically granted to every user and role. Represents the minimum level of access. Can be granted privileges for objects accessible to all users."}
+]} />
+
+<CalloutBox type="warning" title="ACCOUNTADMIN Best Practice">
+Snowflake strongly recommends assigning at least **two users** to ACCOUNTADMIN in case one account is locked out. Day-to-day administration should use SYSADMIN or custom roles, not ACCOUNTADMIN.
+</CalloutBox>
+
+---
+
+## Privileges on Databases
+
+To access any object in a database, a role must first have **USAGE** on the database itself.
+
+| Privilege | What It Allows |
+|---|---|
+| USAGE | Access the database; required before any lower-level access |
+| CREATE SCHEMA | Create new schemas within the database |
+| MODIFY | Alter the database properties |
+| MONITOR | View database-level usage and metadata |
+| OWNERSHIP | Full control; only one role may own an object at a time |
+
+<CodeBlock client:load language="sql" title="Database Privilege Examples" code={`-- Grant USAGE so a role can access the database
+GRANT USAGE ON DATABASE sales_db TO ROLE analyst_role;
+
+-- Grant the ability to create schemas in the database
+GRANT CREATE SCHEMA ON DATABASE sales_db TO ROLE developer_role;
+
+-- Grant full ownership of the database to a role
+GRANT OWNERSHIP ON DATABASE sales_db TO ROLE db_owner_role REVOKE CURRENT GRANTS;
+
+-- Show all privileges granted ON a database
+SHOW GRANTS ON DATABASE sales_db;`} />
+
+---
+
+## Privileges on Schemas
+
+After gaining USAGE on a database, a role needs **USAGE** on each schema it accesses.
+
+| Privilege | What It Allows |
+|---|---|
+| USAGE | Access the schema and its objects (required) |
+| CREATE TABLE | Create tables in the schema |
+| CREATE VIEW | Create views |
+| CREATE STAGE | Create named stages for data loading |
+| CREATE PIPE | Create Snowpipe objects |
+| CREATE STREAM | Create change-data-capture streams |
+| CREATE TASK | Create scheduled tasks |
+| MODIFY | Alter schema properties |
+| OWNERSHIP | Full control of the schema |
+
+<CodeBlock client:load language="sql" title="Schema Privilege Examples" code={`-- Grant USAGE on schema so role can see its contents
+GRANT USAGE ON SCHEMA sales_db.public TO ROLE analyst_role;
+
+-- Grant CREATE TABLE so role can build tables in the schema
+GRANT CREATE TABLE ON SCHEMA sales_db.public TO ROLE developer_role;
+
+-- Grant multiple create privileges at once
+GRANT CREATE VIEW, CREATE STAGE, CREATE PIPE
+  ON SCHEMA sales_db.public
+  TO ROLE developer_role;
+
+-- Bulk grant on all existing tables in schema
+GRANT SELECT ON ALL TABLES IN SCHEMA sales_db.public TO ROLE analyst_role;
+
+-- Show privileges on a schema
+SHOW GRANTS ON SCHEMA sales_db.public;`} />
+
+---
+
+## Privileges on Tables and Views
+
+| Privilege | What It Allows |
+|---|---|
+| SELECT | Read rows from the table or view |
+| INSERT | Add new rows |
+| UPDATE | Modify existing rows |
+| DELETE | Remove rows |
+| TRUNCATE | Remove all rows (faster than DELETE, not logged per-row) |
+| REFERENCES | Create foreign key references to the table |
+| OWNERSHIP | Full control; required to DROP the table |
+
+<CalloutBox type="info" title="TRUNCATE vs DELETE">
+TRUNCATE requires the TRUNCATE privilege, **not** DELETE. A role with only DELETE cannot truncate a table. This distinction appears regularly in exam questions.
+</CalloutBox>
+
+<Flashcard client:load category="RBAC" question="Which privilege is required to read rows from a Snowflake table?" answer="SELECT. The role must also have USAGE on both the containing database and schema before SELECT on the table is meaningful." />
+
+<Flashcard client:load category="RBAC" question="What is the minimum set of privileges required for a role to query a table called sales_db.public.orders?" answer="1) USAGE ON DATABASE sales_db  2) USAGE ON SCHEMA sales_db.public  3) SELECT ON TABLE sales_db.public.orders" />
+
+---
+
+## Privileges on Warehouses
+
+Warehouses are compute resources. Their privileges are separate from data object privileges.
+
+| Privilege | What It Allows |
+|---|---|
+| USAGE | Execute queries using this warehouse |
+| OPERATE | Start, suspend, and abort queries on the warehouse |
+| MONITOR | View warehouse usage statistics and query history |
+| MODIFY | Change warehouse properties (size, auto-suspend settings) |
+| OWNERSHIP | Full control of the warehouse |
+
+<CodeBlock client:load language="sql" title="Warehouse Privilege Examples" code={`-- Allow analyst to run queries on the warehouse
+GRANT USAGE ON WAREHOUSE analytics_wh TO ROLE analyst_role;
+
+-- Allow an ops role to suspend or resize the warehouse
+GRANT OPERATE ON WAREHOUSE analytics_wh TO ROLE ops_role;
+GRANT MODIFY ON WAREHOUSE analytics_wh TO ROLE ops_role;
+
+-- Allow a monitoring role to see query history
+GRANT MONITOR ON WAREHOUSE analytics_wh TO ROLE monitor_role;
+
+-- Check what privileges a role holds on the warehouse
+SHOW GRANTS TO ROLE analyst_role;`} />
+
+<Quiz client:load category="RBAC" question="A data engineer needs to resize a warehouse from X-Small to Medium and also suspend it between jobs. Which warehouse privileges are required?" options={[{label:"A",text:"USAGE and MONITOR"},{label:"B",text:"MODIFY and OPERATE"},{label:"C",text:"OPERATE and USAGE"},{label:"D",text:"OWNERSHIP only"}]} correct="B" explanation="MODIFY allows changing warehouse properties such as size. OPERATE allows starting and suspending the warehouse. USAGE only permits running queries. MONITOR only allows viewing statistics. OWNERSHIP would also work but grants far more than is needed — violating least privilege." />
+
+---
+
+## OWNERSHIP Privilege
+
+Ownership is a special privilege in Snowflake:
+
+- **Only one role** can own an object at any time.
+- The owning role has **full control** over the object, including the ability to DROP it.
+- Ownership is automatically assigned to the role that **created** the object (the active role in the session at creation time).
+- Ownership can be **transferred** using `GRANT OWNERSHIP`.
+
+<CodeBlock client:load language="sql" title="Transferring Object Ownership" code={`-- Transfer ownership of a table to a new role
+-- REVOKE CURRENT GRANTS removes all existing privilege grants on the object
+GRANT OWNERSHIP ON TABLE sales_db.public.orders
+  TO ROLE new_owner_role
+  REVOKE CURRENT GRANTS;
+
+-- Transfer ownership WITHOUT removing existing grants (COPY CURRENT GRANTS)
+GRANT OWNERSHIP ON TABLE sales_db.public.orders
+  TO ROLE new_owner_role
+  COPY CURRENT GRANTS;
+
+-- Transfer ownership of an entire schema
+GRANT OWNERSHIP ON SCHEMA sales_db.public
+  TO ROLE new_owner_role
+  REVOKE CURRENT GRANTS;
+
+-- Transfer ownership of a database
+GRANT OWNERSHIP ON DATABASE sales_db
+  TO ROLE new_owner_role
+  REVOKE CURRENT GRANTS;`} />
+
+<Flashcard client:load category="RBAC" question="How many roles can own a single Snowflake object at one time?" answer="Exactly ONE role can own a Snowflake object at any given time. Ownership can be transferred but not shared." />
+
+<CalloutBox type="exam" title="REVOKE CURRENT GRANTS vs COPY CURRENT GRANTS">
+When transferring ownership:
+- **REVOKE CURRENT GRANTS** — removes all existing privilege grants on the object from other roles. The new owner starts fresh.
+- **COPY CURRENT GRANTS** — preserves all existing privilege grants. Other roles retain their previously granted privileges.
+
+The exam may ask which option is used when you want a clean transfer with no inherited grants.
+</CalloutBox>
+
+---
+
+## Discretionary Access Control (DAC)
+
+Snowflake combines **RBAC** with **Discretionary Access Control (DAC)**:
+
+- In RBAC, access is managed centrally by an administrator.
+- In DAC, object **owners** can grant access to their own objects to other roles — without requiring a central admin to do so.
+
+This means a role that owns a table can run:
+
+```sql
+GRANT SELECT ON TABLE my_table TO ROLE other_role;
+```
+
+...even if that role is not SECURITYADMIN or ACCOUNTADMIN.
+
+<Diagram client:load title="DAC + RBAC Combined Model" description="Diagram showing Snowflake's hybrid access control model. On the left side, a central SECURITYADMIN manages roles and their hierarchy. On the right side, individual object owners (any role with OWNERSHIP privilege) can grant/revoke access on their own objects directly to other roles. Both paths result in privilege grants tracked in the same access control system. This combination allows both centralised governance and delegated object-level access management." altText="Snowflake DAC and RBAC combined security model diagram" />
+
+---
+
+## GRANT WITH GRANT OPTION
+
+By default, when role A grants SELECT to role B, role B cannot further grant that privilege to role C. The `WITH GRANT OPTION` changes this:
+
+<CodeBlock client:load language="sql" title="GRANT WITH GRANT OPTION" code={`-- Grant SELECT and allow the grantee to pass it on
+GRANT SELECT ON TABLE sales_db.public.orders
+  TO ROLE analyst_role
+  WITH GRANT OPTION;
+
+-- analyst_role can now grant SELECT to other roles:
+-- (Run while using analyst_role)
+GRANT SELECT ON TABLE sales_db.public.orders
+  TO ROLE junior_analyst_role;
+
+-- Revoke the grant option without revoking the privilege itself
+-- (must revoke and re-grant without WITH GRANT OPTION)
+REVOKE GRANT OPTION FOR SELECT ON TABLE sales_db.public.orders
+  FROM ROLE analyst_role;`} />
+
+<Quiz client:load category="RBAC" question="Role A has been granted SELECT ON TABLE orders WITH GRANT OPTION. Role A then grants SELECT to Role B. If Role A's grant option is revoked, what happens to Role B's SELECT privilege?" options={[{label:"A",text:"Role B retains SELECT because privileges granted to it are independent"},{label:"B",text:"Role B loses SELECT immediately because the grant chain is broken"},{label:"C",text:"Role B retains SELECT until the next session"},{label:"D",text:"Role B is automatically granted OWNERSHIP to compensate"}]} correct="B" explanation="When WITH GRANT OPTION is revoked from Role A, any downstream grants that Role A made using that grant option are also revoked in a cascade. Role B loses SELECT because it was granted through a chain that has been broken." />
+
+---
+
+## Role Hierarchy and Privilege Inheritance
+
+Roles can be organised into a hierarchy. A **parent role** inherits all privileges of its **child roles**.
+
+<CodeBlock client:load language="sql" title="Role Hierarchy — GRANT ROLE" code={`-- Create custom roles
+CREATE ROLE junior_analyst;
+CREATE ROLE senior_analyst;
+CREATE ROLE data_team_lead;
+
+-- Build the hierarchy: senior_analyst inherits junior_analyst's privileges
+GRANT ROLE junior_analyst TO ROLE senior_analyst;
+
+-- data_team_lead inherits all privileges of senior_analyst (and thus junior_analyst)
+GRANT ROLE senior_analyst TO ROLE data_team_lead;
+
+-- Assign a role to a user
+GRANT ROLE junior_analyst TO USER alice;
+GRANT ROLE data_team_lead TO USER bob;
+
+-- Best practice: grant custom roles up to SYSADMIN
+GRANT ROLE data_team_lead TO ROLE sysadmin;`} />
+
+<Diagram client:load title="Role Inheritance Chain Example" description="Visual diagram showing a four-level role hierarchy. At the bottom: junior_analyst role with SELECT on raw tables. Above it: senior_analyst role with SELECT on curated views, which also inherits junior_analyst's SELECT on raw tables. Above that: data_team_lead with CREATE TABLE privilege, inheriting all privileges from both lower roles. At the top: SYSADMIN, which has data_team_lead granted to it, giving SYSADMIN visibility over all objects managed by the hierarchy. Arrows point upward showing the direction of privilege inheritance." altText="Snowflake role hierarchy inheritance diagram" />
+
+---
+
+## REVOKE — Removing Privileges
+
+<CodeBlock client:load language="sql" title="REVOKE Examples with CASCADE and RESTRICT" code={`-- Basic revoke
+REVOKE SELECT ON TABLE sales_db.public.orders FROM ROLE analyst_role;
+
+-- Revoke a schema privilege
+REVOKE CREATE TABLE ON SCHEMA sales_db.public FROM ROLE developer_role;
+
+-- Revoke with CASCADE: also revokes downstream grants made by this role
+REVOKE SELECT ON TABLE sales_db.public.orders
+  FROM ROLE analyst_role CASCADE;
+
+-- Revoke with RESTRICT: fails if the role has granted this privilege to others
+-- (prevents accidental breakage of downstream access)
+REVOKE SELECT ON TABLE sales_db.public.orders
+  FROM ROLE analyst_role RESTRICT;
+
+-- Revoke a role assignment from a user
+REVOKE ROLE analyst_role FROM USER alice;`} />
+
+<CalloutBox type="warning" title="CASCADE vs RESTRICT in REVOKE">
+- **CASCADE**: The revoke propagates downward — any grants that the target role made using this privilege are also revoked.
+- **RESTRICT**: The revoke fails with an error if the target role has granted this privilege to any other roles. This is the safer option to avoid unknowingly breaking access.
+
+The exam often presents a scenario where a downstream role loses access unexpectedly — this is caused by a CASCADE revoke up the chain.
+</CalloutBox>
+
+---
+
+## FUTURE GRANTS
+
+Future grants automatically apply a privilege to **objects created in the future** within a schema or database, eliminating the need to grant privileges every time a new object is created.
+
+<CodeBlock client:load language="sql" title="FUTURE GRANTS — Auto-grant on New Objects" code={`-- Automatically grant SELECT on any future tables created in this schema
+GRANT SELECT ON FUTURE TABLES IN SCHEMA sales_db.public
+  TO ROLE analyst_role;
+
+-- Automatically grant SELECT on future views
+GRANT SELECT ON FUTURE VIEWS IN SCHEMA sales_db.public
+  TO ROLE analyst_role;
+
+-- Future grants at the database level (applies to all schemas)
+GRANT SELECT ON FUTURE TABLES IN DATABASE sales_db
+  TO ROLE analyst_role;
+
+-- Grant future pipe usage
+GRANT USAGE ON FUTURE STAGES IN SCHEMA sales_db.public
+  TO ROLE loader_role;
+
+-- Show future grants configured on a schema
+SHOW FUTURE GRANTS IN SCHEMA sales_db.public;
+
+-- Show future grants configured on a database
+SHOW FUTURE GRANTS IN DATABASE sales_db;`} />
+
+<CalloutBox type="info" title="Future Grants vs Bulk Grants">
+**Future grants** apply to objects created **after** the grant is set up — they do not backfill existing objects.
+
+To cover existing objects, use:
+```sql
+GRANT SELECT ON ALL TABLES IN SCHEMA sales_db.public TO ROLE analyst_role;
+```
+
+You often need **both**: one for existing objects and one for future objects.
+</CalloutBox>
+
+<Flashcard client:load category="RBAC" question="What is the purpose of FUTURE GRANTS in Snowflake?" answer="FUTURE GRANTS automatically apply a specified privilege to all objects of a given type created in a schema or database after the grant is configured. They prevent access gaps when new objects are added." />
+
+---
+
+## Bulk Grants with GRANT ALL
+
+<CodeBlock client:load language="sql" title="Bulk Privilege Grants" code={`-- Grant ALL privileges on a specific table
+GRANT ALL PRIVILEGES ON TABLE sales_db.public.orders TO ROLE power_user;
+
+-- Grant SELECT on every existing table in a schema
+GRANT SELECT ON ALL TABLES IN SCHEMA sales_db.public TO ROLE analyst_role;
+
+-- Grant SELECT on all existing views in a schema
+GRANT SELECT ON ALL VIEWS IN SCHEMA sales_db.public TO ROLE analyst_role;
+
+-- Grant USAGE on all existing schemas in a database
+GRANT USAGE ON ALL SCHEMAS IN DATABASE sales_db TO ROLE analyst_role;
+
+-- Combine bulk (existing) + future grants for complete coverage
+GRANT SELECT ON ALL TABLES IN SCHEMA sales_db.public TO ROLE analyst_role;
+GRANT SELECT ON FUTURE TABLES IN SCHEMA sales_db.public TO ROLE analyst_role;`} />
+
+---
+
+## SHOW GRANTS Commands
+
+<CodeBlock client:load language="sql" title="Inspecting Grants with SHOW GRANTS" code={`-- Show all privileges granted TO a specific role
+SHOW GRANTS TO ROLE analyst_role;
+
+-- Show which roles and users have been granted a specific role
+SHOW GRANTS OF ROLE analyst_role;
+
+-- Show all privileges granted ON a specific table
+SHOW GRANTS ON TABLE sales_db.public.orders;
+
+-- Show all privileges granted ON a database
+SHOW GRANTS ON DATABASE sales_db;
+
+-- Show all privileges granted ON a schema
+SHOW GRANTS ON SCHEMA sales_db.public;
+
+-- Show all privileges granted ON a warehouse
+SHOW GRANTS ON WAREHOUSE analytics_wh;
+
+-- Show future grants in a schema
+SHOW FUTURE GRANTS IN SCHEMA sales_db.public;`} />
+
+---
+
+## Comparing RBAC and DAC
+
+<CompareTable client:load title="RBAC vs DAC in Snowflake" leftLabel="RBAC (Role-Based)" rightLabel="DAC (Discretionary)" rows={[
+  {feature: "Who controls access?", left: "Central administrator (SECURITYADMIN)", right: "Object owner (any role with OWNERSHIP)", winner: "left"},
+  {feature: "Flexibility", left: "Lower — requires admin intervention for each grant", right: "Higher — owner can delegate independently", winner: "right"},
+  {feature: "Governance", left: "Stronger — all grants managed centrally", right: "Weaker — distributed, harder to audit", winner: "left"},
+  {feature: "Implementation in Snowflake", left: "System-defined roles (SYSADMIN, SECURITYADMIN)", right: "Any role with OWNERSHIP can grant its object's privileges", winner: ""},
+  {feature: "Audit trail", left: "Centralised GRANT history", right: "Object-level GRANT history", winner: "left"},
+  {feature: "Recommended for", left: "Enterprise governance and compliance", right: "Agile teams with delegated data ownership", winner: ""}
+]} />
+
+---
+
+## Setting Up RBAC — Step-by-Step
+
+<StepByStep client:load title="Setting Up a Full RBAC Structure for an Analytics Team" steps={[
+  {title: "Create custom roles", description: "Define functional roles that map to job functions in your organisation. Avoid giving users ACCOUNTADMIN or SYSADMIN for day-to-day work.", code: `CREATE ROLE junior_analyst;
+CREATE ROLE senior_analyst;
+CREATE ROLE data_engineer;`, tip: "Role names should reflect the job function, not the individual user."},
+  {title: "Build the role hierarchy", description: "Grant child roles to parent roles so privileges are inherited upward. Always grant top-level custom roles to SYSADMIN.", code: `GRANT ROLE junior_analyst TO ROLE senior_analyst;
+GRANT ROLE senior_analyst TO ROLE data_engineer;
+GRANT ROLE data_engineer TO ROLE sysadmin;`, tip: "Granting custom roles to SYSADMIN ensures SYSADMIN can manage all objects created by those roles."},
+  {title: "Create warehouse and grant access", description: "Create the compute resource and grant the USAGE privilege so roles can run queries.", code: `CREATE WAREHOUSE analytics_wh
+  WAREHOUSE_SIZE = 'X-SMALL'
+  AUTO_SUSPEND = 300
+  AUTO_RESUME = TRUE;
+
+GRANT USAGE ON WAREHOUSE analytics_wh TO ROLE junior_analyst;
+GRANT USAGE ON WAREHOUSE analytics_wh TO ROLE senior_analyst;
+GRANT OPERATE ON WAREHOUSE analytics_wh TO ROLE data_engineer;`, tip: "Data engineers often need OPERATE so they can suspend the warehouse after batch loads."},
+  {title: "Grant database and schema access", description: "Grant USAGE at the database and schema level. Without these, lower-level object grants are ineffective.", code: `GRANT USAGE ON DATABASE sales_db TO ROLE junior_analyst;
+GRANT USAGE ON DATABASE sales_db TO ROLE senior_analyst;
+GRANT USAGE ON DATABASE sales_db TO ROLE data_engineer;
+
+GRANT USAGE ON SCHEMA sales_db.public TO ROLE junior_analyst;
+GRANT USAGE ON SCHEMA sales_db.public TO ROLE senior_analyst;
+GRANT CREATE TABLE, CREATE VIEW ON SCHEMA sales_db.public TO ROLE data_engineer;`, tip: "Remember: USAGE on database + USAGE on schema is required before any object-level privilege can be used."},
+  {title: "Grant table-level privileges with future grants", description: "Grant both existing and future table access so new tables are covered automatically.", code: `-- Existing tables
+GRANT SELECT ON ALL TABLES IN SCHEMA sales_db.public TO ROLE junior_analyst;
+GRANT SELECT ON ALL TABLES IN SCHEMA sales_db.public TO ROLE senior_analyst;
+
+-- Future tables
+GRANT SELECT ON FUTURE TABLES IN SCHEMA sales_db.public TO ROLE junior_analyst;
+GRANT SELECT ON FUTURE TABLES IN SCHEMA sales_db.public TO ROLE senior_analyst;`, tip: "Always pair ALL TABLES (existing) with FUTURE TABLES (new) to prevent access gaps."},
+  {title: "Assign roles to users", description: "Grant roles to individual users. Users can hold multiple roles and switch between them within a session.", code: `GRANT ROLE junior_analyst TO USER alice;
+GRANT ROLE senior_analyst TO USER bob;
+GRANT ROLE data_engineer TO USER carol;
+
+-- A user can also be granted multiple roles
+GRANT ROLE junior_analyst TO USER dave;
+GRANT ROLE senior_analyst TO USER dave;`, tip: "Set a default role for each user with ALTER USER so they start in the correct context automatically."}
+]} />
+
+---
+
+## Least Privilege Principle
+
+<CalloutBox type="exam" title="Least Privilege — A Core Exam Theme">
+The **principle of least privilege** means granting only the minimum privileges necessary for a role to perform its function. In Snowflake, this manifests as:
+
+- Never granting ACCOUNTADMIN for day-to-day work.
+- Using custom roles rather than system-defined roles for functional access.
+- Separating **functional roles** (e.g., `analyst`, `loader`) from **access roles** (e.g., `db_read_only`, `schema_write`).
+- Preferring USAGE over OWNERSHIP wherever possible.
+- Using FUTURE GRANTS to avoid granting overly broad blanket access.
+</CalloutBox>
+
+<Flashcard client:load category="RBAC" question="What is the difference between a functional role and an access role in Snowflake RBAC best practice?" answer="An ACCESS ROLE is granted privileges on specific objects (e.g., SELECT on a table). A FUNCTIONAL ROLE maps to a job function (e.g., analyst) and is granted one or more access roles. This separation makes it easy to adjust object-level privileges without reassigning users to different functional roles." />
+
+---
+
+## Quiz — Privilege Inheritance
+
+<Quiz client:load category="RBAC" question="Role C is a child of Role B, which is a child of Role A. Role C has SELECT on table T. A user is assigned Role A. Can the user query table T?" options={[{label:"A",text:"No — privileges only flow downward from parent to child"},{label:"B",text:"Yes — Role A inherits all privileges of Role B, which inherits from Role C"},{label:"C",text:"Only if the user explicitly switches to Role C"},{label:"D",text:"Only if table T is in the PUBLIC schema"}]} correct="B" explanation="Privilege inheritance in Snowflake flows UPWARD through the role hierarchy. A parent role inherits all privileges held by its child roles. Since Role C has SELECT on T, Role B inherits it, and Role A inherits it from Role B. A user assigned Role A can query T while using Role A." />
+
+---
+
+## RBAC Cheat Sheet
+
+<CheatSheet client:load title="RBAC Quick Reference — COF-C02" sections={[
+  {title: "Database Privileges", icon: "🗄️", items: [
+    {label: "USAGE", value: "Required to access database at all", note: "Must grant before schema access"},
+    {label: "CREATE SCHEMA", value: "Create new schemas inside the database", note: ""},
+    {label: "MODIFY", value: "Alter database properties", note: ""},
+    {label: "OWNERSHIP", value: "Full control; only one role at a time", note: "Transfer with GRANT OWNERSHIP ... REVOKE CURRENT GRANTS"}
+  ]},
+  {title: "Schema Privileges", icon: "📁", items: [
+    {label: "USAGE", value: "Required to access schema objects", note: "Must have DB USAGE too"},
+    {label: "CREATE TABLE/VIEW/STAGE/PIPE", value: "Create objects of respective type", note: "Each is a separate privilege"},
+    {label: "CREATE STREAM / TASK", value: "Create CDC streams and scheduled tasks", note: ""},
+    {label: "OWNERSHIP", value: "Full schema control", note: ""}
+  ]},
+  {title: "Table Privileges", icon: "📊", items: [
+    {label: "SELECT", value: "Read rows", note: "Most commonly required"},
+    {label: "INSERT / UPDATE / DELETE", value: "Write operations", note: ""},
+    {label: "TRUNCATE", value: "Remove all rows (not DELETE)", note: "Distinct from DELETE privilege"},
+    {label: "REFERENCES", value: "Create FK references to this table", note: ""},
+    {label: "OWNERSHIP", value: "Full control including DROP", note: ""}
+  ]},
+  {title: "Warehouse Privileges", icon: "⚙️", items: [
+    {label: "USAGE", value: "Run queries on the warehouse", note: "Most roles need this"},
+    {label: "OPERATE", value: "Start, suspend, abort queries", note: ""},
+    {label: "MODIFY", value: "Change size and settings", note: ""},
+    {label: "MONITOR", value: "View query history and usage stats", note: ""},
+    {label: "OWNERSHIP", value: "Full control", note: ""}
+  ]},
+  {title: "Key GRANT Commands", icon: "🔑", items: [
+    {label: "GRANT privilege ON object TO role", value: "Standard privilege grant", note: ""},
+    {label: "WITH GRANT OPTION", value: "Allows grantee to re-grant privilege", note: ""},
+    {label: "GRANT ROLE child TO ROLE parent", value: "Builds role hierarchy", note: "Parent inherits child's privileges"},
+    {label: "GRANT SELECT ON ALL TABLES IN SCHEMA", value: "Bulk grant on existing objects", note: ""},
+    {label: "GRANT SELECT ON FUTURE TABLES IN SCHEMA", value: "Auto-grant on new objects", note: "Does not backfill existing"},
+    {label: "GRANT OWNERSHIP ... REVOKE CURRENT GRANTS", value: "Transfer ownership, clear old grants", note: ""}
+  ]},
+  {title: "SHOW GRANTS Commands", icon: "🔍", items: [
+    {label: "SHOW GRANTS TO ROLE r", value: "What privileges does role r have?", note: ""},
+    {label: "SHOW GRANTS OF ROLE r", value: "Who (users/roles) holds role r?", note: ""},
+    {label: "SHOW GRANTS ON TABLE t", value: "What privileges are on table t?", note: ""},
+    {label: "SHOW FUTURE GRANTS IN SCHEMA s", value: "What future grants are configured?", note: ""}
+  ]}
+]} />
+
+---
+
+## Summary
+
+Snowflake's RBAC model combines centralised role management with discretionary object-level control. The key principles to remember for the COF-C02 exam are:
+
+1. **Access requires privileges at every level** — database, schema, and object.
+2. **USAGE is the gateway** — without USAGE on a database and schema, object-level privileges are useless.
+3. **OWNERSHIP is exclusive** — only one role owns an object; transfer with `GRANT OWNERSHIP ... REVOKE CURRENT GRANTS`.
+4. **Privilege inheritance flows upward** — parent roles inherit all privileges of child roles.
+5. **FUTURE GRANTS** automate privilege assignment for new objects but do not backfill existing ones.
+6. **DAC + RBAC**: Object owners can grant access without central admin involvement.
+7. **Least privilege** is the guiding principle — always grant the minimum required.

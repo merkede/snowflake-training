@@ -1,146 +1,107 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import ModulesGrid from '../components/ModulesGrid';
 
-const modules = [
+const domains = [
   {
-    domain: 'Domain 1: Architecture & Features (25%)',
-    color: 'from-blue-500 to-cyan-500',
+    name: 'Domain 1: Architecture & Features',
+    weight: '25%',
+    gradient: 'linear-gradient(135deg, #29b5e8, #56c4ed)',
     modules: [
-      { title: 'Introduction to Snowflake', slug: '/fundamentals/intro', status: 'coming-soon' },
-      { title: 'Snowflake Architecture', slug: '/architecture/overview', status: 'available' },
-      { title: 'Databases, Schemas & Tables', slug: '/architecture/databases', status: 'coming-soon' },
-      { title: 'Virtual Warehouses', slug: '/architecture/warehouses', status: 'coming-soon' },
-      { title: 'Data Storage & Clustering', slug: '/storage/overview', status: 'coming-soon' },
-    ]
+      { id: 'intro', title: 'Introduction to Snowflake', slug: '/fundamentals/intro' },
+      { id: 'architecture', title: 'Snowflake Architecture', slug: '/architecture/overview' },
+      { id: 'databases-schemas', title: 'Databases, Schemas & Tables', slug: '/architecture/databases' },
+      { id: 'virtual-warehouses', title: 'Virtual Warehouses', slug: '/architecture/warehouses' },
+      { id: 'data-storage', title: 'Data Storage & Clustering', slug: '/storage/overview' },
+    ],
   },
   {
-    domain: 'Domain 2: Account Access & Security (20%)',
-    color: 'from-violet-500 to-purple-500',
+    name: 'Domain 2: Account Access & Security',
+    weight: '20%',
+    gradient: 'linear-gradient(135deg, #7c3aed, #a78bfa)',
     modules: [
-      { title: 'User & Role Management', slug: '/security/users-roles', status: 'coming-soon' },
-      { title: 'Role-Based Access Control', slug: '/security/rbac', status: 'coming-soon' },
-      { title: 'Network Policies & Security', slug: '/security/network', status: 'coming-soon' },
-      { title: 'Authentication & SSO', slug: '/security/authentication', status: 'coming-soon' },
-    ]
+      { id: 'user-management', title: 'User & Role Management', slug: '/security/users-roles' },
+      { id: 'rbac', title: 'Role-Based Access Control', slug: '/security/rbac' },
+      { id: 'network-security', title: 'Network Policies & Security', slug: '/security/network' },
+      { id: 'authentication', title: 'Authentication & SSO', slug: '/security/authentication' },
+    ],
   },
   {
-    domain: 'Domain 3: Performance Concepts (15%)',
-    color: 'from-orange-500 to-red-500',
+    name: 'Domain 3: Performance Concepts',
+    weight: '15%',
+    gradient: 'linear-gradient(135deg, #ea580c, #f97316)',
     modules: [
-      { title: 'Query Performance & Optimization', slug: '/performance/queries', status: 'coming-soon' },
-      { title: 'Caching Mechanisms', slug: '/performance/caching', status: 'coming-soon' },
-      { title: 'Clustering Keys', slug: '/performance/clustering', status: 'coming-soon' },
-      { title: 'Search Optimization Service', slug: '/performance/search', status: 'coming-soon' },
-    ]
+      { id: 'query-optimization', title: 'Query Performance & Optimisation', slug: '/performance/queries' },
+      { id: 'caching', title: 'Caching Mechanisms', slug: '/performance/caching' },
+      { id: 'clustering-keys', title: 'Clustering Keys', slug: '/performance/clustering' },
+      { id: 'search-optimization', title: 'Search Optimisation Service', slug: '/performance/search' },
+    ],
   },
   {
-    domain: 'Domain 4: Data Loading & Unloading (15%)',
-    color: 'from-green-500 to-emerald-500',
+    name: 'Domain 4: Data Loading & Unloading',
+    weight: '15%',
+    gradient: 'linear-gradient(135deg, #16a34a, #4ade80)',
     modules: [
-      { title: 'Bulk Data Loading', slug: '/data-loading/bulk', status: 'coming-soon' },
-      { title: 'Snowpipe & Continuous Loading', slug: '/data-loading/snowpipe', status: 'coming-soon' },
-      { title: 'Stages & File Formats', slug: '/data-loading/stages', status: 'coming-soon' },
-      { title: 'Data Unloading', slug: '/data-loading/unloading', status: 'coming-soon' },
-    ]
+      { id: 'bulk-loading', title: 'Bulk Data Loading', slug: '/data-loading/bulk' },
+      { id: 'snowpipe', title: 'Snowpipe & Continuous Loading', slug: '/data-loading/snowpipe' },
+      { id: 'external-stages', title: 'Stages & File Formats', slug: '/data-loading/stages' },
+      { id: 'unloading', title: 'Data Unloading', slug: '/data-loading/unloading' },
+    ],
   },
   {
-    domain: 'Domain 5: Data Transformations (15%)',
-    color: 'from-pink-500 to-rose-500',
+    name: 'Domain 5: Data Transformations',
+    weight: '15%',
+    gradient: 'linear-gradient(135deg, #db2777, #f472b6)',
     modules: [
-      { title: 'Snowflake SQL Essentials', slug: '/data-transformations/sql-basics', status: 'coming-soon' },
-      { title: 'Functions & Procedures', slug: '/data-transformations/functions', status: 'coming-soon' },
-      { title: 'Streams & Tasks', slug: '/data-transformations/streams-tasks', status: 'coming-soon' },
-    ]
+      { id: 'sql-basics', title: 'Snowflake SQL Essentials', slug: '/data-transformations/sql-basics' },
+      { id: 'functions', title: 'Functions & Procedures', slug: '/data-transformations/functions' },
+      { id: 'streams-tasks', title: 'Streams & Tasks', slug: '/data-transformations/streams-tasks' },
+    ],
   },
   {
-    domain: 'Domain 6: Data Protection & Sharing (10%)',
-    color: 'from-indigo-500 to-blue-500',
+    name: 'Domain 6: Data Protection & Sharing',
+    weight: '10%',
+    gradient: 'linear-gradient(135deg, #164365, #29b5e8)',
     modules: [
-      { title: 'Time Travel & Fail-safe', slug: '/data-protection/time-travel', status: 'coming-soon' },
-      { title: 'Zero-Copy Cloning', slug: '/data-protection/cloning', status: 'coming-soon' },
-      { title: 'Secure Data Sharing', slug: '/data-protection/sharing', status: 'coming-soon' },
-    ]
+      { id: 'time-travel', title: 'Time Travel & Fail-safe', slug: '/data-protection/time-travel' },
+      { id: 'cloning', title: 'Zero-Copy Cloning', slug: '/data-protection/cloning' },
+      { id: 'data-sharing', title: 'Secure Data Sharing', slug: '/data-protection/sharing' },
+    ],
   },
 ];
 ---
 
-<Layout title="All Modules - Snowflake Academy">
+<Layout title="All Modules — Snowflake Academy">
   <div class="bg-gradient-to-b from-slate-50 to-white py-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <h1 class="mb-4">All Training Modules</h1>
       <p class="text-xl text-slate-600 max-w-3xl">
-        Complete curriculum organized by COF-C02 exam domains. Track your progress as you work through each module.
+        Complete COF-C02 curriculum across 6 exam domains and 23 modules.
+        Your progress is saved automatically as you work through each module — click any card to get started.
       </p>
     </div>
   </div>
 
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-    <div class="space-y-12">
-      {modules.map((domain, index) => (
-        <div key={index} class="animate-fade-in">
-          <!-- Domain Header -->
-          <div class="flex items-center gap-4 mb-6">
-            <div class={`w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold bg-gradient-to-br ${domain.color}`}>
-              {index + 1}
-            </div>
-            <div>
-              <h2 class="text-2xl font-bold text-slate-900 mb-1">{domain.domain}</h2>
-            </div>
-          </div>
+    <ModulesGrid client:load domains={domains} />
 
-          <!-- Modules Grid -->
-          <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {domain.modules.map((module) => (
-              <a
-                href={module.slug}
-                class={`card group transition-all ${
-                  module.status === 'available'
-                    ? 'hover:border-primary hover:shadow-lg cursor-pointer'
-                    : 'opacity-60 cursor-not-allowed'
-                }`}
-              >
-                <div class="flex items-start justify-between mb-3">
-                  <h3 class="text-lg font-bold text-slate-900 group-hover:text-primary transition-colors flex-1">
-                    {module.title}
-                  </h3>
-                  {module.status === 'available' ? (
-                    <svg class="w-5 h-5 flex-shrink-0 ml-2" style="color: var(--color-accent);" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                  ) : (
-                    <svg class="w-5 h-5 text-slate-400 flex-shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                  )}
-                </div>
-
-                {module.status === 'available' ? (
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                    Available Now
-                  </span>
-                ) : (
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">
-                    Coming Soon
-                  </span>
-                )}
-              </a>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-
-    <!-- Progress CTA -->
-    <div class="mt-16 text-center">
-      <div class="card max-w-2xl mx-auto" style="background: linear-gradient(135deg, var(--color-snowflake-light) 0%, white 100%);">
-        <h3 class="text-2xl font-bold mb-4">Track Your Progress</h3>
-        <p class="text-slate-600 mb-6">
-          Your learning progress is automatically saved as you complete modules. Check back regularly as new content is added.
-        </p>
-        <a href="/flashcards" class="btn-primary inline-block no-underline">
-          Practice with Flashcards
-        </a>
-      </div>
+    <!-- Bottom CTA -->
+    <div class="mt-16 grid md:grid-cols-3 gap-6">
+      <a href="/flashcards" class="card text-center no-underline hover:shadow-lg transition-all group">
+        <div class="text-3xl mb-3">🃏</div>
+        <h3 class="text-lg font-bold text-slate-900 group-hover:text-primary mb-1">Flashcards</h3>
+        <p class="text-sm text-slate-500">Active recall practice across all domains</p>
+      </a>
+      <a href="/cheatsheets" class="card text-center no-underline hover:shadow-lg transition-all group">
+        <div class="text-3xl mb-3">📋</div>
+        <h3 class="text-lg font-bold text-slate-900 group-hover:text-primary mb-1">Cheat Sheets</h3>
+        <p class="text-sm text-slate-500">Quick-reference summaries for exam day</p>
+      </a>
+      <a href="/practice" class="card text-center no-underline hover:shadow-lg transition-all group">
+        <div class="text-3xl mb-3">✏️</div>
+        <h3 class="text-lg font-bold text-slate-900 group-hover:text-primary mb-1">Practice Exam</h3>
+        <p class="text-sm text-slate-500">Timed mock exams with COF-C02 questions</p>
+      </a>
     </div>
   </div>
 </Layout>

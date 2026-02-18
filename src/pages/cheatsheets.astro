@@ -1,0 +1,616 @@
+---
+import Layout from '../layouts/Layout.astro';
+import CheatSheet from '../components/CheatSheet';
+import CompareTable from '../components/CompareTable';
+---
+
+<Layout title="Cheat Sheets — Snowflake Academy" description="Quick-reference cheat sheets for all COF-C02 exam domains — architecture, security, performance, data loading, transformations, and data protection.">
+
+  <!-- Hero -->
+  <div class="bg-gradient-to-b from-slate-50 to-white py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="text-4xl">📋</span>
+        <div>
+          <p class="text-xs font-bold uppercase tracking-widest mb-0.5" style="color: var(--color-snowflake-blue);">Quick Reference</p>
+          <h1 class="mb-0">Cheat Sheets</h1>
+        </div>
+      </div>
+      <p class="text-xl text-slate-600 max-w-3xl">
+        Condensed, exam-ready reference material across all six COF-C02 domains.
+        Bookmark this page for last-minute revision before your exam.
+      </p>
+
+      <!-- Domain jump links -->
+      <div class="flex flex-wrap gap-2 mt-6">
+        <a href="#architecture" class="btn btn-secondary text-sm no-underline">🏗️ Architecture</a>
+        <a href="#security" class="btn btn-secondary text-sm no-underline">🔒 Security</a>
+        <a href="#performance" class="btn btn-secondary text-sm no-underline">⚡ Performance</a>
+        <a href="#data-loading" class="btn btn-secondary text-sm no-underline">📥 Data Loading</a>
+        <a href="#transformations" class="btn btn-secondary text-sm no-underline">🔄 Transformations</a>
+        <a href="#data-protection" class="btn btn-secondary text-sm no-underline">🛡️ Data Protection</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-20">
+
+    <!-- ============================================================ -->
+    <!-- DOMAIN 1: ARCHITECTURE -->
+    <!-- ============================================================ -->
+    <section id="architecture">
+      <div class="flex items-center gap-3 mb-8">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style="background: linear-gradient(135deg, #29b5e8, #56c4ed);">1</div>
+        <h2 class="text-2xl font-bold text-slate-900 m-0">Architecture & Features (25%)</h2>
+      </div>
+
+      <CheatSheet
+        title="Snowflake Editions — Feature Matrix"
+        sections={[
+          {
+            title: "Standard",
+            icon: "🟦",
+            items: [
+              { label: "Time Travel", value: "Up to 1 day maximum", note: "" },
+              { label: "Warehouses", value: "Single-cluster only", note: "" },
+              { label: "Security", value: "Basic RBAC only", note: "" },
+              { label: "Compliance", value: "SOC 2 Type II", note: "" },
+            ]
+          },
+          {
+            title: "Enterprise (adds on top of Standard)",
+            icon: "🟨",
+            items: [
+              { label: "Time Travel", value: "Up to 90 days (configurable per object)", note: "" },
+              { label: "Warehouses", value: "Multi-cluster warehouses", note: "For high concurrency" },
+              { label: "Security", value: "Column-level Security + Row Access Policies", note: "Dynamic Data Masking" },
+              { label: "Other", value: "Search Optimisation, Database Replication", note: "Periodic rekeying" },
+            ]
+          },
+          {
+            title: "Business Critical (adds on top of Enterprise)",
+            icon: "🟧",
+            items: [
+              { label: "Compliance", value: "HIPAA, PCI DSS, SOC 1 & 2, ISO 27001", note: "" },
+              { label: "Encryption", value: "Tri-Secret Secure — customer-managed keys", note: "" },
+              { label: "Network", value: "Private Link (AWS / Azure / GCP)", note: "No public internet" },
+              { label: "DR", value: "Business Continuity Failover & Fallback", note: "" },
+            ]
+          },
+          {
+            title: "VPS — Virtual Private Snowflake",
+            icon: "🟥",
+            items: [
+              { label: "Isolation", value: "Dedicated single-tenant hardware", note: "" },
+              { label: "Use case", value: "Government, defence, highest-security sectors", note: "" },
+            ]
+          },
+        ]}
+      />
+
+      <CheatSheet
+        title="Virtual Warehouse Sizes & Credits"
+        sections={[
+          {
+            title: "Credit Consumption (per hour)",
+            icon: "⚡",
+            items: [
+              { label: "X-Small", value: "1 credit/hour", note: "Development & testing" },
+              { label: "Small", value: "2 credits/hour", note: "" },
+              { label: "Medium", value: "4 credits/hour", note: "" },
+              { label: "Large", value: "8 credits/hour", note: "" },
+              { label: "X-Large", value: "16 credits/hour", note: "" },
+              { label: "2X-Large", value: "32 credits/hour", note: "" },
+              { label: "3X-Large", value: "64 credits/hour", note: "" },
+              { label: "4X-Large", value: "128 credits/hour", note: "Maximum size" },
+            ]
+          },
+          {
+            title: "Billing Rules",
+            icon: "💰",
+            items: [
+              { label: "Billing", value: "Per second, 60-second minimum per resume", note: "" },
+              { label: "Suspended", value: "Zero credits consumed when suspended", note: "" },
+              { label: "Auto-suspend", value: "Default: 600 seconds (10 minutes) idle", note: "" },
+              { label: "Cloud Services", value: "Free up to 10% of daily compute credits", note: "" },
+            ]
+          },
+        ]}
+      />
+
+      <CheatSheet
+        title="Snowflake Object Hierarchy"
+        sections={[
+          {
+            title: "Container Hierarchy (top to bottom)",
+            icon: "🗂️",
+            items: [
+              { label: "Org", value: "Organisation — optional grouping of multiple accounts", note: "" },
+              { label: "Account", value: "Tied to one cloud provider + one region", note: "Cannot span clouds" },
+              { label: "Database", value: "Top-level container for schemas", note: "" },
+              { label: "Schema", value: "Container for all objects (tables, views, stages, etc.)", note: "" },
+            ]
+          },
+          {
+            title: "Schema-Level Objects",
+            icon: "📦",
+            items: [
+              { label: "Tables", value: "Permanent, Transient, Temporary, External", note: "" },
+              { label: "Views", value: "Standard, Secure, Materialized", note: "" },
+              { label: "Stages", value: "User (@~), Table (@%), Named (internal/external)", note: "" },
+              { label: "Pipes", value: "Snowpipe continuous loading definitions", note: "" },
+              { label: "Streams", value: "Change Data Capture (CDC) tracking", note: "" },
+              { label: "Tasks", value: "Scheduled SQL execution", note: "" },
+              { label: "Functions", value: "UDFs, UDTFs (JavaScript, Python, SQL, Java)", note: "" },
+              { label: "Procedures", value: "Stored Procedures (JavaScript, Python, Snowpark)", note: "" },
+              { label: "File Formats", value: "CSV, JSON, Parquet, Avro, ORC, XML", note: "" },
+              { label: "Sequences", value: "Auto-incrementing counter", note: "" },
+            ]
+          },
+        ]}
+      />
+
+      <CheatSheet
+        title="Three-Layer Architecture"
+        sections={[
+          {
+            title: "Layers",
+            icon: "🏗️",
+            items: [
+              { label: "Storage", value: "Cloud object storage (S3/Azure Blob/GCS) — columnar, compressed micro-partitions", note: "Managed by Snowflake" },
+              { label: "Compute", value: "Virtual Warehouses — independent MPP clusters", note: "Scale independently of storage" },
+              { label: "Services", value: "Cloud Services Layer — auth, metadata, query optimisation, access control", note: "Free up to 10% daily compute" },
+            ]
+          },
+          {
+            title: "Micro-Partition Facts",
+            icon: "🗃️",
+            items: [
+              { label: "Size", value: "50–500 MB compressed (typically 16–160 MB uncompressed)", note: "" },
+              { label: "Format", value: "Columnar — each column stored separately within partition", note: "" },
+              { label: "Immutable", value: "Never updated in place — new micro-partitions created on change", note: "Enables Time Travel" },
+              { label: "Metadata", value: "Min/max, NDV, null count per column — enables pruning", note: "" },
+            ]
+          },
+        ]}
+      />
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- DOMAIN 2: SECURITY -->
+    <!-- ============================================================ -->
+    <section id="security">
+      <div class="flex items-center gap-3 mb-8">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style="background: linear-gradient(135deg, #7c3aed, #a78bfa);">2</div>
+        <h2 class="text-2xl font-bold text-slate-900 m-0">Account Access & Security (20%)</h2>
+      </div>
+
+      <CheatSheet
+        title="Snowflake System Roles"
+        sections={[
+          {
+            title: "Built-in System Roles",
+            icon: "👤",
+            items: [
+              { label: "ACCOUNTADMIN", value: "Highest privilege — manages entire account, billing, users", note: "Restrict to ≤2 users" },
+              { label: "SYSADMIN", value: "Creates/manages databases, warehouses, schemas, tables", note: "Most common admin role" },
+              { label: "SECURITYADMIN", value: "Manages users, roles, network policies, grants/revokes", note: "" },
+              { label: "USERADMIN", value: "Creates and manages users and roles only", note: "Subset of SECURITYADMIN" },
+              { label: "PUBLIC", value: "Default role granted to every user automatically", note: "Lowest privilege" },
+            ]
+          },
+          {
+            title: "Role Hierarchy Rule",
+            icon: "🔺",
+            items: [
+              { label: "Inherit", value: "Roles inherit all privileges of roles GRANTED to them", note: "" },
+              { label: "GRANT", value: "GRANT ROLE child_role TO ROLE parent_role", note: "Parent inherits child's privileges" },
+              { label: "Best practice", value: "Custom roles should roll up to SYSADMIN", note: "So SYSADMIN can manage all objects" },
+            ]
+          },
+        ]}
+      />
+
+      <CheatSheet
+        title="Key Privileges Reference"
+        sections={[
+          {
+            title: "Account-Level Privileges",
+            icon: "🏛️",
+            items: [
+              { label: "CREATE DATABASE", value: "Create new databases", note: "Grant to SYSADMIN" },
+              { label: "CREATE WAREHOUSE", value: "Create virtual warehouses", note: "" },
+              { label: "CREATE ROLE", value: "Create new roles", note: "Granted to USERADMIN" },
+              { label: "CREATE USER", value: "Create new users", note: "" },
+              { label: "MANAGE GRANTS", value: "Grant any privilege to any role", note: "SECURITYADMIN has this" },
+            ]
+          },
+          {
+            title: "Object-Level Privileges",
+            icon: "📋",
+            items: [
+              { label: "OWNERSHIP", value: "Full control of an object (transfer, drop)", note: "One role per object" },
+              { label: "USAGE", value: "Required to USE a database, schema, or warehouse", note: "Needed to access child objects" },
+              { label: "SELECT", value: "Query table or view data", note: "" },
+              { label: "INSERT/UPDATE/DELETE", value: "Modify table data", note: "" },
+              { label: "CREATE", value: "Create objects within a schema or database", note: "" },
+              { label: "REFERENCES", value: "Create foreign key constraints", note: "" },
+            ]
+          },
+        ]}
+      />
+
+      <CheatSheet
+        title="Authentication Methods"
+        sections={[
+          {
+            title: "Methods",
+            icon: "🔑",
+            items: [
+              { label: "Password", value: "Username + password — default method", note: "" },
+              { label: "Key-pair", value: "RSA private/public key — programmatic access (CLI, connectors)", note: "" },
+              { label: "MFA", value: "Duo Security — time-based one-time password", note: "Recommended for ACCOUNTADMIN" },
+              { label: "SAML 2.0", value: "Federated SSO via identity providers (Okta, ADFS, Azure AD)", note: "" },
+              { label: "OAuth 2.0", value: "Delegated access — Snowflake OAuth or External OAuth", note: "" },
+            ]
+          },
+        ]}
+      />
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- DOMAIN 3: PERFORMANCE -->
+    <!-- ============================================================ -->
+    <section id="performance">
+      <div class="flex items-center gap-3 mb-8">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style="background: linear-gradient(135deg, #ea580c, #f97316);">3</div>
+        <h2 class="text-2xl font-bold text-slate-900 m-0">Performance Concepts (15%)</h2>
+      </div>
+
+      <CheatSheet
+        title="Snowflake's Three Cache Layers"
+        sections={[
+          {
+            title: "Result Cache",
+            icon: "1️⃣",
+            items: [
+              { label: "What", value: "Stores the exact result set of a completed query", note: "" },
+              { label: "Duration", value: "24 hours — reset if underlying data changes", note: "" },
+              { label: "Cost", value: "FREE — no warehouse credits consumed", note: "" },
+              { label: "Condition", value: "Same SQL text + same user privileges + data unchanged", note: "" },
+            ]
+          },
+          {
+            title: "Local Disk Cache (Data Cache)",
+            icon: "2️⃣",
+            items: [
+              { label: "What", value: "Caches micro-partition data on warehouse SSD storage", note: "" },
+              { label: "Duration", value: "Until warehouse is suspended (lost on suspend)", note: "" },
+              { label: "Cost", value: "Credits consumed (warehouse must be running)", note: "" },
+              { label: "Best for", value: "Repeated queries against same data — warm cache", note: "" },
+            ]
+          },
+          {
+            title: "Metadata Cache (Cloud Services)",
+            icon: "3️⃣",
+            items: [
+              { label: "What", value: "Stores metadata — row counts, min/max, table structure", note: "" },
+              { label: "Duration", value: "Persistent in Cloud Services layer", note: "" },
+              { label: "Cost", value: "FREE (Cloud Services — up to 10% of compute)", note: "" },
+              { label: "Best for", value: "SHOW commands, COUNT(*) without WHERE, MIN/MAX", note: "" },
+            ]
+          },
+        ]}
+      />
+
+      <CheatSheet
+        title="Query Performance — Key Concepts"
+        sections={[
+          {
+            title: "Pruning & Optimisation",
+            icon: "✂️",
+            items: [
+              { label: "Pruning", value: "Snowflake skips micro-partitions based on column min/max metadata", note: "" },
+              { label: "Effective", value: "Predicates on low-cardinality columns benefit most from pruning", note: "" },
+              { label: "Clustering", value: "Clustering keys improve pruning on frequently filtered columns", note: "" },
+              { label: "EXPLAIN", value: "EXPLAIN <sql> — shows logical execution plan", note: "" },
+            ]
+          },
+          {
+            title: "Spilling to Disk",
+            icon: "💿",
+            items: [
+              { label: "Local spill", value: "Data spills to warehouse SSD when memory is exceeded", note: "Slower than memory" },
+              { label: "Remote spill", value: "Data spills to cloud storage (S3/Blob) when SSD is full", note: "Much slower" },
+              { label: "Fix", value: "Increase warehouse size or optimise query (reduce data volume)", note: "" },
+            ]
+          },
+          {
+            title: "Multi-Cluster Scaling",
+            icon: "📈",
+            items: [
+              { label: "Scale up", value: "Larger warehouse size — handles bigger individual queries", note: "" },
+              { label: "Scale out", value: "More clusters — handles more concurrent users/queries", note: "" },
+              { label: "Auto-scale", value: "Clusters added/removed based on queue depth", note: "Enterprise+" },
+              { label: "Maximized", value: "All clusters run simultaneously regardless of load", note: "" },
+            ]
+          },
+        ]}
+      />
+
+      <CheatSheet
+        title="Search Optimisation Service (SOS)"
+        sections={[
+          {
+            title: "Key Facts",
+            icon: "🔍",
+            items: [
+              { label: "Purpose", value: "Accelerates point lookup queries on large tables", note: "" },
+              { label: "Helps with", value: "Equality predicates, IN lists, substring/ILIKE searches, geo", note: "" },
+              { label: "Enable", value: "ALTER TABLE t ADD SEARCH OPTIMIZATION ON EQUALITY(col)", note: "" },
+              { label: "Cost", value: "Additional serverless credits for maintenance", note: "Enterprise+ required" },
+              { label: "vs Clustering", value: "SOS: point lookups. Clustering: range scans, large table scans", note: "" },
+            ]
+          },
+        ]}
+      />
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- DOMAIN 4: DATA LOADING -->
+    <!-- ============================================================ -->
+    <section id="data-loading">
+      <div class="flex items-center gap-3 mb-8">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style="background: linear-gradient(135deg, #16a34a, #4ade80);">4</div>
+        <h2 class="text-2xl font-bold text-slate-900 m-0">Data Loading & Unloading (15%)</h2>
+      </div>
+
+      <CheatSheet
+        title="Stage Types Reference"
+        sections={[
+          {
+            title: "Internal Stages",
+            icon: "🏠",
+            items: [
+              { label: "@~", value: "User stage — private to each user, cannot be shared", note: "PUT/GET only" },
+              { label: "@%<table>", value: "Table stage — one per table, accessible by table owners", note: "" },
+              { label: "@<name>", value: "Named internal stage — shared, schema-level object, most flexible", note: "" },
+            ]
+          },
+          {
+            title: "External Stages",
+            icon: "☁️",
+            items: [
+              { label: "S3", value: "Amazon S3 — URL: s3://bucket/path", note: "" },
+              { label: "Azure", value: "Azure Blob Storage — URL: azure://account.blob.core.windows.net/container", note: "" },
+              { label: "GCS", value: "Google Cloud Storage — URL: gcs://bucket/path", note: "" },
+            ]
+          },
+          {
+            title: "Stage Commands",
+            icon: "⌨️",
+            items: [
+              { label: "PUT", value: "Upload file from local machine to internal stage", note: "SnowSQL only" },
+              { label: "GET", value: "Download file from internal stage to local machine", note: "SnowSQL only" },
+              { label: "LIST", value: "LIST @mystage — shows files in a stage", note: "" },
+              { label: "REMOVE", value: "REMOVE @mystage/file.csv — delete from stage", note: "" },
+            ]
+          },
+        ]}
+      />
+
+      <CheatSheet
+        title="COPY INTO Command Reference"
+        sections={[
+          {
+            title: "Key Options (Loading)",
+            icon: "📥",
+            items: [
+              { label: "ON_ERROR", value: "CONTINUE, SKIP_FILE, SKIP_FILE_n, ABORT_STATEMENT", note: "" },
+              { label: "PURGE", value: "Delete staged files after successful load", note: "" },
+              { label: "FORCE", value: "Re-load files already loaded (bypasses load metadata)", note: "" },
+              { label: "MATCH_BY_COLUMN_NAME", value: "Map JSON/Parquet keys to column names automatically", note: "" },
+              { label: "FILES", value: "Specify a list of files to load from the stage", note: "" },
+              { label: "PATTERN", value: "Regex pattern to filter files: PATTERN='.*sales.*\\.csv'", note: "" },
+            ]
+          },
+          {
+            title: "Load History",
+            icon: "📜",
+            items: [
+              { label: "64 days", value: "Snowflake tracks loaded files for 64 days per table", note: "" },
+              { label: "COPY_HISTORY", value: "INFORMATION_SCHEMA.LOAD_HISTORY — per database", note: "" },
+              { label: "ACCOUNT_USAGE", value: "SNOWFLAKE.ACCOUNT_USAGE.COPY_HISTORY — all tables", note: "365-day history" },
+            ]
+          },
+        ]}
+      />
+
+      <CheatSheet
+        title="Snowpipe Quick Reference"
+        sections={[
+          {
+            title: "Key Facts",
+            icon: "🚰",
+            items: [
+              { label: "What", value: "Serverless continuous data loading — triggered by file arrival", note: "" },
+              { label: "Auto-ingest", value: "Cloud event notifications (SQS/Event Grid/Pub-Sub) trigger pipe", note: "Fully automatic" },
+              { label: "REST API", value: "insertFiles() or insertReport() for manual triggering", note: "" },
+              { label: "Billing", value: "Per-file serverless credit model — no warehouse needed", note: "" },
+              { label: "Status", value: "SYSTEM$PIPE_STATUS('pipe_name')", note: "" },
+              { label: "Latency", value: "Near-real-time (minutes, not seconds)", note: "" },
+            ]
+          },
+        ]}
+      />
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- DOMAIN 5: TRANSFORMATIONS -->
+    <!-- ============================================================ -->
+    <section id="transformations">
+      <div class="flex items-center gap-3 mb-8">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style="background: linear-gradient(135deg, #db2777, #f472b6);">5</div>
+        <h2 class="text-2xl font-bold text-slate-900 m-0">Data Transformations (15%)</h2>
+      </div>
+
+      <CheatSheet
+        title="Semi-Structured Data (VARIANT)"
+        sections={[
+          {
+            title: "Key Operators & Functions",
+            icon: "{ }",
+            items: [
+              { label: ":", value: "Path access — obj:key or obj:key:nested", note: "e.g. src:address:city" },
+              { label: "::", value: "Type cast — obj:key::STRING", note: "" },
+              { label: "GET_PATH", value: "GET_PATH(obj, 'key.nested') — same as : notation", note: "" },
+              { label: "PARSE_JSON", value: "PARSE_JSON('{}') — convert JSON string to VARIANT", note: "" },
+              { label: "TO_VARIANT", value: "Cast any type to VARIANT", note: "" },
+              { label: "TYPEOF", value: "Returns data type of VARIANT value", note: "" },
+              { label: "FLATTEN", value: "Flattens array/object to rows — use with LATERAL", note: "" },
+              { label: "ARRAY_AGG", value: "Aggregate rows into JSON array", note: "" },
+              { label: "OBJECT_CONSTRUCT", value: "Build JSON object from key-value pairs", note: "" },
+            ]
+          },
+        ]}
+      />
+
+      <CheatSheet
+        title="Streams & Tasks Reference"
+        sections={[
+          {
+            title: "Stream Types",
+            icon: "🌊",
+            items: [
+              { label: "Standard", value: "Captures INSERT, UPDATE, DELETE — all DML changes", note: "" },
+              { label: "Append-only", value: "Captures INSERT only — more efficient for append workloads", note: "" },
+              { label: "Insert-only", value: "For external tables — INSERT tracking only", note: "" },
+            ]
+          },
+          {
+            title: "Stream Metadata Columns",
+            icon: "📊",
+            items: [
+              { label: "METADATA$ACTION", value: "INSERT or DELETE", note: "UPDATE = DELETE + INSERT pair" },
+              { label: "METADATA$ISUPDATE", value: "TRUE if part of an UPDATE operation", note: "" },
+              { label: "METADATA$ROW_ID", value: "Unique immutable row identifier", note: "" },
+            ]
+          },
+          {
+            title: "Tasks",
+            icon: "⏰",
+            items: [
+              { label: "CRON", value: "SCHEDULE = 'USING CRON 0 9 * * MON-FRI UTC'", note: "" },
+              { label: "Minutes", value: "SCHEDULE = '5 MINUTE'", note: "" },
+              { label: "Tree", value: "AFTER parent_task — child tasks form a DAG", note: "" },
+              { label: "Enable", value: "ALTER TASK mytask RESUME — tasks start in suspended state", note: "" },
+              { label: "Serverless", value: "USER_TASK_MANAGED_INITIAL_WAREHOUSE_SIZE — no warehouse", note: "" },
+            ]
+          },
+        ]}
+      />
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- DOMAIN 6: DATA PROTECTION -->
+    <!-- ============================================================ -->
+    <section id="data-protection">
+      <div class="flex items-center gap-3 mb-8">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style="background: linear-gradient(135deg, #164365, #29b5e8);">6</div>
+        <h2 class="text-2xl font-bold text-slate-900 m-0">Data Protection & Sharing (10%)</h2>
+      </div>
+
+      <CheatSheet
+        title="Time Travel & Fail-safe Reference"
+        sections={[
+          {
+            title: "Time Travel",
+            icon: "⏰",
+            items: [
+              { label: "Standard", value: "Max 1 day Time Travel", note: "" },
+              { label: "Enterprise+", value: "Max 90 days Time Travel", note: "" },
+              { label: "Transient/Temp", value: "Max 1 day — regardless of edition", note: "" },
+              { label: "AT OFFSET", value: "AT(OFFSET => -3600) — seconds from now", note: "" },
+              { label: "AT TIMESTAMP", value: "AT(TIMESTAMP => '2024-01-01'::TIMESTAMP_TZ)", note: "" },
+              { label: "AT STATEMENT", value: "AT(STATEMENT => '<query_id>')", note: "" },
+              { label: "UNDROP", value: "UNDROP TABLE/SCHEMA/DATABASE name", note: "" },
+            ]
+          },
+          {
+            title: "Fail-safe",
+            icon: "🛡️",
+            items: [
+              { label: "Duration", value: "7 days — fixed, non-configurable", note: "" },
+              { label: "Access", value: "Snowflake Support ONLY — no self-service", note: "" },
+              { label: "Applies to", value: "Permanent tables only", note: "" },
+              { label: "Not for", value: "Transient, temporary, or external tables", note: "" },
+            ]
+          },
+          {
+            title: "Zero-Copy Cloning",
+            icon: "©️",
+            items: [
+              { label: "Cost", value: "Zero initial storage — shares micro-partition metadata", note: "" },
+              { label: "Cloneable", value: "Databases, schemas, tables, stages, streams, tasks", note: "" },
+              { label: "With TT", value: "CLONE ... AT(OFFSET => ...) or BEFORE(STATEMENT => ...)", note: "" },
+              { label: "Privileges", value: "Grantees of original do NOT auto-inherit clone access", note: "" },
+            ]
+          },
+        ]}
+      />
+
+      <CheatSheet
+        title="Secure Data Sharing Reference"
+        sections={[
+          {
+            title: "Share Concepts",
+            icon: "🤝",
+            items: [
+              { label: "Share", value: "Metadata object created by provider — no data copied", note: "" },
+              { label: "Provider", value: "Account that creates and grants the share", note: "" },
+              { label: "Consumer", value: "Account that creates a read-only DB FROM the share", note: "" },
+              { label: "Live", value: "Consumer always sees provider's current data", note: "" },
+            ]
+          },
+          {
+            title: "Key Commands",
+            icon: "⌨️",
+            items: [
+              { label: "CREATE SHARE", value: "CREATE SHARE my_share", note: "" },
+              { label: "GRANT", value: "GRANT USAGE ON DATABASE db TO SHARE my_share", note: "" },
+              { label: "ADD ACCOUNT", value: "ALTER SHARE my_share ADD ACCOUNTS = xy12345", note: "" },
+              { label: "Consumer DB", value: "CREATE DATABASE from_share FROM SHARE provider.share", note: "" },
+              { label: "Marketplace", value: "Snowflake Marketplace — public/private data listings", note: "" },
+            ]
+          },
+        ]}
+      />
+    </section>
+
+    <!-- Exam Tips -->
+    <section class="mt-8">
+      <div class="rounded-xl p-6 border-2" style="border-color: var(--color-snowflake-blue); background: linear-gradient(135deg, var(--color-snowflake-light), white);">
+        <h2 class="text-xl font-bold mb-4" style="color: var(--color-snowflake-dark);">🎯 Top Exam Tips</h2>
+        <div class="grid md:grid-cols-2 gap-4 text-sm text-slate-700">
+          <ul class="space-y-2 list-none pl-0">
+            <li>✓ Snowflake is <strong>SaaS</strong> — not IaaS or PaaS</li>
+            <li>✓ Each account = one cloud + one region</li>
+            <li>✓ 60-second minimum per warehouse resume</li>
+            <li>✓ Cloud Services free up to <strong>10%</strong> of daily compute</li>
+            <li>✓ <strong>Enterprise</strong> needed for 90-day TT + multi-cluster</li>
+            <li>✓ <strong>Business Critical</strong> needed for HIPAA/PCI</li>
+          </ul>
+          <ul class="space-y-2 list-none pl-0">
+            <li>✓ Result cache = FREE (no warehouse needed)</li>
+            <li>✓ Local disk cache lost when warehouse suspends</li>
+            <li>✓ UNDROP only works within Time Travel window</li>
+            <li>✓ Fail-safe = 7 days, Snowflake access only</li>
+            <li>✓ Transient/Temporary tables = max 1 day TT, no Fail-safe</li>
+            <li>✓ Streams are consumed (offset advances) only after successful DML</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</Layout>

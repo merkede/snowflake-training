@@ -1,0 +1,540 @@
+---
+layout: ../../layouts/CourseLayout.astro
+title: "Streams & Tasks"
+moduleId: "streams-tasks"
+domain: "Transformations"
+description: "Master Snowflake Streams for change data capture and Tasks for scheduled automation — building real-time data pipelines for the SnowPro Core exam"
+---
+
+import KeyTerms from '../../components/KeyTerms';
+import YouTubeEmbed from '../../components/YouTubeEmbed';
+import Diagram from '../../components/Diagram';
+import CalloutBox from '../../components/CalloutBox';
+import CodeBlock from '../../components/CodeBlock';
+import CompareTable from '../../components/CompareTable';
+import StepByStep from '../../components/StepByStep';
+import CheatSheet from '../../components/CheatSheet';
+import Quiz from '../../components/Quiz';
+import Flashcard from '../../components/Flashcard';
+
+# Streams & Tasks
+
+Snowflake Streams and Tasks are the backbone of automated, incremental data pipelines. Streams implement Change Data Capture (CDC), recording exactly what changed in a table. Tasks schedule SQL or Snowpark logic to process those changes on a defined cadence. Together they form a serverless ELT pipeline inside Snowflake — no external orchestrators required.
+
+<KeyTerms client:load title="Key Terms — Streams & Tasks" terms={[
+  { term: "Stream", abbr: "CDC Object", definition: "A Snowflake object that records INSERT, UPDATE, and DELETE changes made to a source table since the last time the stream was consumed." },
+  { term: "Change Data Capture", abbr: "CDC", definition: "A design pattern that tracks row-level changes to a table so downstream systems can process only what changed, not the full dataset." },
+  { term: "Stream Offset", definition: "A pointer (timestamp/transaction ID) stored inside a stream. When a DML statement reads the stream, the offset advances to the current point in time." },
+  { term: "Stream Staleness", definition: "A stream becomes stale when it has not been consumed within the source table's Data Retention Period. A stale stream must be recreated." },
+  { term: "METADATA$ACTION", definition: "A system column in every stream row indicating whether the change was an INSERT or a DELETE. An UPDATE appears as a DELETE + INSERT pair." },
+  { term: "METADATA$ISUPDATE", definition: "A boolean system column that is TRUE when the DELETE row is part of an UPDATE operation (paired with an INSERT for the new value)." },
+  { term: "METADATA$ROW_ID", definition: "A stable, unique identifier for each changed row across multiple stream reads, allowing reliable row-level tracking." },
+  { term: "Task", definition: "A Snowflake object that executes a SQL statement or Snowpark procedure on a user-defined schedule or as a dependent step in a DAG." },
+  { term: "DAG", abbr: "Directed Acyclic Graph", definition: "A tree of dependent tasks in Snowflake. A root task runs on a schedule; child tasks run after their parent completes. No circular dependencies allowed." },
+  { term: "Serverless Task", definition: "A task that omits the WAREHOUSE clause and instead uses Snowflake-managed compute sized automatically to the workload." },
+  { term: "Standard Stream", definition: "The default stream type. Captures INSERT, UPDATE, and DELETE changes. An UPDATE is represented as a DELETE of the old row plus an INSERT of the new row." },
+  { term: "Append-Only Stream", definition: "A stream type that captures only INSERT operations. More efficient for high-volume append workloads such as logging or event tables." },
+  { term: "Insert-Only Stream", definition: "A stream type used exclusively on External Tables. Captures INSERT events only — representing newly loaded files." }
+]} />
+
+---
+
+## 1. What is a Stream?
+
+A **Snowflake Stream** is a CDC object attached to a source table (or external table, or certain views). It does not store a copy of the data — it stores an **offset**: a pointer to the last transaction that was consumed. Every time you query the stream inside a DML statement, Snowflake computes the delta between the stored offset and the current state of the table, returns those changed rows, and then advances the offset.
+
+This design means streams are lightweight: no data is duplicated, and the cost of maintaining a stream is negligible. What you pay for is the compute used when you actually read the stream.
+
+<CalloutBox type="exam" title="Exam Focus — Streams Do Not Store Data">
+A stream stores an **offset**, not a copy of data. Querying a stream with a plain SELECT does **not** advance the offset — only a DML statement (INSERT, UPDATE, MERGE, or DELETE) that reads the stream advances it. This is one of the most-tested stream concepts on the COF-C02 exam.
+</CalloutBox>
+
+<YouTubeEmbed client:load videoId="YNz7F9ogvw4" title="Snowflake Streams & Tasks Explained" description="📹 A clear walkthrough of how Snowflake Streams capture change data and how Tasks schedule automated processing — ideal exam preparation." />
+
+---
+
+## 2. Stream Mechanics — The Offset Model
+
+When you create a stream on a table, Snowflake records the current transaction timestamp as the **initial offset**. From that point forward, any DML applied to the source table is tracked. The stream becomes a view over those changes.
+
+```
+Source Table: ORDERS
+    ↓  (INSERT row 101)
+    ↓  (UPDATE row 99)
+    ↓  (DELETE row 55)
+
+Stream: ORDERS_STREAM
+    ├── offset = T0  ← stream created here
+    └── delta since T0:
+          ROW 101  │ METADATA$ACTION = INSERT │ METADATA$ISUPDATE = FALSE
+          ROW 99   │ METADATA$ACTION = DELETE │ METADATA$ISUPDATE = TRUE   (old value)
+          ROW 99   │ METADATA$ACTION = INSERT │ METADATA$ISUPDATE = TRUE   (new value)
+          ROW 55   │ METADATA$ACTION = DELETE │ METADATA$ISUPDATE = FALSE
+```
+
+Reading the stream inside an INSERT...SELECT advances the offset to the current moment, clearing the visible delta for the next read.
+
+<Diagram client:load
+  title="Stream Offset Lifecycle"
+  description="A stream is created at T0. Changes accumulate. A DML read at T1 consumes the delta and advances the offset. New changes accumulate from T1 onwards."
+  altText="Timeline diagram showing stream offset advancing from T0 to T1 after a DML consumption event, with change delta accumulating between offset points."
+/>
+
+---
+
+## 3. Stream Types
+
+Snowflake offers three stream types, each suited to different source objects and workloads.
+
+<CompareTable client:load
+  title="Stream Types Comparison"
+  leftLabel="Standard Stream"
+  rightLabel="Append-Only Stream"
+  rows={[
+    { feature: "Captures INSERTs", left: "Yes", right: "Yes", winner: "none" },
+    { feature: "Captures UPDATEs", left: "Yes (as DELETE + INSERT pair)", right: "No", winner: "left" },
+    { feature: "Captures DELETEs", left: "Yes", right: "No", winner: "left" },
+    { feature: "Efficiency for append workloads", left: "Lower (tracks all changes)", right: "Higher (INSERT only)", winner: "right" },
+    { feature: "Supported on Standard tables", left: "Yes", right: "Yes", winner: "none" },
+    { feature: "Supported on External Tables", left: "No (use Insert-Only)", right: "No (use Insert-Only)", winner: "none" },
+    { feature: "Exam tip", left: "Default type — most questions", right: "Used for logs and event tables", winner: "none" }
+  ]}
+/>
+
+**Insert-Only Streams** are a third type, used exclusively on **External Tables**. Because external files can only be added (not modified via Snowflake DML), the insert-only stream captures newly loaded files registered by Snowpipe or directory listing refresh.
+
+<CodeBlock client:load language="sql" title="Creating Stream Types" code={`-- Standard stream (default) — tracks INSERT, UPDATE, DELETE
+CREATE OR REPLACE STREAM orders_stream
+  ON TABLE orders;
+
+-- Append-only stream — tracks INSERT only (efficient for logs)
+CREATE OR REPLACE STREAM events_stream
+  ON TABLE web_events
+  APPEND_ONLY = TRUE;
+
+-- Insert-only stream — for external tables only
+CREATE OR REPLACE STREAM ext_stream
+  ON EXTERNAL TABLE ext_orders
+  INSERT_ONLY = TRUE;
+
+-- Verify stream properties
+SHOW STREAMS LIKE 'orders_stream';
+-- Key columns: name, type, stale, stale_after, source_name
+
+-- Describe a specific stream
+DESCRIBE STREAM orders_stream;`} />
+
+---
+
+## 4. Stream Metadata Columns
+
+Every row returned by a stream query includes three system-generated metadata columns that are **critical for the exam**:
+
+| Column | Type | Values | Purpose |
+|--------|------|---------|---------|
+| `METADATA$ACTION` | VARCHAR | `'INSERT'` or `'DELETE'` | The type of change |
+| `METADATA$ISUPDATE` | BOOLEAN | `TRUE` or `FALSE` | Whether a DELETE is part of an UPDATE pair |
+| `METADATA$ROW_ID` | VARCHAR | Unique hash | Stable row identifier across stream reads |
+
+**How to read UPDATE rows:** An UPDATE generates two rows in a standard stream:
+1. A DELETE row with the **old** column values — `METADATA$ISUPDATE = TRUE`
+2. An INSERT row with the **new** column values — `METADATA$ISUPDATE = TRUE`
+
+To isolate only net-new inserts that are not part of an update:
+```sql
+SELECT * FROM orders_stream
+WHERE METADATA$ACTION = 'INSERT'
+  AND METADATA$ISUPDATE = FALSE;
+```
+
+<CalloutBox type="warning" title="UPDATE = DELETE + INSERT in Standard Streams">
+When processing a standard stream, never assume that every DELETE means a row was actually removed. Check `METADATA$ISUPDATE = TRUE` to identify DELETE rows that are part of an UPDATE pair. Filtering only on `METADATA$ACTION = 'INSERT'` without checking `METADATA$ISUPDATE` will include rows that replaced deleted values — which may not be what your pipeline expects.
+</CalloutBox>
+
+<Diagram client:load
+  title="Metadata Columns for an UPDATE Operation"
+  description="When a single row is updated in the source table, the standard stream produces two rows: a DELETE of the old value (METADATA$ISUPDATE=TRUE) and an INSERT of the new value (METADATA$ISUPDATE=TRUE). Plain INSERTs and DELETEs produce one row each with METADATA$ISUPDATE=FALSE."
+  altText="Table showing two stream rows for an UPDATE: first row has METADATA$ACTION=DELETE and METADATA$ISUPDATE=TRUE, second row has METADATA$ACTION=INSERT and METADATA$ISUPDATE=TRUE."
+/>
+
+---
+
+## 5. Consuming a Stream
+
+Consuming a stream means reading it inside a DML statement. This is the **only** way to advance the stream offset.
+
+<CodeBlock client:load language="sql" title="Consuming a Stream with DML" code={`-- Consume stream: insert new orders into a target table
+INSERT INTO orders_processed
+SELECT
+    order_id,
+    customer_id,
+    amount,
+    CURRENT_TIMESTAMP() AS processed_at
+FROM orders_stream
+WHERE METADATA$ACTION = 'INSERT'
+  AND METADATA$ISUPDATE = FALSE;
+
+-- MERGE pattern: handle inserts, updates, and deletes in one statement
+MERGE INTO orders_target AS t
+USING (
+    SELECT *,
+           METADATA$ACTION,
+           METADATA$ISUPDATE
+    FROM orders_stream
+) AS s
+ON t.order_id = s.order_id
+WHEN MATCHED AND s.METADATA$ACTION = 'DELETE' AND s.METADATA$ISUPDATE = FALSE THEN
+    DELETE
+WHEN MATCHED AND s.METADATA$ACTION = 'INSERT' AND s.METADATA$ISUPDATE = TRUE THEN
+    UPDATE SET t.amount = s.amount, t.status = s.status
+WHEN NOT MATCHED AND s.METADATA$ACTION = 'INSERT' THEN
+    INSERT (order_id, customer_id, amount, status)
+    VALUES (s.order_id, s.customer_id, s.amount, s.status);`} />
+
+<CalloutBox type="tip" title="SELECT Alone Does Not Consume a Stream">
+You can run `SELECT * FROM my_stream` to inspect current changes without advancing the offset. Only an INSERT, MERGE, UPDATE, or DELETE statement that references the stream in its data source will advance the offset. Use this to debug and verify stream contents before committing a pipeline.
+</CalloutBox>
+
+---
+
+## 6. Stream Staleness
+
+A stream becomes **stale** if it is not consumed within the source table's **Data Retention Period** (default 1 day on Standard, up to 90 days on Enterprise). Snowflake cannot guarantee the accuracy of the delta once the underlying micro-partition data required to compute it has been cleaned up by Fail-Safe expiry.
+
+- `SHOW STREAMS` exposes the `STALE` (boolean) and `STALE_AFTER` (timestamp) columns.
+- A stale stream must be **dropped and recreated** — you cannot "un-stale" it.
+- To avoid staleness, ensure your Tasks run more frequently than the retention window.
+
+```sql
+-- Check for stale streams
+SHOW STREAMS;
+
+-- Identify if a specific stream is stale
+SELECT SYSTEM$STREAM_HAS_DATA('orders_stream');
+-- Returns TRUE if unconsumed data exists; FALSE if empty (or stale)
+```
+
+---
+
+## 7. Tasks — Scheduled Automation Inside Snowflake
+
+A **Task** is a Snowflake object that executes a single SQL statement (or a call to a Stored Procedure / Snowpark function) on a user-defined schedule. Think of it as a cron job that lives inside your Snowflake account — no external scheduler, no Airflow connection required.
+
+<CalloutBox type="info" title="Tasks Start in SUSPENDED State">
+Every newly created task is in **SUSPENDED** state by default. It will not execute until you run `ALTER TASK mytask RESUME`. This is a common exam trap — you create the task and expect it to run, but it never fires because you forgot to resume it.
+</CalloutBox>
+
+### Task Schedule Options
+
+Tasks support two schedule formats:
+
+1. **Interval-based:** `SCHEDULE = '5 MINUTE'` — runs every N minutes (1 to 11,520 minutes / 8 days max).
+2. **Cron-based:** `SCHEDULE = 'USING CRON 0 9 * * MON-FRI UTC'` — full cron expression. The timezone identifier is **mandatory** (e.g., `UTC`, `Europe/London`).
+
+<CodeBlock client:load language="sql" title="CREATE TASK — Full Syntax Examples" code={`-- Basic task: virtual warehouse, interval schedule
+CREATE OR REPLACE TASK process_new_orders
+  WAREHOUSE = COMPUTE_WH
+  SCHEDULE = '5 MINUTE'
+AS
+INSERT INTO orders_processed
+SELECT order_id, customer_id, amount
+FROM orders_stream
+WHERE METADATA$ACTION = 'INSERT';
+
+-- Task with cron schedule (weekdays at 09:00 UTC)
+CREATE OR REPLACE TASK daily_report_task
+  WAREHOUSE = REPORTING_WH
+  SCHEDULE = 'USING CRON 0 9 * * MON-FRI UTC'
+AS
+CALL generate_daily_report();
+
+-- Serverless task (Snowflake manages compute)
+CREATE OR REPLACE TASK serverless_ingest
+  USER_TASK_MANAGED_INITIAL_WAREHOUSE_SIZE = 'XSMALL'
+  SCHEDULE = '10 MINUTE'
+AS
+INSERT INTO target SELECT * FROM orders_stream WHERE METADATA$ACTION = 'INSERT';
+
+-- MUST resume the task before it runs
+ALTER TASK process_new_orders RESUME;
+ALTER TASK daily_report_task RESUME;
+ALTER TASK serverless_ingest RESUME;
+
+-- Suspend a task
+ALTER TASK process_new_orders SUSPEND;`} />
+
+---
+
+## 8. Task Trees — DAGs
+
+Snowflake tasks can be chained into a **Directed Acyclic Graph (DAG)**. The root task carries the schedule; child tasks carry an `AFTER` clause naming their parent. No task can appear in a cycle.
+
+Rules for task DAGs:
+- Only the **root task** has a `SCHEDULE`.
+- Child tasks use `AFTER parent_task_name` instead of a schedule.
+- To enable the whole tree, resume child tasks first, then the root task — or use `SYSTEM$TASK_DEPENDENTS_ENABLE('root_task')`.
+- A task tree can have **up to 1,000 tasks** in a single DAG.
+
+<StepByStep client:load title="Building a Task DAG — Step by Step" steps={[
+  {
+    title: "Create the root task with a schedule",
+    description: "The root task defines the trigger cadence. All downstream tasks inherit this schedule chain.",
+    code: "CREATE OR REPLACE TASK root_task\n  WAREHOUSE = COMPUTE_WH\n  SCHEDULE = '15 MINUTE'\nAS\nINSERT INTO stage_raw SELECT * FROM orders_stream WHERE METADATA$ACTION = 'INSERT';"
+  },
+  {
+    title: "Create child task(s) with AFTER clause",
+    description: "Child tasks run after their named parent completes successfully. Do not specify SCHEDULE on child tasks.",
+    code: "CREATE OR REPLACE TASK child_task_1\n  WAREHOUSE = COMPUTE_WH\n  AFTER root_task\nAS\nINSERT INTO stage_clean SELECT * FROM stage_raw WHERE amount > 0;"
+  },
+  {
+    title: "Create a grandchild task if needed",
+    description: "Chain as many levels as the pipeline requires, up to 1,000 tasks per DAG.",
+    code: "CREATE OR REPLACE TASK child_task_2\n  WAREHOUSE = COMPUTE_WH\n  AFTER child_task_1\nAS\nCALL aggregate_daily_totals();"
+  },
+  {
+    title: "Enable the entire DAG",
+    description: "Resume all child tasks before the root, then resume the root. Or use the helper system function to enable all dependents at once.",
+    code: "-- Option A: resume individually (children first)\nALTER TASK child_task_2 RESUME;\nALTER TASK child_task_1 RESUME;\nALTER TASK root_task RESUME;\n\n-- Option B: system function enables all children, then resume root\nSELECT SYSTEM$TASK_DEPENDENTS_ENABLE('root_task');\nALTER TASK root_task RESUME;",
+    tip: "SYSTEM$TASK_DEPENDENTS_ENABLE resumes all child tasks automatically — you still need to resume the root task separately."
+  },
+  {
+    title: "Monitor task execution",
+    description: "Query task history views to check run status, errors, and execution duration.",
+    code: "-- Session-level history\nSELECT *\nFROM TABLE(INFORMATION_SCHEMA.TASK_HISTORY(\n    SCHEDULED_TIME_RANGE_START => DATEADD('hour', -1, CURRENT_TIMESTAMP()),\n    TASK_NAME => 'root_task'\n))\nORDER BY SCHEDULED_TIME DESC;\n\n-- Account-level (90-day retention)\nSELECT name, state, error_message, scheduled_time, completed_time\nFROM SNOWFLAKE.ACCOUNT_USAGE.TASK_HISTORY\nWHERE SCHEDULED_TIME > DATEADD('day', -7, CURRENT_TIMESTAMP())\nORDER BY SCHEDULED_TIME DESC;"
+  }
+]} />
+
+<Diagram client:load
+  title="Task DAG Structure"
+  description="The root task runs every 15 minutes on a WAREHOUSE schedule. On success, child_task_1 runs immediately after. On success of child_task_1, child_task_2 runs. Each task uses the AFTER clause to express the dependency. The DAG terminates if any task fails — subsequent dependents do not run."
+  altText="Flow diagram with root_task at top feeding into child_task_1, which feeds into child_task_2. Root task has a clock icon for schedule. Arrows indicate sequential dependency flow downward."
+/>
+
+---
+
+## 9. Serverless Tasks vs. Warehouse Tasks
+
+<CompareTable client:load
+  title="Serverless Tasks vs. Warehouse-Based Tasks"
+  leftLabel="Serverless Task"
+  rightLabel="Warehouse Task"
+  rows={[
+    { feature: "Compute management", left: "Snowflake auto-sizes", right: "User specifies WAREHOUSE", winner: "left" },
+    { feature: "Cold start time", left: "Near-instant", right: "Depends on warehouse state", winner: "left" },
+    { feature: "Cost model", left: "Per-second serverless credit", right: "Virtual warehouse credit/hour", winner: "none" },
+    { feature: "Best for", left: "Variable / unpredictable workloads", right: "Consistent, predictable workloads", winner: "none" },
+    { feature: "Syntax difference", left: "USER_TASK_MANAGED_INITIAL_WAREHOUSE_SIZE", right: "WAREHOUSE = name", winner: "none" },
+    { feature: "Concurrency limits", left: "Managed by Snowflake", right: "Limited by warehouse size", winner: "left" },
+    { feature: "Exam frequency", left: "High — know the keyword", right: "High — default approach", winner: "none" }
+  ]}
+/>
+
+<CalloutBox type="important" title="Serverless Task Syntax — Exam Critical">
+A serverless task omits the `WAREHOUSE` clause entirely and instead specifies `USER_TASK_MANAGED_INITIAL_WAREHOUSE_SIZE = 'XSMALL'`. The initial size is a **hint** — Snowflake adjusts compute up or down based on the actual workload. Providing a `WAREHOUSE` name with this parameter simultaneously will cause an error.
+</CalloutBox>
+
+---
+
+## 10. Stream + Task Pipeline Pattern
+
+The canonical Snowflake incremental pipeline combines a stream and a task:
+
+1. Source table receives new data (via Snowpipe, COPY, application INSERT).
+2. Stream records the delta.
+3. Task fires on schedule, reads the stream inside a DML statement, writes to target.
+4. Stream offset advances; the next task run sees only the next batch of changes.
+
+```sql
+-- Full stream + task pipeline example
+-- Step 1: Stream on source
+CREATE OR REPLACE STREAM raw_orders_stream ON TABLE raw.orders;
+
+-- Step 2: Task to process stream every 5 minutes
+CREATE OR REPLACE TASK process_orders_task
+  USER_TASK_MANAGED_INITIAL_WAREHOUSE_SIZE = 'SMALL'
+  SCHEDULE = '5 MINUTE'
+WHEN
+  SYSTEM$STREAM_HAS_DATA('raw_orders_stream')
+AS
+INSERT INTO curated.orders (order_id, customer_id, amount, inserted_at)
+SELECT
+    order_id,
+    customer_id,
+    amount,
+    CURRENT_TIMESTAMP()
+FROM raw_orders_stream
+WHERE METADATA$ACTION = 'INSERT'
+  AND METADATA$ISUPDATE = FALSE;
+
+-- Step 3: Resume the task
+ALTER TASK process_orders_task RESUME;
+```
+
+Note the `WHEN SYSTEM$STREAM_HAS_DATA(...)` clause — this is a **precondition**. The task only executes if the stream has unconsumed data, saving compute credits when there is nothing to process.
+
+<CalloutBox type="note" title="WHEN Clause — Conditional Task Execution">
+The optional `WHEN` clause on a task accepts a boolean expression. The most common use is `SYSTEM$STREAM_HAS_DATA('stream_name')` — this prevents the task from running (and burning compute) when the stream is empty. The task is still triggered on schedule; it simply skips execution if the condition evaluates to FALSE.
+</CalloutBox>
+
+---
+
+## 11. Monitoring & Troubleshooting
+
+```sql
+-- List all streams and their staleness status
+SHOW STREAMS;
+
+-- Check if stream has unconsumed data
+SELECT SYSTEM$STREAM_HAS_DATA('orders_stream');
+
+-- Task history (session context — last 7 days by default)
+SELECT *
+FROM TABLE(INFORMATION_SCHEMA.TASK_HISTORY())
+ORDER BY SCHEDULED_TIME DESC
+LIMIT 20;
+
+-- Account Usage task history (90-day retention, may have latency)
+SELECT
+    name,
+    state,
+    error_message,
+    scheduled_time,
+    completed_time,
+    DATEDIFF('second', scheduled_time, completed_time) AS duration_seconds
+FROM SNOWFLAKE.ACCOUNT_USAGE.TASK_HISTORY
+WHERE state = 'FAILED'
+ORDER BY scheduled_time DESC;
+```
+
+---
+
+## CheatSheet
+
+<CheatSheet client:load title="Streams & Tasks — Exam Cheat Sheet" sections={[
+  {
+    title: "Stream Types",
+    icon: "🔄",
+    items: [
+      { label: "Standard", value: "INSERT + UPDATE + DELETE", note: "Default; UPDATE = DELETE + INSERT pair" },
+      { label: "Append-Only", value: "INSERT only", note: "Efficient for logs/events; APPEND_ONLY = TRUE" },
+      { label: "Insert-Only", value: "INSERT on External Table", note: "INSERT_ONLY = TRUE; for external tables only" }
+    ]
+  },
+  {
+    title: "Metadata Columns",
+    icon: "📋",
+    items: [
+      { label: "METADATA$ACTION", value: "'INSERT' or 'DELETE'", note: "Type of change" },
+      { label: "METADATA$ISUPDATE", value: "TRUE / FALSE", note: "TRUE = DELETE is part of UPDATE pair" },
+      { label: "METADATA$ROW_ID", value: "Unique hash", note: "Stable row identifier" }
+    ]
+  },
+  {
+    title: "Stream Rules",
+    icon: "⚠️",
+    items: [
+      { label: "Stores", value: "Offset (not data)", note: "No data duplication" },
+      { label: "Advances on", value: "DML only", note: "SELECT does NOT advance offset" },
+      { label: "Staleness", value: "= table retention period", note: "Must recreate if stale" },
+      { label: "Check staleness", value: "SHOW STREAMS → STALE column", note: "" }
+    ]
+  },
+  {
+    title: "Task Rules",
+    icon: "⏱️",
+    items: [
+      { label: "Default state", value: "SUSPENDED", note: "Must ALTER TASK RESUME" },
+      { label: "Interval max", value: "11,520 minutes (8 days)", note: "SCHEDULE = 'N MINUTE'" },
+      { label: "Cron requires", value: "Timezone identifier", note: "e.g., UTC, Europe/London" },
+      { label: "DAG root only", value: "Has SCHEDULE", note: "Children use AFTER clause" },
+      { label: "Serverless key", value: "USER_TASK_MANAGED_INITIAL_WAREHOUSE_SIZE", note: "Omit WAREHOUSE" }
+    ]
+  },
+  {
+    title: "Key Functions",
+    icon: "🔧",
+    items: [
+      { label: "SYSTEM$STREAM_HAS_DATA()", value: "TRUE/FALSE", note: "Check before task runs" },
+      { label: "SYSTEM$TASK_DEPENDENTS_ENABLE()", value: "Resumes all children", note: "Then resume root manually" },
+      { label: "INFORMATION_SCHEMA.TASK_HISTORY()", value: "Session task history", note: "7-day default" },
+      { label: "SNOWFLAKE.ACCOUNT_USAGE.TASK_HISTORY", value: "Account task history", note: "90-day retention" }
+    ]
+  }
+]} />
+
+---
+
+## Quizzes
+
+<Quiz client:load
+  category="Streams"
+  question="A standard stream records an UPDATE to a row in the source table. How does this UPDATE appear when you query the stream?"
+  options={[
+    { label: "A", value: "As a single row with METADATA$ACTION = 'UPDATE'" },
+    { label: "B", value: "As two rows: a DELETE of the old value and an INSERT of the new value, both with METADATA$ISUPDATE = TRUE" },
+    { label: "C", value: "As two rows: a DELETE of the old value and an INSERT of the new value, both with METADATA$ISUPDATE = FALSE" },
+    { label: "D", value: "As a single row with METADATA$ACTION = 'INSERT' and METADATA$ISUPDATE = TRUE" }
+  ]}
+  correct="B"
+  explanation="Standard streams represent an UPDATE as two rows: a DELETE of the old row values and an INSERT of the new row values. Both rows have METADATA$ISUPDATE = TRUE, allowing consumers to distinguish update-related pairs from standalone inserts and deletes."
+/>
+
+<Quiz client:load
+  category="Tasks"
+  question="You create a new task with CREATE TASK and expect it to run in 5 minutes. After 30 minutes nothing has executed. What is the most likely cause?"
+  options={[
+    { label: "A", value: "The SCHEDULE interval is too short for the warehouse to warm up" },
+    { label: "B", value: "The task was created in SUSPENDED state and was never resumed" },
+    { label: "C", value: "Tasks require a child task before the root will fire" },
+    { label: "D", value: "The warehouse was suspended, which prevents task creation" }
+  ]}
+  correct="B"
+  explanation="All tasks are created in SUSPENDED state by default. The task will not execute until you run ALTER TASK mytask RESUME. This is one of the most common exam traps related to tasks — always remember to resume after creation."
+/>
+
+<Quiz client:load
+  category="Streams & Tasks"
+  question="Which of the following accurately describes a serverless task in Snowflake?"
+  options={[
+    { label: "A", value: "A task that runs without any SQL — purely using Snowpark Python" },
+    { label: "B", value: "A task that uses the WAREHOUSE clause with a special serverless warehouse name" },
+    { label: "C", value: "A task that omits the WAREHOUSE clause and specifies USER_TASK_MANAGED_INITIAL_WAREHOUSE_SIZE instead" },
+    { label: "D", value: "A task that requires no resume step because Snowflake starts it automatically" }
+  ]}
+  correct="C"
+  explanation="A serverless task omits the WAREHOUSE clause and instead includes USER_TASK_MANAGED_INITIAL_WAREHOUSE_SIZE (e.g., 'XSMALL') as a sizing hint. Snowflake automatically scales compute up or down based on actual workload. Serverless tasks still require ALTER TASK RESUME before they will fire."
+/>
+
+---
+
+## Flashcards
+
+<Flashcard client:load
+  category="Streams"
+  question="What does a Snowflake Stream store — data or an offset?"
+  answer="A stream stores only an offset (a pointer to the last consumed transaction). It does not copy or duplicate data. The delta is computed dynamically by comparing the offset to the current state of the source table."
+/>
+
+<Flashcard client:load
+  category="Streams"
+  question="Which operation advances a stream's offset: SELECT or INSERT...SELECT FROM stream?"
+  answer="Only a DML statement that reads the stream (INSERT, MERGE, UPDATE, DELETE) advances the stream offset. A plain SELECT from the stream reads the current delta without advancing the offset."
+/>
+
+<Flashcard client:load
+  category="Streams"
+  question="What happens to a stream that is not consumed within the table's Data Retention Period?"
+  answer="The stream becomes STALE. A stale stream cannot be used — it must be dropped and recreated. The SHOW STREAMS command exposes STALE (boolean) and STALE_AFTER (timestamp) columns to monitor staleness."
+/>
+
+<Flashcard client:load
+  category="Tasks"
+  question="What is the default state of a newly created Snowflake Task?"
+  answer="SUSPENDED. A task will not execute until explicitly resumed with ALTER TASK task_name RESUME. This applies to both warehouse-based and serverless tasks."
+/>
+
+<Flashcard client:load
+  category="Tasks"
+  question="How do you enable an entire task DAG tree at once?"
+  answer="Use SYSTEM$TASK_DEPENDENTS_ENABLE('root_task_name') to resume all child tasks in the DAG, then manually run ALTER TASK root_task RESUME to activate the root task. Child tasks must be resumed before the root."
+/>

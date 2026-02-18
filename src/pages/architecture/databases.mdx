@@ -1,0 +1,837 @@
+---
+layout: ../../layouts/CourseLayout.astro
+title: "Databases, Schemas & Tables"
+description: "Master Snowflake's database object hierarchy — databases, schemas, table types, data types, and the INFORMATION_SCHEMA for the SnowPro Core exam"
+moduleId: "databases-schemas"
+domain: "Architecture"
+---
+
+import Flashcard from '../../components/Flashcard.tsx';
+import CodeBlock from '../../components/CodeBlock.tsx';
+import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
+import Diagram from '../../components/Diagram.tsx';
+import CalloutBox from '../../components/CalloutBox.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import CompareTable from '../../components/CompareTable.tsx';
+import KeyTerms from '../../components/KeyTerms.tsx';
+import StepByStep from '../../components/StepByStep.tsx';
+import CheatSheet from '../../components/CheatSheet.tsx';
+
+<KeyTerms client:load title="Key Terms — Databases, Schemas & Tables" terms={[
+  { term: "Database", abbr: "DB", definition: "A top-level container in Snowflake that holds one or more schemas. Databases provide logical separation and namespace isolation for all objects within them." },
+  { term: "Schema", abbr: "SCH", definition: "A second-level container within a database that groups related tables, views, procedures, and other objects. Every database automatically includes INFORMATION_SCHEMA and PUBLIC schemas." },
+  { term: "Permanent Table", abbr: "PT", definition: "The default table type in Snowflake. Permanent tables persist until explicitly dropped and benefit from full Time Travel (up to 90 days) and Fail-safe (7 days) protection." },
+  { term: "Transient Table", abbr: "TT", definition: "A table type that persists across sessions but has no Fail-safe period and a maximum of 1 day of Time Travel. Designed for staging and ETL workloads where cost savings outweigh recovery needs." },
+  { term: "Temporary Table", abbr: "TEMP", definition: "A session-scoped table that is automatically dropped when the session ends. Not visible to other sessions. Has no Fail-safe and a maximum of 1 day of Time Travel." },
+  { term: "External Table", abbr: "ET", definition: "A read-only table that references data stored in an external stage (S3, Azure Blob, or GCS). Only metadata is stored in Snowflake; no data is copied into Snowflake storage." },
+  { term: "VARIANT", abbr: "VAR", definition: "A semi-structured data type that can store JSON, XML, Avro, ORC, and Parquet data. Supports path-based access using colon (:) notation and type casting with double-colon (::) notation." },
+  { term: "INFORMATION_SCHEMA", abbr: "INFO_SCH", definition: "An auto-created schema within every Snowflake database that contains views exposing metadata about objects within that database. Query latency is near real-time but limited to the current database." },
+  { term: "ACCOUNT_USAGE", abbr: "ACC_USE", definition: "A schema in the shared SNOWFLAKE database that provides account-wide metadata views. Has a latency of 45 minutes to 3 hours but includes historical and deleted objects." },
+  { term: "Constraint", abbr: "CON", definition: "Logical rules (NOT NULL, UNIQUE, PRIMARY KEY, FOREIGN KEY) that can be defined on Snowflake tables. Constraints are informational only and are NOT enforced by Snowflake's query engine." }
+]} />
+
+## Why This Topic Matters for the Exam
+
+Understanding Snowflake's object hierarchy is foundational to the SnowPro Core (COF-C02) exam. Every question about storage, data organisation, Time Travel, and data lifecycle ultimately traces back to how databases, schemas, and tables are structured. The exam heavily tests the **differences between table types** — particularly where Transient and Temporary tables are appropriate versus Permanent tables — and candidates frequently lose marks by confusing Fail-safe availability across these types.
+
+This module will walk you through the complete database object model from the top-level database container down to column-level data types, including the VARIANT semi-structured type that underpins Snowflake's flexible schema capabilities.
+
+<CalloutBox type="exam" title="Exam Weight: High Priority">
+  The Snowflake object hierarchy (databases, schemas, tables) appears across multiple exam domains. Expect 8–12 questions touching on table types, DDL syntax, INFORMATION_SCHEMA vs ACCOUNT_USAGE, and constraint behaviour. This is one of the highest-value topics on the COF-C02 exam.
+</CalloutBox>
+
+<YouTubeEmbed client:load videoId="hAqWKYPOsyo" title="Snowflake Architecture & Object Hierarchy" description="A comprehensive walkthrough of Snowflake's three-layer architecture and how databases, schemas, and tables fit into the platform's design." />
+
+---
+
+## The Snowflake Object Hierarchy
+
+Snowflake organises all data objects in a strict three-level hierarchy: **Database > Schema > Table/View/Procedure**. This hierarchy enforces namespace isolation and enables granular access control at each level.
+
+<Diagram client:load
+  title="Snowflake Object Hierarchy"
+  description="A tree diagram showing the complete Snowflake object hierarchy. At the top is the Snowflake Account, which contains one or more Databases. Each Database contains two auto-created schemas (INFORMATION_SCHEMA and PUBLIC) plus any user-created schemas. Within each Schema live Tables (Permanent, Transient, Temporary, External), Views, Sequences, File Formats, Stages, Stored Procedures, Functions, Tasks, and Streams. Arrows indicate containment relationships flowing top-down. The INFORMATION_SCHEMA schema is highlighted in blue to show it is system-managed and read-only."
+  altText="Snowflake object hierarchy from Account down to Tables and Views"
+/>
+
+Every object in Snowflake is addressed by its fully qualified name using dot notation:
+
+```
+database_name.schema_name.object_name
+```
+
+For example: `PROD_DB.ANALYTICS.CUSTOMER_ORDERS`
+
+---
+
+## Databases
+
+A **database** in Snowflake is the highest-level logical container for data. It groups related schemas together and provides the top-level namespace for all objects.
+
+### Creating and Managing Databases
+
+<CodeBlock client:load language="sql" title="Database DDL — CREATE, ALTER, DROP, SHOW" showLineNumbers={true} code={`-- Create a standard permanent database
+CREATE DATABASE prod_db
+  DATA_RETENTION_TIME_IN_DAYS = 14
+  COMMENT = 'Production analytics database';
+
+-- Create a transient database (no Fail-safe, max 1 day Time Travel)
+-- All schemas and tables within inherit the transient property
+CREATE TRANSIENT DATABASE staging_db
+  DATA_RETENTION_TIME_IN_DAYS = 1
+  COMMENT = 'ETL staging area — transient, no Fail-safe';
+
+-- Switch the active database for the current session
+USE DATABASE prod_db;
+
+-- Rename a database
+ALTER DATABASE prod_db RENAME TO production_db;
+
+-- Change Time Travel retention on an existing database
+ALTER DATABASE production_db
+  SET DATA_RETENTION_TIME_IN_DAYS = 30;
+
+-- Show all databases accessible to the current role
+SHOW DATABASES;
+
+-- Show databases matching a pattern
+SHOW DATABASES LIKE 'prod%';
+
+-- Drop a database (irreversible — Time Travel window starts here)
+DROP DATABASE old_db;
+
+-- Undrop within Time Travel window
+UNDROP DATABASE old_db;`} />
+
+<CalloutBox type="important" title="Transient Database Inheritance">
+  When you create a **TRANSIENT DATABASE**, all schemas and tables created within that database automatically inherit the transient property. You cannot create a permanent table inside a transient database. This is a commonly tested exam behaviour.
+</CalloutBox>
+
+### Key Database Properties
+
+| Property | Default | Description |
+|---|---|---|
+| `DATA_RETENTION_TIME_IN_DAYS` | 1 (Standard), up to 90 (Enterprise) | Controls Time Travel window |
+| `TRANSIENT` | FALSE | Removes Fail-safe; max 1-day Time Travel |
+| `COMMENT` | NULL | Descriptive text for the database |
+
+---
+
+## Schemas
+
+A **schema** is a logical grouping within a database. It holds tables, views, stages, file formats, sequences, procedures, functions, tasks, and streams.
+
+### Auto-Created Schemas
+
+Every database automatically contains two schemas that you cannot drop:
+
+1. **INFORMATION_SCHEMA** — Contains metadata views about objects in the current database
+2. **PUBLIC** — The default schema where objects are created when no schema is specified
+
+<CalloutBox type="warning" title="You Cannot Drop INFORMATION_SCHEMA">
+  Attempting to DROP or ALTER the INFORMATION_SCHEMA schema will result in an error. It is a system-managed, read-only schema. This is a common trick question on the exam.
+</CalloutBox>
+
+### Creating and Managing Schemas
+
+<CodeBlock client:load language="sql" title="Schema DDL — CREATE, ALTER, USE" showLineNumbers={true} code={`-- Create a standard schema
+CREATE SCHEMA prod_db.analytics
+  DATA_RETENTION_TIME_IN_DAYS = 14
+  COMMENT = 'Analytics reporting schema';
+
+-- Create a transient schema (no Fail-safe)
+CREATE TRANSIENT SCHEMA prod_db.staging
+  DATA_RETENTION_TIME_IN_DAYS = 1;
+
+-- Switch active schema for the session
+USE SCHEMA prod_db.analytics;
+
+-- Alternatively, use the two-part notation
+USE prod_db.analytics;
+
+-- Rename a schema
+ALTER SCHEMA analytics RENAME TO reporting;
+
+-- Show all schemas in the current database
+SHOW SCHEMAS;
+
+-- Show schemas in a specific database
+SHOW SCHEMAS IN DATABASE prod_db;
+
+-- Drop and undrop schema
+DROP SCHEMA old_schema;
+UNDROP SCHEMA old_schema;`} />
+
+<CalloutBox type="tip" title="Schema Data Retention Inheritance">
+  If a schema's DATA_RETENTION_TIME_IN_DAYS is not explicitly set, it **inherits** from the parent database. Similarly, if a table's retention is not set, it inherits from the schema. Setting retention at the database level provides a convenient default for all objects below it.
+</CalloutBox>
+
+---
+
+## Table Types — The Exam's Most Tested Topic
+
+Snowflake has four distinct table types, each with different persistence, Time Travel, and Fail-safe characteristics. Mastering these differences is critical for the COF-C02 exam.
+
+<Diagram client:load
+  title="Snowflake Table Types Comparison"
+  description="A side-by-side comparison matrix of Snowflake's four table types. Columns represent: Permanent Table, Transient Table, Temporary Table, External Table. Rows show: Persistence (Permanent: until dropped; Transient: until dropped; Temporary: session only; External: read-only reference), Time Travel (Permanent: 0-90 days; Transient: 0-1 day; Temporary: 0-1 day; External: none), Fail-safe (Permanent: 7 days; Transient: none; Temporary: none; External: none), Cross-session visibility (Permanent: yes; Transient: yes; Temporary: no, private to session; External: yes), Storage cost (Permanent: highest; Transient: lower, no fail-safe overhead; Temporary: lowest; External: metadata only). The Temporary column is highlighted in yellow with a note 'Session-scoped only'. The External column shows a cloud icon representing data residing in S3/Azure/GCS."
+  altText="Comparison matrix of Permanent, Transient, Temporary, and External table types"
+/>
+
+### 1. Permanent Tables
+
+The **default** table type. Created with `CREATE TABLE` unless another type is specified.
+
+- Full Time Travel: 0–90 days (Standard edition: max 1 day; Enterprise+: up to 90 days)
+- Full Fail-safe: always 7 days beyond Time Travel window
+- Persist until explicitly `DROP`ped
+- Visible to all roles with appropriate privileges
+
+### 2. Transient Tables
+
+Created with `CREATE TRANSIENT TABLE`. Designed for data that does not require Fail-safe protection.
+
+- **No Fail-safe period** (0 days)
+- Time Travel: 0–1 day maximum
+- Persist across sessions until explicitly dropped
+- Ideal for: staging tables, ETL intermediates, scratch tables that are rebuilt regularly
+
+### 3. Temporary Tables
+
+Created with `CREATE TEMPORARY TABLE` (or `CREATE TEMP TABLE`).
+
+- **Session-scoped**: automatically dropped when the session ends
+- **Not visible** to other sessions (private to the creating session)
+- **No Fail-safe period** (0 days)
+- Time Travel: 0–1 day maximum
+- If a temporary table has the same name as a permanent/transient table in the same schema, the **temporary table takes precedence** within that session
+
+### 4. External Tables
+
+Created with `CREATE EXTERNAL TABLE`. The data resides in an external stage (S3, Azure Blob Storage, or GCS).
+
+- **Read-only** — you cannot INSERT, UPDATE, or DELETE data via an external table
+- Only metadata (column definitions, file locations) is stored in Snowflake
+- **No Time Travel**, **No Fail-safe**
+- Supports partitioning via partition columns
+- Requires an external stage to be defined first
+
+<CodeBlock client:load language="sql" title="Creating All Four Table Types" showLineNumbers={true} code={`-- 1. Permanent table (default)
+CREATE TABLE prod_db.analytics.customers (
+  customer_id    NUMBER(10, 0)    NOT NULL,
+  email          VARCHAR(255)     NOT NULL,
+  created_at     TIMESTAMP_NTZ    DEFAULT CURRENT_TIMESTAMP(),
+  is_active      BOOLEAN          DEFAULT TRUE
+);
+
+-- 2. Transient table — no Fail-safe, max 1-day Time Travel
+CREATE TRANSIENT TABLE staging.raw_customer_events (
+  event_id       VARCHAR(36),
+  event_type     VARCHAR(100),
+  payload        VARIANT,
+  loaded_at      TIMESTAMP_LTZ DEFAULT CURRENT_TIMESTAMP()
+)
+DATA_RETENTION_TIME_IN_DAYS = 1;
+
+-- 3. Temporary table — dropped when session ends
+CREATE TEMPORARY TABLE temp_dedup_results (
+  customer_id    NUMBER,
+  row_num        NUMBER
+);
+
+-- 4. External table — data lives in S3
+CREATE EXTERNAL TABLE ext_raw_logs (
+  log_date       DATE        AS (TO_DATE($1:log_date::STRING)),
+  log_level      VARCHAR     AS ($1:level::STRING),
+  message        VARCHAR     AS ($1:message::STRING)
+)
+  PARTITION BY (log_date)
+  LOCATION = @my_s3_stage/logs/
+  FILE_FORMAT = (TYPE = 'JSON')
+  AUTO_REFRESH = TRUE;`} />
+
+<CompareTable client:load
+  title="Transient vs Temporary Tables"
+  leftLabel="Transient Table"
+  rightLabel="Temporary Table"
+  rows={[
+    { feature: "Persistence", left: "Until explicitly dropped", right: "Auto-dropped when session ends", winner: "left" },
+    { feature: "Cross-session visibility", left: "Yes — visible to all with access", right: "No — private to creating session", winner: "none" },
+    { feature: "Time Travel maximum", left: "1 day", right: "1 day", winner: "none" },
+    { feature: "Fail-safe period", left: "None (0 days)", right: "None (0 days)", winner: "none" },
+    { feature: "Best use case", left: "Staging, ETL intermediates, shared scratch", right: "Session-level deduplication, temp calculations", winner: "none" },
+    { feature: "Name collision behaviour", left: "Normal — errors if name exists", right: "Shadows permanent/transient table of same name within session", winner: "none" },
+    { feature: "Storage cost", left: "Lower than permanent (no fail-safe)", right: "Lowest — discarded at session end", winner: "right" },
+    { feature: "DDL keyword", left: "CREATE TRANSIENT TABLE", right: "CREATE TEMPORARY TABLE or CREATE TEMP TABLE", winner: "none" }
+  ]}
+/>
+
+---
+
+## Table DDL Operations
+
+<CodeBlock client:load language="sql" title="Advanced Table DDL — CTAS, LIKE, ALTER" showLineNumbers={true} code={`-- CREATE TABLE AS SELECT (CTAS) — creates and populates in one step
+CREATE TABLE analytics.customer_summary AS
+SELECT
+  customer_id,
+  COUNT(*)        AS order_count,
+  SUM(amount)     AS total_spend,
+  MAX(order_date) AS last_order_date
+FROM analytics.orders
+GROUP BY customer_id;
+
+-- CREATE TABLE LIKE — copies structure only, no data
+CREATE TABLE analytics.customer_summary_backup
+  LIKE analytics.customer_summary;
+
+-- CREATE OR REPLACE TABLE — atomically drops and recreates
+-- WARNING: drops all data and resets Time Travel history
+CREATE OR REPLACE TABLE analytics.staging_load (
+  id        NUMBER AUTOINCREMENT,
+  raw_data  VARIANT
+);
+
+-- ALTER TABLE — add, drop, rename columns
+ALTER TABLE analytics.customers
+  ADD COLUMN phone_number VARCHAR(20);
+
+ALTER TABLE analytics.customers
+  DROP COLUMN phone_number;
+
+ALTER TABLE analytics.customers
+  RENAME COLUMN email TO email_address;
+
+-- Change Time Travel retention at table level
+ALTER TABLE analytics.customers
+  SET DATA_RETENTION_TIME_IN_DAYS = 30;
+
+-- SHOW commands for tables
+SHOW TABLES;
+SHOW TABLES IN SCHEMA analytics;
+SHOW TABLES LIKE 'customer%' IN DATABASE prod_db;
+SHOW COLUMNS IN TABLE analytics.customers;`} />
+
+<CalloutBox type="warning" title="CREATE OR REPLACE Resets Time Travel">
+  Using `CREATE OR REPLACE TABLE` **drops** the existing table and creates a new one. This resets the Time Travel history — you cannot use AT (BEFORE) to query data from before the replacement. Use `TRUNCATE TABLE` instead if you need to preserve the table's Time Travel history.
+</CalloutBox>
+
+---
+
+## Snowflake Data Types
+
+<Diagram client:load
+  title="Snowflake Data Type Categories"
+  description="A categorised diagram of Snowflake data types organised into five groups. Group 1 (Numeric): NUMBER/DECIMAL/NUMERIC (fixed-point), INT/INTEGER/BIGINT/SMALLINT/TINYINT (integer aliases mapped to NUMBER), FLOAT/FLOAT4/FLOAT8/DOUBLE (64-bit floating point), REAL (alias for FLOAT). Group 2 (String): VARCHAR/STRING/TEXT/CHAR/CHARACTER (all map to VARCHAR, max 16MB), BINARY/VARBINARY (raw bytes). Group 3 (Date and Time): DATE (no time component), TIME (no date component), TIMESTAMP_NTZ (no timezone, stored as-is), TIMESTAMP_LTZ (local timezone, stored in UTC), TIMESTAMP_TZ (with timezone offset stored). Group 4 (Boolean): BOOLEAN (TRUE/FALSE/NULL). Group 5 (Semi-Structured): VARIANT (up to 16MB, stores JSON/XML/Avro/Parquet), ARRAY (ordered list of VARIANT values), OBJECT (key-value map of VARIANT values). Group 6 (Geospatial): GEOGRAPHY (earth-curvature-aware), GEOMETRY (flat-plane calculations). Each group has a distinct colour and icon in the diagram."
+  altText="Categorised diagram of all Snowflake data types"
+/>
+
+### Key Data Types for the Exam
+
+<CodeBlock client:load language="sql" title="Data Type Usage Examples" showLineNumbers={true} code={`-- Numeric types
+CREATE TABLE type_examples (
+  -- NUMBER(precision, scale) — alias: DECIMAL, NUMERIC
+  price           NUMBER(10, 2),       -- up to 9,999,999.99
+  quantity        NUMBER(8, 0),        -- integer stored as NUMBER
+  rate            FLOAT,               -- 64-bit double precision
+
+  -- String types — all aliases for VARCHAR internally
+  name            VARCHAR(255),        -- explicit length
+  description     STRING,              -- alias, max 16MB
+  notes           TEXT,                -- alias, max 16MB
+
+  -- Boolean
+  is_active       BOOLEAN,             -- TRUE / FALSE / NULL
+
+  -- Date and time
+  birth_date      DATE,                -- YYYY-MM-DD
+  login_time      TIME,                -- HH:MI:SS.FFFFFFFFF
+  created_utc     TIMESTAMP_NTZ,       -- no timezone stored
+  event_local     TIMESTAMP_LTZ,       -- stores in UTC, displays in session TZ
+  recorded_at     TIMESTAMP_TZ,        -- stores offset with value
+
+  -- Semi-structured
+  raw_json        VARIANT,             -- any JSON, XML, Avro, Parquet (max 16MB)
+  tags            ARRAY,               -- ordered list of VARIANT values
+  attributes      OBJECT               -- key-value pairs
+);`} />
+
+---
+
+## The VARIANT Type — Semi-Structured Data
+
+VARIANT is one of Snowflake's most powerful features, enabling schema-on-read for semi-structured data. It is a common exam topic.
+
+<CodeBlock client:load language="sql" title="Working with VARIANT Data — Path Access and Casting" showLineNumbers={true} code={`-- Insert JSON into a VARIANT column
+INSERT INTO staging.raw_events (payload)
+SELECT PARSE_JSON('{
+  "user_id": 12345,
+  "event": "purchase",
+  "items": [
+    {"sku": "A001", "qty": 2, "price": 29.99},
+    {"sku": "B002", "qty": 1, "price": 149.00}
+  ],
+  "metadata": {
+    "session_id": "abc-123",
+    "ip_address": "192.168.1.1"
+  }
+}');
+
+-- Path access using colon (:) notation
+SELECT
+  payload:user_id                     AS user_id,       -- returns VARIANT
+  payload:event                       AS event_type,
+  payload:metadata:session_id         AS session_id,    -- nested path
+  payload:items[0]:sku                AS first_sku      -- array index
+FROM staging.raw_events;
+
+-- Type casting with double-colon (::) — explicit CAST
+SELECT
+  payload:user_id::NUMBER             AS user_id_num,   -- VARIANT -> NUMBER
+  payload:event::VARCHAR              AS event_str,     -- VARIANT -> STRING
+  payload:metadata:session_id::STRING AS session_str
+FROM staging.raw_events;
+
+-- Flatten arrays — LATERAL FLATTEN expands array into rows
+SELECT
+  f.value:sku::VARCHAR    AS sku,
+  f.value:qty::NUMBER     AS quantity,
+  f.value:price::FLOAT    AS price
+FROM staging.raw_events,
+     LATERAL FLATTEN(INPUT => payload:items) f;
+
+-- Check if a path exists
+SELECT
+  payload:user_id IS NOT NULL AS has_user_id
+FROM staging.raw_events;`} />
+
+<CalloutBox type="exam" title="VARIANT Path Access Syntax">
+  The exam tests VARIANT syntax carefully. Remember: single colon (:) accesses a nested path and returns a VARIANT; double colon (::) **casts** the VARIANT to a specific type. For arrays, use square bracket notation with a zero-based index: `payload:items[0]:sku::VARCHAR`.
+</CalloutBox>
+
+---
+
+## INFORMATION_SCHEMA vs ACCOUNT_USAGE
+
+These two metadata sources are heavily tested because they serve different purposes and have different latency and scope characteristics.
+
+<CompareTable client:load
+  title="INFORMATION_SCHEMA vs ACCOUNT_USAGE"
+  leftLabel="INFORMATION_SCHEMA"
+  rightLabel="SNOWFLAKE.ACCOUNT_USAGE"
+  rows={[
+    { feature: "Location", left: "Every database (database.INFORMATION_SCHEMA)", right: "SNOWFLAKE shared database (SNOWFLAKE.ACCOUNT_USAGE)", winner: "none" },
+    { feature: "Scope", left: "Current database only", right: "Entire Snowflake account", winner: "right" },
+    { feature: "Query latency", left: "Near real-time (seconds)", right: "45 minutes to 3 hours", winner: "left" },
+    { feature: "Deleted objects", left: "No — only shows current objects", right: "Yes — includes dropped/deleted objects", winner: "right" },
+    { feature: "Historical data retention", left: "Limited (7 days for some views)", right: "Up to 1 year", winner: "right" },
+    { feature: "Access requirement", left: "Any role with object access", right: "Requires ACCOUNTADMIN or SNOWFLAKE database grant", winner: "left" },
+    { feature: "Typical use case", left: "Real-time object discovery, column metadata", right: "Cost analysis, security audits, usage trends", winner: "none" },
+    { feature: "Key views", left: "TABLES, COLUMNS, VIEWS, LOAD_HISTORY, TABLE_STORAGE_METRICS", right: "QUERY_HISTORY, WAREHOUSE_METERING_HISTORY, LOGIN_HISTORY, STORAGE_USAGE", winner: "none" }
+  ]}
+/>
+
+<CodeBlock client:load language="sql" title="Querying INFORMATION_SCHEMA and ACCOUNT_USAGE" showLineNumbers={true} code={`-- INFORMATION_SCHEMA: tables in current database
+SELECT
+  table_name,
+  table_type,
+  row_count,
+  bytes,
+  retention_time
+FROM information_schema.tables
+WHERE table_schema = 'ANALYTICS'
+ORDER BY bytes DESC;
+
+-- INFORMATION_SCHEMA: column metadata
+SELECT
+  table_name,
+  column_name,
+  data_type,
+  character_maximum_length,
+  is_nullable
+FROM information_schema.columns
+WHERE table_schema = 'ANALYTICS'
+  AND table_name = 'CUSTOMERS';
+
+-- INFORMATION_SCHEMA: load history (last 14 days)
+SELECT
+  table_name,
+  last_load_time,
+  row_count,
+  error_count
+FROM information_schema.load_history
+WHERE schema_name = 'ANALYTICS'
+ORDER BY last_load_time DESC;
+
+-- ACCOUNT_USAGE: query history across entire account (ACCOUNTADMIN required)
+SELECT
+  query_id,
+  user_name,
+  warehouse_name,
+  execution_time / 1000 AS execution_seconds,
+  bytes_scanned,
+  query_text
+FROM snowflake.account_usage.query_history
+WHERE start_time >= DATEADD('day', -7, CURRENT_TIMESTAMP())
+  AND execution_status = 'SUCCESS'
+ORDER BY execution_time DESC
+LIMIT 100;
+
+-- ACCOUNT_USAGE: storage usage over time
+SELECT
+  usage_date,
+  database_name,
+  average_database_bytes / POWER(1024, 3) AS avg_gb
+FROM snowflake.account_usage.database_storage_usage_history
+WHERE usage_date >= DATEADD('month', -1, CURRENT_DATE())
+ORDER BY usage_date DESC;`} />
+
+<CalloutBox type="tip" title="Use INFORMATION_SCHEMA for Real-Time Checks">
+  When you need to verify that a table exists or check column definitions right now, use `INFORMATION_SCHEMA`. When you need to audit what happened over the past week or month across all users and warehouses, use `SNOWFLAKE.ACCOUNT_USAGE`.
+</CalloutBox>
+
+---
+
+## SHOW Commands
+
+SHOW commands retrieve metadata from Snowflake's internal catalogue without needing to query INFORMATION_SCHEMA.
+
+<CodeBlock client:load language="sql" title="SHOW Command Reference" showLineNumbers={true} code={`-- Show all databases in the account
+SHOW DATABASES;
+
+-- Show databases matching a pattern
+SHOW DATABASES LIKE 'prod%';
+
+-- Show schemas in the current database
+SHOW SCHEMAS;
+
+-- Show schemas in a specific database
+SHOW SCHEMAS IN DATABASE prod_db;
+
+-- Show all tables in the current schema
+SHOW TABLES;
+
+-- Show tables in a specific schema
+SHOW TABLES IN SCHEMA prod_db.analytics;
+
+-- Show tables matching a pattern
+SHOW TABLES LIKE 'customer%';
+
+-- Show column definitions for a table
+SHOW COLUMNS IN TABLE analytics.customers;
+
+-- Show views in the current schema
+SHOW VIEWS;
+
+-- Show stages accessible to current role
+SHOW STAGES;
+
+-- Show file formats
+SHOW FILE FORMATS;
+
+-- Access SHOW results via result_scan
+SHOW TABLES IN SCHEMA analytics;
+SELECT "name", "kind", "rows", "bytes"
+FROM TABLE(RESULT_SCAN(LAST_QUERY_ID()));`} />
+
+---
+
+## Constraints in Snowflake
+
+Snowflake supports standard SQL constraint types, but with a critically important caveat: **constraints are informational only and are NOT enforced**.
+
+<CalloutBox type="exam" title="Constraints Are NOT Enforced — Critical Exam Fact">
+  This is one of the most frequently tested facts about Snowflake tables. You CAN define PRIMARY KEY, FOREIGN KEY, UNIQUE, and NOT NULL constraints, but Snowflake does NOT enforce them during INSERT, UPDATE, or MERGE operations. They exist purely as metadata for query optimisers and ETL tools that read schema information.
+</CalloutBox>
+
+<CodeBlock client:load language="sql" title="Defining Constraints (Informational Only)" showLineNumbers={true} code={`-- Constraints can be defined inline
+CREATE TABLE analytics.orders (
+  order_id        NUMBER          NOT NULL,         -- informational only
+  customer_id     NUMBER          NOT NULL,
+  order_date      DATE            NOT NULL,
+  total_amount    NUMBER(12, 2),
+  status          VARCHAR(20),
+
+  -- Primary key — informational, not enforced
+  CONSTRAINT pk_orders PRIMARY KEY (order_id),
+
+  -- Foreign key — informational, not enforced
+  CONSTRAINT fk_orders_customer
+    FOREIGN KEY (customer_id)
+    REFERENCES analytics.customers (customer_id)
+);
+
+-- Add constraint to existing table
+ALTER TABLE analytics.orders
+  ADD CONSTRAINT uq_order_customer UNIQUE (order_id, customer_id);
+
+-- Show constraints on a table
+SHOW PRIMARY KEYS IN TABLE analytics.orders;
+SHOW IMPORTED KEYS IN TABLE analytics.orders;
+SHOW UNIQUE KEYS IN TABLE analytics.orders;
+
+-- IMPORTANT: This INSERT succeeds even though it violates NOT NULL
+-- Snowflake does NOT enforce constraints
+INSERT INTO analytics.orders (order_id, customer_id, order_date)
+VALUES (NULL, NULL, NULL);  -- Will succeed! Constraints not enforced.`} />
+
+---
+
+## Step-by-Step: Building a Layered Database Architecture
+
+<StepByStep client:load title="Setting Up a Medallion Architecture in Snowflake" steps={[
+  {
+    title: "Create the Databases",
+    description: "Establish separate databases for each layer of your data architecture. Use a transient database for the bronze (raw) layer since that data can be re-loaded from source systems.",
+    code: `-- Bronze: raw ingestion — transient to save costs
+CREATE TRANSIENT DATABASE bronze_db
+  DATA_RETENTION_TIME_IN_DAYS = 1
+  COMMENT = 'Raw source data — reloadable from source';
+
+-- Silver: cleansed and conformed
+CREATE DATABASE silver_db
+  DATA_RETENTION_TIME_IN_DAYS = 14
+  COMMENT = 'Cleansed and validated data';
+
+-- Gold: business-ready aggregates
+CREATE DATABASE gold_db
+  DATA_RETENTION_TIME_IN_DAYS = 30
+  COMMENT = 'Business-ready reporting layer';`,
+    tip: "Using a transient database for raw data eliminates the 7-day Fail-safe cost since you can always reload from source. This is a common cost-optimisation pattern."
+  },
+  {
+    title: "Create the Schemas",
+    description: "Organise each database with meaningful schemas. The silver and gold databases use permanent schemas that inherit the database's Time Travel retention.",
+    code: `-- Bronze schemas — inherit transient from database
+USE DATABASE bronze_db;
+CREATE SCHEMA raw_crm;
+CREATE SCHEMA raw_erp;
+CREATE SCHEMA raw_clickstream;
+
+-- Silver schemas
+USE DATABASE silver_db;
+CREATE SCHEMA conformed;
+CREATE SCHEMA staging;
+
+-- Gold schemas
+USE DATABASE gold_db;
+CREATE SCHEMA finance;
+CREATE SCHEMA marketing;
+CREATE SCHEMA operations;`
+  },
+  {
+    title: "Create the Tables",
+    description: "Use the appropriate table type for each layer. Bronze uses transient tables, silver and gold use permanent tables.",
+    code: `-- Bronze: transient staging table
+CREATE TRANSIENT TABLE bronze_db.raw_crm.accounts (
+  _load_id        VARCHAR(36) DEFAULT UUID_STRING(),
+  _loaded_at      TIMESTAMP_LTZ DEFAULT CURRENT_TIMESTAMP(),
+  _file_name      VARCHAR(500),
+  raw_data        VARIANT
+)
+DATA_RETENTION_TIME_IN_DAYS = 1;
+
+-- Silver: permanent table with proper types
+CREATE TABLE silver_db.conformed.customers (
+  customer_key    NUMBER AUTOINCREMENT PRIMARY KEY,
+  source_id       VARCHAR(100) NOT NULL,
+  full_name       VARCHAR(255),
+  email           VARCHAR(255),
+  created_date    DATE,
+  updated_at      TIMESTAMP_NTZ
+)
+DATA_RETENTION_TIME_IN_DAYS = 14;
+
+-- Gold: permanent aggregate table
+CREATE TABLE gold_db.marketing.customer_ltv AS
+SELECT
+  customer_key,
+  SUM(order_total) AS lifetime_value,
+  COUNT(*)         AS order_count,
+  MIN(order_date)  AS first_order_date,
+  MAX(order_date)  AS last_order_date
+FROM silver_db.conformed.orders
+GROUP BY customer_key;`,
+    tip: "The CTAS (CREATE TABLE AS SELECT) pattern in the gold layer is extremely efficient — Snowflake creates the table and loads data in a single optimised operation."
+  },
+  {
+    title: "Verify with INFORMATION_SCHEMA",
+    description: "Query INFORMATION_SCHEMA to verify the table types, retention settings, and row counts across your new architecture.",
+    code: `-- Verify table types and retention across all databases
+SELECT
+  t.table_catalog,
+  t.table_schema,
+  t.table_name,
+  t.table_type,
+  t.retention_time,
+  t.row_count,
+  ROUND(t.bytes / POWER(1024, 3), 4) AS size_gb
+FROM gold_db.information_schema.tables t
+WHERE table_type NOT IN ('VIEW')
+ORDER BY table_catalog, table_schema, table_name;
+
+-- Check that CTAS populated the gold table
+SELECT COUNT(*) AS row_count
+FROM gold_db.marketing.customer_ltv;`
+  }
+]} />
+
+---
+
+## Quick Reference Cheat Sheet
+
+<CheatSheet client:load title="Databases, Schemas & Tables — COF-C02 Cheat Sheet" sections={[
+  {
+    title: "Table Type Summary",
+    icon: "T",
+    items: [
+      { label: "CREATE TABLE", value: "Permanent", note: "Full Time Travel + 7-day Fail-safe" },
+      { label: "CREATE TRANSIENT TABLE", value: "Transient", note: "No Fail-safe, max 1-day Time Travel" },
+      { label: "CREATE TEMPORARY TABLE", value: "Temporary", note: "Session-scoped, no Fail-safe, max 1-day Time Travel" },
+      { label: "CREATE EXTERNAL TABLE", value: "External", note: "Read-only, no Time Travel, no Fail-safe" }
+    ]
+  },
+  {
+    title: "Key DDL Patterns",
+    icon: "D",
+    items: [
+      { label: "CTAS", value: "CREATE TABLE t AS SELECT ...", note: "Creates and populates in one step" },
+      { label: "LIKE", value: "CREATE TABLE t LIKE source_t", note: "Copies structure only, no data" },
+      { label: "OR REPLACE", value: "CREATE OR REPLACE TABLE t (...)", note: "Resets Time Travel history!" },
+      { label: "Add column", value: "ALTER TABLE t ADD COLUMN c TYPE", note: "Non-destructive" },
+      { label: "Rename column", value: "ALTER TABLE t RENAME COLUMN old TO new", note: "Non-destructive" }
+    ]
+  },
+  {
+    title: "VARIANT Access Syntax",
+    icon: "J",
+    items: [
+      { label: "Path access", value: "col:key", note: "Returns VARIANT" },
+      { label: "Nested path", value: "col:key1:key2", note: "Dot-path traversal" },
+      { label: "Array index", value: "col:array[0]", note: "Zero-based index" },
+      { label: "Type cast", value: "col:key::VARCHAR", note: "Cast VARIANT to type" },
+      { label: "Flatten array", value: "LATERAL FLATTEN(INPUT => col:arr) f", note: "Expands to rows" }
+    ]
+  },
+  {
+    title: "Metadata Sources",
+    icon: "M",
+    items: [
+      { label: "INFORMATION_SCHEMA", value: "Current DB, near real-time", note: "TABLES, COLUMNS, LOAD_HISTORY" },
+      { label: "ACCOUNT_USAGE", value: "All DBs, 45min-3hr latency", note: "QUERY_HISTORY, METERING_HISTORY" },
+      { label: "SHOW TABLES", value: "Fast catalogue lookup", note: "Use RESULT_SCAN() to query output" }
+    ]
+  },
+  {
+    title: "Constraints Behaviour",
+    icon: "C",
+    items: [
+      { label: "NOT NULL", value: "Informational only", note: "NOT enforced on INSERT/UPDATE" },
+      { label: "PRIMARY KEY", value: "Informational only", note: "NOT enforced, used by optimiser" },
+      { label: "FOREIGN KEY", value: "Informational only", note: "NOT enforced by Snowflake" },
+      { label: "UNIQUE", value: "Informational only", note: "NOT enforced by Snowflake" }
+    ]
+  }
+]} />
+
+---
+
+## Practice Quiz
+
+<Quiz client:load
+  category="Databases & Tables"
+  question="A developer creates a TEMPORARY TABLE named CUSTOMER_STAGING in schema ANALYTICS, where a PERMANENT TABLE with the same name already exists. What happens when the developer queries CUSTOMER_STAGING within the same session?"
+  options={[
+    { label: "A", text: "An error is raised because a table with that name already exists in the schema." },
+    { label: "B", text: "The query returns data from the PERMANENT table because permanent tables take precedence." },
+    { label: "C", text: "The query returns data from the TEMPORARY table because it shadows the permanent table within the session." },
+    { label: "D", text: "Both tables are queried and results are merged via a UNION ALL." }
+  ]}
+  correct="C"
+  explanation="Within the session that created it, a TEMPORARY TABLE shadows any permanent or transient table of the same name in the same schema. The temporary table is visible and takes precedence for all queries in that session. Other sessions continue to see only the permanent table. This is a deliberate Snowflake design feature that allows temporary working tables without renaming conflicts."
+/>
+
+<Quiz client:load
+  category="Databases & Tables"
+  question="Which of the following statements about Snowflake constraints is CORRECT?"
+  options={[
+    { label: "A", text: "PRIMARY KEY constraints are enforced during INSERT operations to prevent duplicate values." },
+    { label: "B", text: "NOT NULL constraints prevent NULL values from being inserted into a column." },
+    { label: "C", text: "FOREIGN KEY constraints are enforced to maintain referential integrity between tables." },
+    { label: "D", text: "All constraints in Snowflake are informational only and are not enforced by the query engine." }
+  ]}
+  correct="D"
+  explanation="Snowflake does NOT enforce any constraints — including NOT NULL, UNIQUE, PRIMARY KEY, and FOREIGN KEY. They exist purely as metadata that can be read by ETL tools and BI platforms for documentation and query optimisation hints. Inserting NULL into a NOT NULL column or duplicate values into a PRIMARY KEY column will succeed without error."
+/>
+
+<Quiz client:load
+  category="Databases & Tables"
+  question="A data engineer needs to store 90 days of Time Travel history for a critical customer table. Which Snowflake edition and table type must be used?"
+  options={[
+    { label: "A", text: "Standard edition with a Permanent table and DATA_RETENTION_TIME_IN_DAYS = 90." },
+    { label: "B", text: "Enterprise edition (or higher) with a Permanent table and DATA_RETENTION_TIME_IN_DAYS = 90." },
+    { label: "C", text: "Enterprise edition with a Transient table and DATA_RETENTION_TIME_IN_DAYS = 90." },
+    { label: "D", text: "Business Critical edition with any table type and DATA_RETENTION_TIME_IN_DAYS = 90." }
+  ]}
+  correct="B"
+  explanation="Snowflake Standard edition supports a maximum of 1 day of Time Travel. Enterprise edition (and higher) supports up to 90 days of Time Travel for PERMANENT tables. TRANSIENT and TEMPORARY tables are limited to a maximum of 1 day of Time Travel regardless of edition. Therefore, you need Enterprise edition or higher AND a Permanent table type to achieve 90 days of Time Travel."
+/>
+
+---
+
+## Flashcard Exam Prep
+
+<Flashcard client:load
+  category="Table Types"
+  question="What is the maximum Time Travel retention period for a Transient table?"
+  answer="1 day (DATA_RETENTION_TIME_IN_DAYS = 1). Transient tables do not have a Fail-safe period. They persist across sessions until dropped but sacrifice data protection for lower storage costs."
+/>
+
+<Flashcard client:load
+  category="Table Types"
+  question="What happens to a Temporary table when the Snowflake session ends?"
+  answer="The Temporary table is automatically dropped. Temporary tables are session-scoped — they are private to the creating session, invisible to all other sessions, and are automatically destroyed when the session terminates."
+/>
+
+<Flashcard client:load
+  category="VARIANT"
+  question="What does the :: (double colon) operator do when used with a VARIANT column?"
+  answer="The :: operator performs an explicit type cast, converting a VARIANT value to a specific Snowflake data type. For example, payload:user_id::NUMBER converts the VARIANT value at the 'user_id' path to a NUMBER type. Without ::, path access returns VARIANT."
+/>
+
+<Flashcard client:load
+  category="Metadata"
+  question="What is the key difference between INFORMATION_SCHEMA and SNOWFLAKE.ACCOUNT_USAGE?"
+  answer="INFORMATION_SCHEMA is per-database, near real-time, but only shows current objects in that database. SNOWFLAKE.ACCOUNT_USAGE covers the entire account, retains up to 1 year of history including dropped objects, but has a latency of 45 minutes to 3 hours."
+/>
+
+<Flashcard client:load
+  category="Constraints"
+  question="Are PRIMARY KEY constraints enforced in Snowflake?"
+  answer="No. Snowflake constraints (NOT NULL, UNIQUE, PRIMARY KEY, FOREIGN KEY) are informational only and are NOT enforced by the query engine. You can insert duplicate values or NULL values into constrained columns without error."
+/>
+
+<Flashcard client:load
+  category="DDL"
+  question="What is the difference between CREATE TABLE LIKE and CREATE TABLE AS SELECT (CTAS)?"
+  answer="CREATE TABLE LIKE copies only the table structure (columns and data types) without any data — it creates an empty table. CREATE TABLE AS SELECT (CTAS) creates a new table AND populates it with the result of the SELECT query in a single atomic operation."
+/>
+
+---
+
+## Additional Resources
+
+- [Snowflake Documentation — Databases](https://docs.snowflake.com/en/user-guide/databases.html)
+- [Snowflake Documentation — Tables](https://docs.snowflake.com/en/user-guide/tables-intro.html)
+- [Snowflake Documentation — Semi-Structured Data](https://docs.snowflake.com/en/user-guide/semistructured-intro.html)
+- [Snowflake Documentation — INFORMATION_SCHEMA](https://docs.snowflake.com/en/sql-reference/info-schema.html)
+- [Snowflake Documentation — ACCOUNT_USAGE](https://docs.snowflake.com/en/sql-reference/account-usage.html)
+- [Snowflake Documentation — Constraints](https://docs.snowflake.com/en/sql-reference/constraints-overview.html)
+
+---
+
+## Next Steps
+
+- [Virtual Warehouses](/architecture/warehouses) — Understand the compute layer that queries these tables
+- [Time Travel & Fail-safe](/data-protection/time-travel) — Deep dive into data recovery mechanisms
+- [Data Loading](/data-loading/bulk-loading) — Learn how to load data into your tables
+- [Access Control](/security/access-control) — Grant privileges on databases, schemas, and tables

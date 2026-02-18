@@ -1,0 +1,723 @@
+---
+layout: ../../layouts/CourseLayout.astro
+title: "Data Storage & Clustering"
+description: "Master Snowflake's micro-partition architecture, columnar storage, clustering keys, and Automatic Clustering for the COF-C02 exam."
+moduleId: "data-storage"
+domain: "Architecture"
+---
+
+import Flashcard from '../../components/Flashcard.tsx';
+import CodeBlock from '../../components/CodeBlock.tsx';
+import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
+import Diagram from '../../components/Diagram.tsx';
+import CalloutBox from '../../components/CalloutBox.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import CompareTable from '../../components/CompareTable.tsx';
+import KeyTerms from '../../components/KeyTerms.tsx';
+import StepByStep from '../../components/StepByStep.tsx';
+import CheatSheet from '../../components/CheatSheet.tsx';
+
+# Data Storage & Clustering
+
+Snowflake's storage layer is fundamentally different from traditional databases. Understanding how micro-partitions work, how data is physically organised on disk, and how clustering influences query performance is essential knowledge for the COF-C02 exam.
+
+<CalloutBox client:load type="exam" title="Exam Domain Coverage">
+This module covers the **Database Objects & Storage** domain of the COF-C02 exam. Expect 2–4 questions on micro-partition internals, clustering key configuration, and storage billing across table types. Pay particular attention to when clustering keys are — and are not — recommended.
+</CalloutBox>
+
+---
+
+## 1. Micro-Partitions: The Foundation of Snowflake Storage
+
+Every table in Snowflake is divided into **micro-partitions** — the fundamental unit of Snowflake's physical storage. Unlike traditional databases that require you to manually define partitions, Snowflake creates and sizes micro-partitions automatically with no intervention required.
+
+<Diagram client:load
+  title="Micro-Partition Architecture"
+  description="Each Snowflake table is divided into contiguous micro-partitions. Data within each micro-partition is stored in columnar format, compressed independently, and catalogued with rich metadata in the Cloud Services layer. Queries skip entire micro-partitions when the predicate values fall outside the stored min/max range for a column."
+  altText="Diagram showing a Snowflake table split into multiple micro-partitions, each containing columnar data and associated metadata including min, max, NDV, and null count per column."
+/>
+
+### Key Characteristics of Micro-Partitions
+
+| Property | Value |
+|---|---|
+| Size (compressed) | 50 MB – 500 MB |
+| Storage format | Columnar (PAX-style) |
+| Creation | Automatic — no manual definition |
+| Immutability | Immutable once written |
+| Compression | Automatic, per-column |
+| Metadata | Stored in Cloud Services layer |
+
+<CalloutBox client:load type="important" title="Micro-Partitions Are Immutable">
+Once a micro-partition is written, it cannot be modified. Any DML operation (UPDATE, DELETE, MERGE) causes Snowflake to write entirely new micro-partitions and mark the old ones as deleted. This is why Snowflake's Time Travel is possible — old micro-partitions are retained for the duration of the Time Travel period.
+</CalloutBox>
+
+<YouTubeEmbed client:load
+  videoId="dxrEM8xoHME"
+  title="Snowflake Micro-Partitions & Data Clustering Explained"
+  description="An in-depth walkthrough of how Snowflake physically stores data in micro-partitions, how columnar compression works, and how metadata-driven query pruning eliminates unnecessary I/O. Highly recommended before sitting the COF-C02 exam."
+/>
+
+---
+
+## 2. Micro-Partition Metadata
+
+Snowflake automatically tracks rich metadata for every micro-partition, stored at the **column level** in the Cloud Services layer. This metadata is the engine that powers query pruning.
+
+<Diagram client:load
+  title="Per-Column Metadata in Every Micro-Partition"
+  description="For each column in each micro-partition, Snowflake records four key statistics: minimum value, maximum value, number of distinct values (NDV), and null count. This metadata is stored in the Cloud Services layer, not inside the micro-partition data files themselves, so querying it costs no compute."
+  altText="Diagram showing a micro-partition record with four metadata fields per column: min_value, max_value, ndv (number of distinct values), and null_count, all stored outside the data files in the Cloud Services layer."
+/>
+
+### The Four Metadata Fields (Per Column, Per Micro-Partition)
+
+- **Min value** — the smallest value present in that column within this micro-partition
+- **Max value** — the largest value present in that column within this micro-partition
+- **NDV (Number of Distinct Values)** — the cardinality of the column within this micro-partition
+- **Null count** — how many null values exist in the column within this micro-partition
+
+<CalloutBox client:load type="tip" title="Metadata is Free to Query">
+Because micro-partition metadata lives in the Cloud Services layer, Snowflake can evaluate whether to skip a micro-partition entirely **before** ever reading from cloud object storage. This means pruning decisions happen with zero virtual warehouse compute cost.
+</CalloutBox>
+
+---
+
+## 3. Query Pruning (Partition Elimination)
+
+Query pruning is Snowflake's mechanism for skipping micro-partitions that cannot possibly contain rows matching a query's WHERE clause. This dramatically reduces I/O and accelerates analytical queries.
+
+### How Pruning Works
+
+When you run a query with a filter predicate, Snowflake's Cloud Services layer:
+
+1. Reads the metadata (min/max) for the filtered column across **all** micro-partitions
+2. Compares the predicate value to each micro-partition's min/max range
+3. Marks any micro-partition where the predicate value falls **outside** the min/max range as pruned
+4. Sends only the **surviving** micro-partitions to the virtual warehouse for scanning
+
+<CodeBlock client:load
+  language="sql"
+  title="Example: Range Query That Benefits from Pruning"
+  code={`-- Assume the ORDERS table has 10,000 micro-partitions
+-- and ORDER_DATE is stored in insertion order (chronological)
+SELECT
+    order_id,
+    customer_id,
+    total_amount
+FROM orders
+WHERE order_date BETWEEN '2024-01-01' AND '2024-03-31';
+
+-- Snowflake reads ORDER_DATE min/max for all 10,000 micro-partitions
+-- Micro-partitions where max(order_date) < '2024-01-01'  → PRUNED
+-- Micro-partitions where min(order_date) > '2024-03-31'  → PRUNED
+-- Only micro-partitions that OVERLAP the range are scanned
+-- Check pruning efficiency in Query Profile → "Partitions scanned" vs "Partitions total"`}
+/>
+
+<CalloutBox client:load type="info" title="Viewing Pruning in Query Profile">
+After running a query, open the **Query Profile** in Snowsight. Under the **TableScan** operator you will see two metrics:
+- **Partitions total** — all micro-partitions in the table
+- **Partitions scanned** — micro-partitions that were actually read
+
+A large difference between these two numbers indicates effective pruning. If partitions scanned ≈ partitions total, your data may benefit from a clustering key.
+</CalloutBox>
+
+---
+
+## 4. Natural Clustering
+
+Before you define any explicit clustering key, Snowflake naturally orders data within micro-partitions based on **insertion order**. This is called natural clustering.
+
+<Diagram client:load
+  title="Natural Clustering via Insertion Order"
+  description="When rows are inserted chronologically (e.g., daily ETL loads appending new records), each new micro-partition naturally contains data from a specific time period. A query filtering on a recent date range will automatically prune older micro-partitions without any clustering key defined."
+  altText="Diagram showing four micro-partitions labelled with date ranges: MP1 (Jan), MP2 (Feb), MP3 (Mar), MP4 (Apr). A query filtering WHERE month = 'Apr' prunes MP1, MP2, and MP3 automatically."
+/>
+
+### When Natural Clustering is Sufficient
+
+- **Time-series tables** loaded chronologically (e.g., event logs, transaction history)
+- **Append-only tables** where new data always represents newer time periods
+- **Small-to-medium tables** where full scans are fast regardless
+
+<CalloutBox client:load type="note" title="Natural Clustering Degrades Over Time">
+As tables grow and accumulate updates, deletes, and out-of-order inserts, natural clustering degrades. Micro-partitions that once contained data from a single time period become mixed. This is when you should evaluate whether a clustering key and Automatic Clustering are warranted.
+</CalloutBox>
+
+---
+
+## 5. Clustering Keys
+
+A **clustering key** is one or more columns (or expressions) that you designate as the primary sort dimension for a table. When a clustering key is defined, Snowflake will re-sort data into new micro-partitions optimised for pruning on those columns.
+
+### Defining a Clustering Key
+
+<CodeBlock client:load
+  language="sql"
+  title="Clustering Key — CREATE TABLE and ALTER TABLE"
+  code={`-- Option 1: Define clustering key at table creation
+CREATE TABLE sales (
+    sale_id       NUMBER,
+    sale_date     DATE,
+    region        VARCHAR(50),
+    product_id    NUMBER,
+    amount        NUMBER(12,2)
+)
+CLUSTER BY (sale_date, region);
+
+-- Option 2: Add clustering key to an existing table
+ALTER TABLE sales CLUSTER BY (sale_date, region);
+
+-- Option 3: Use an expression as a clustering key
+-- Useful when you want to cluster on a derived value
+ALTER TABLE events CLUSTER BY (DATE_TRUNC('month', event_timestamp));
+
+-- Remove a clustering key entirely
+ALTER TABLE sales DROP CLUSTERING KEY;
+
+-- Suspend Automatic Clustering (keeps key definition, pauses background re-clustering)
+ALTER TABLE sales SUSPEND RECLUSTER;
+
+-- Resume Automatic Clustering
+ALTER TABLE sales RESUME RECLUSTER;`}
+/>
+
+<CalloutBox client:load type="warning" title="Composite Clustering Keys — Order Matters">
+When defining a composite clustering key with multiple columns, the **order of columns matters**. Snowflake clusters primarily by the first column, then by the second within each first-column bucket, and so on. Place the column with the highest cardinality and most selective queries first. Example: `CLUSTER BY (region, sale_date)` is optimal if queries almost always filter on `region` first.
+</CalloutBox>
+
+### When to Use Clustering Keys
+
+<CompareTable client:load
+  title="Should You Define a Clustering Key?"
+  leftLabel="Good Candidates"
+  rightLabel="Poor Candidates"
+  rows={[
+    {
+      feature: "Table size",
+      left: "Multi-terabyte tables (hundreds of millions of rows+)",
+      right: "Small to medium tables (< 1 TB) — full scans are fast",
+      winner: "none"
+    },
+    {
+      feature: "Query patterns",
+      left: "Queries consistently filter on the same 1–2 columns",
+      right: "Ad-hoc queries with varied filter columns each time",
+      winner: "none"
+    },
+    {
+      feature: "Data mutation rate",
+      left: "Append-heavy or infrequently updated tables",
+      right: "Highly volatile tables with frequent updates/deletes (constant re-clustering is expensive)",
+      winner: "none"
+    },
+    {
+      feature: "Pruning effectiveness before",
+      left: "Partitions scanned ≈ Partitions total in Query Profile",
+      right: "Already achieving high pruning from natural clustering",
+      winner: "none"
+    },
+    {
+      feature: "Column cardinality",
+      left: "Medium-to-high cardinality (dates, regions, categories)",
+      right: "Very low cardinality (boolean flags, Y/N columns) — poor selectivity",
+      winner: "none"
+    },
+    {
+      feature: "Cost consideration",
+      left: "High-value production tables where query savings justify serverless cost",
+      right: "Dev/test tables or tables with infrequent queries",
+      winner: "none"
+    }
+  ]}
+/>
+
+---
+
+## 6. Measuring Cluster Quality: Cluster Depth
+
+Snowflake provides the `SYSTEM$CLUSTERING_INFORMATION` function to evaluate how well-clustered a table is on a given set of columns.
+
+<CodeBlock client:load
+  language="sql"
+  title="Checking Cluster Depth and Clustering Information"
+  code={`-- Check clustering information for a table on a specific column set
+SELECT SYSTEM$CLUSTERING_INFORMATION('sales', '(sale_date, region)');
+
+-- Example output (JSON):
+-- {
+--   "cluster_by_keys" : "LINEAR(SALE_DATE, REGION)",
+--   "total_partition_count" : 1250,
+--   "total_constant_partition_count" : 42,
+--   "average_overlaps" : 3.14,
+--   "average_depth" : 2.87,             ← Lower is better. 1.0 = perfectly clustered
+--   "partition_depth_histogram" : {
+--     "00000" : 42,
+--     "00001" : 418,
+--     "00002" : 561,
+--     "00003" : 229
+--   }
+-- }
+
+-- Key metrics to interpret:
+-- average_depth: ideally < 3. Higher means poor clustering (more overlap between micro-partitions)
+-- average_overlaps: how many other micro-partitions share overlapping key ranges
+-- total_constant_partition_count: micro-partitions with only one distinct key value (perfectly prunable)
+
+-- Check the AUTOMATIC_CLUSTERING_HISTORY view to see re-clustering activity
+SELECT *
+FROM SNOWFLAKE.ACCOUNT_USAGE.AUTOMATIC_CLUSTERING_HISTORY
+WHERE TABLE_NAME = 'SALES'
+ORDER BY START_TIME DESC
+LIMIT 10;`}
+/>
+
+<CalloutBox client:load type="exam" title="Exam Tip: Cluster Depth Interpretation">
+The exam tests whether you can interpret cluster depth values. Remember: **lower cluster depth = better clustering**. A depth of 1 means each micro-partition's key range is unique with no overlap — perfect pruning. A depth of 10 means a query filtering on a specific value must scan an average of 10 micro-partitions for every logical key value.
+</CalloutBox>
+
+---
+
+## 7. Automatic Clustering
+
+**Automatic Clustering** is a Snowflake-managed serverless service that continuously monitors a clustered table and triggers background re-clustering when the cluster depth degrades beyond a threshold.
+
+<StepByStep client:load
+  title="Setting Up Automatic Clustering on a Large Table"
+  steps={[
+    {
+      title: "Evaluate whether clustering is needed",
+      description: "Run a representative query and check Query Profile. Compare 'Partitions scanned' to 'Partitions total'. Also run SYSTEM$CLUSTERING_INFORMATION to get a baseline cluster depth.",
+      code: "SELECT SYSTEM$CLUSTERING_INFORMATION('my_large_table', '(event_date, region)');",
+      tip: "Only proceed if the table is multi-TB and queries show poor pruning. Small tables do not need clustering keys."
+    },
+    {
+      title: "Define the clustering key on the table",
+      description: "Use ALTER TABLE ... CLUSTER BY to add the clustering key. Choose columns that appear most frequently in WHERE clauses. This action alone enables Automatic Clustering.",
+      code: "ALTER TABLE my_large_table CLUSTER BY (event_date, region);",
+      tip: "Automatic Clustering begins immediately after defining the clustering key. Initial re-clustering of a large table may take hours and will consume serverless credits."
+    },
+    {
+      title: "Monitor re-clustering progress",
+      description: "Query AUTOMATIC_CLUSTERING_HISTORY in SNOWFLAKE.ACCOUNT_USAGE to see when re-clustering jobs ran, how many credits were consumed, and how many bytes were processed.",
+      code: `SELECT
+    table_name,
+    start_time,
+    end_time,
+    credits_used,
+    bytes_reclustered,
+    partitions_reclustered
+FROM SNOWFLAKE.ACCOUNT_USAGE.AUTOMATIC_CLUSTERING_HISTORY
+WHERE table_name = 'MY_LARGE_TABLE'
+ORDER BY start_time DESC;`,
+      tip: "Credits consumed by Automatic Clustering appear as 'Serverless' credits in billing — they are NOT charged to your virtual warehouses."
+    },
+    {
+      title: "Validate improvement with SYSTEM$CLUSTERING_INFORMATION",
+      description: "After re-clustering completes, re-run the clustering information function. You should see average_depth decrease. Re-run your representative query and compare Partitions scanned.",
+      code: "SELECT SYSTEM$CLUSTERING_INFORMATION('my_large_table', '(event_date, region)');",
+      tip: "If cluster depth is still high after re-clustering, consider whether your clustering key columns are the right choice, or whether query patterns require a different column order."
+    },
+    {
+      title: "Optionally suspend clustering on non-production tables",
+      description: "If the table enters a read-only phase (e.g., archival), you can suspend Automatic Clustering to stop incurring serverless credits while preserving the clustering key definition.",
+      code: "ALTER TABLE my_large_table SUSPEND RECLUSTER;",
+      tip: "Suspended tables retain their clustering key. Resume with ALTER TABLE my_large_table RESUME RECLUSTER when needed."
+    }
+  ]}
+/>
+
+<CalloutBox client:load type="warning" title="Automatic Clustering Costs Serverless Credits">
+Automatic Clustering consumes **serverless credits** — not your warehouse credits. Costs depend on the amount of data re-clustered. Enabling clustering on a table with frequent random inserts and updates can generate significant ongoing costs. Always evaluate the query performance improvement vs. the re-clustering cost before enabling.
+</CalloutBox>
+
+---
+
+## 8. Table Types and Storage Costs
+
+Snowflake has three table types with different storage cost profiles. Understanding the differences is critical for both the exam and real-world cost optimisation.
+
+<CompareTable client:load
+  title="Snowflake Table Types: Storage Cost Comparison"
+  leftLabel="Permanent Table"
+  rightLabel="Transient Table"
+  rows={[
+    {
+      feature: "Time Travel retention",
+      left: "0–90 days (default 1 day; Enterprise edition up to 90 days)",
+      right: "0–1 day only (max 1 day regardless of edition)",
+      winner: "left"
+    },
+    {
+      feature: "Fail-safe period",
+      left: "7 days (no configuration — always 7 days for permanent tables)",
+      right: "0 days — NO fail-safe storage ever",
+      winner: "left"
+    },
+    {
+      feature: "Storage cost",
+      left: "Higher — pays for active + Time Travel + 7-day fail-safe storage",
+      right: "Lower — pays for active + up to 1-day Time Travel only",
+      winner: "right"
+    },
+    {
+      feature: "Use case",
+      left: "Production tables requiring disaster recovery and data auditing",
+      right: "Staging tables, ETL intermediaries, temporary result sets",
+      winner: "none"
+    },
+    {
+      feature: "UNDROP support",
+      left: "Yes — within Time Travel retention period",
+      right: "Yes — within up to 1-day retention period",
+      winner: "left"
+    },
+    {
+      feature: "Data recoverability",
+      left: "High — Snowflake support can recover data from fail-safe",
+      right: "Low — once Time Travel expires, data is gone permanently",
+      winner: "left"
+    }
+  ]}
+/>
+
+<CalloutBox client:load type="info" title="Temporary Tables">
+**Temporary tables** behave like transient tables (no fail-safe, up to 1-day Time Travel) but are additionally scoped to the **session** — they are automatically dropped when the session ends. They are ideal for intermediate query results within a single session and are not visible to other sessions.
+</CalloutBox>
+
+<CodeBlock client:load
+  language="sql"
+  title="Creating Transient and Temporary Tables"
+  code={`-- Transient table: persists across sessions, no fail-safe
+CREATE TRANSIENT TABLE staging.order_staging (
+    order_id   NUMBER,
+    raw_json   VARIANT,
+    loaded_at  TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+)
+DATA_RETENTION_TIME_IN_DAYS = 1;  -- max for transient
+
+-- Temporary table: session-scoped, dropped automatically when session ends
+CREATE TEMPORARY TABLE session_work.calc_results (
+    customer_id   NUMBER,
+    lifetime_value NUMBER(12,2)
+);
+
+-- Convert a permanent table to transient (must recreate)
+-- There is no ALTER TABLE ... SET TYPE = TRANSIENT in Snowflake
+-- You must CREATE TRANSIENT TABLE ... AS SELECT * FROM original_table
+
+-- Check current table type
+SHOW TABLES LIKE 'ORDER_STAGING' IN SCHEMA staging;
+-- Look at the "kind" column: TABLE (permanent), TRANSIENT, TEMPORARY`}
+/>
+
+---
+
+## 9. Storage Metrics: TABLE_STORAGE_METRICS
+
+Snowflake provides the `INFORMATION_SCHEMA.TABLE_STORAGE_METRICS` view (and the `SNOWFLAKE.ACCOUNT_USAGE.TABLE_STORAGE_METRICS` view for historical data) to inspect exactly how much storage each table is consuming across its three storage layers.
+
+<CodeBlock client:load
+  language="sql"
+  title="Querying TABLE_STORAGE_METRICS for Storage Breakdown"
+  code={`-- Per-table storage breakdown (current state)
+SELECT
+    table_schema,
+    table_name,
+    table_type,
+    -- Active data currently in the table
+    ROUND(active_bytes / POWER(1024, 3), 2)        AS active_gb,
+    -- Data retained for Time Travel (deleted/updated rows still accessible via AT/BEFORE)
+    ROUND(time_travel_bytes / POWER(1024, 3), 2)   AS time_travel_gb,
+    -- Data retained in fail-safe (7 days for permanent, 0 for transient/temporary)
+    ROUND(failsafe_bytes / POWER(1024, 3), 2)      AS failsafe_gb,
+    -- Total billed storage
+    ROUND((active_bytes + time_travel_bytes + failsafe_bytes) / POWER(1024, 3), 2) AS total_billed_gb
+FROM information_schema.table_storage_metrics
+WHERE active_bytes > 0
+ORDER BY total_billed_gb DESC;
+
+-- Find tables with the most fail-safe storage (potential cost saving opportunity)
+SELECT
+    table_name,
+    ROUND(failsafe_bytes / POWER(1024, 3), 2) AS failsafe_gb
+FROM information_schema.table_storage_metrics
+WHERE failsafe_bytes > 1073741824  -- > 1 GB in fail-safe
+ORDER BY failsafe_bytes DESC;
+
+-- Identify staging tables that should probably be TRANSIENT
+SELECT
+    table_name,
+    table_type,
+    ROUND(failsafe_bytes / POWER(1024, 3), 2) AS failsafe_gb
+FROM information_schema.table_storage_metrics
+WHERE table_name ILIKE '%staging%'
+  AND table_type = 'BASE TABLE'  -- permanent, not transient
+ORDER BY failsafe_bytes DESC;`}
+/>
+
+<CalloutBox client:load type="exam" title="Exam Tip: Three Storage Cost Components">
+The exam frequently tests understanding of Snowflake's three storage billing components. Remember: **active_bytes + time_travel_bytes + failsafe_bytes = total billed**. Transient tables have no failsafe_bytes. Temporary tables have neither failsafe_bytes nor cross-session persistence. Using transient tables for staging data is a common cost-optimisation strategy tested in scenario questions.
+</CalloutBox>
+
+---
+
+## 10. Columnar vs Row-Based Storage
+
+Snowflake stores data in a **columnar** format. This is one of the most important architectural decisions underpinning its analytical performance. Understanding why columnar beats row-based storage for OLAP workloads is tested in the COF-C02 exam.
+
+<Diagram client:load
+  title="Columnar vs Row-Based Storage Layout"
+  description="In row-based storage (left), all columns for a single row are stored contiguously. To read a single column across millions of rows, the database must scan every byte of every row. In columnar storage (right), all values for a single column are stored contiguously. Reading one column across millions of rows requires only a tiny fraction of the total I/O, and values within a column compress far more efficiently because they share the same data type and often similar values."
+  altText="Side-by-side diagram. Left: rows stored as ROW1(col1,col2,col3,col4), ROW2(col1,col2,col3,col4)... Right: columns stored as COL1(r1,r2,r3...), COL2(r1,r2,r3...) — highlighting that analytical queries only touch relevant columns."
+/>
+
+<CompareTable client:load
+  title="Columnar vs Row-Based Storage for Analytics"
+  leftLabel="Columnar (Snowflake)"
+  rightLabel="Row-Based (OLTP)"
+  rows={[
+    {
+      feature: "Analytical query I/O",
+      left: "Reads only the columns referenced in SELECT and WHERE — dramatically less I/O",
+      right: "Must read entire rows even when only 2 of 50 columns are needed",
+      winner: "left"
+    },
+    {
+      feature: "Compression ratio",
+      left: "High — values in the same column share data type and often similar range; run-length encoding and dictionary compression are highly effective",
+      right: "Lower — mixed data types within a row reduce compression effectiveness",
+      winner: "left"
+    },
+    {
+      feature: "Row-level INSERT/UPDATE speed",
+      left: "Slower — modifying a single row requires rewriting entire micro-partitions",
+      right: "Faster — individual row pointers allow in-place updates",
+      winner: "right"
+    },
+    {
+      feature: "Aggregation performance",
+      left: "Excellent — SUM/AVG/COUNT on one column reads only that column's data",
+      right: "Poor — must read all columns to access one",
+      winner: "left"
+    },
+    {
+      feature: "OLAP workload fit",
+      left: "Excellent fit — analytics, reporting, BI queries",
+      right: "Poor fit — OLAP on row-based systems requires column-store indexes",
+      winner: "left"
+    },
+    {
+      feature: "OLTP workload fit",
+      left: "Poor — not designed for high-frequency single-row transactions",
+      right: "Excellent — optimised for transactional INSERT/UPDATE/DELETE",
+      winner: "right"
+    }
+  ]}
+/>
+
+---
+
+## Key Terms
+
+<KeyTerms client:load
+  title="Data Storage & Clustering Key Terms"
+  terms={[
+    {
+      term: "Micro-partition",
+      definition: "The fundamental unit of Snowflake storage. Each micro-partition is a contiguous slice of a table, stored in columnar format, automatically sized between 50–500 MB compressed, and immutable once written.",
+      abbr: "MP"
+    },
+    {
+      term: "Query pruning",
+      definition: "The process by which Snowflake's Cloud Services layer compares query predicate values to per-column min/max metadata and skips micro-partitions that cannot contain matching rows, reducing I/O.",
+      abbr: ""
+    },
+    {
+      term: "Clustering key",
+      definition: "One or more columns (or expressions) designated as the primary sort dimension for a table. Enables Snowflake to re-organise data into micro-partitions that are optimally prunable for queries filtering on those columns.",
+      abbr: "CK"
+    },
+    {
+      term: "Cluster depth",
+      definition: "A metric returned by SYSTEM$CLUSTERING_INFORMATION indicating the average number of micro-partitions that contain overlapping key ranges. Lower values indicate better clustering. Ideal value is close to 1.",
+      abbr: ""
+    },
+    {
+      term: "Automatic Clustering",
+      definition: "A Snowflake-managed serverless service that continuously monitors a clustered table's depth and triggers background re-clustering jobs when degradation is detected. Charged as serverless credits.",
+      abbr: "AC"
+    },
+    {
+      term: "Number of Distinct Values",
+      definition: "A per-column metadata statistic stored for each micro-partition indicating the cardinality (count of unique values) within that micro-partition. Part of the four key metadata fields tracked.",
+      abbr: "NDV"
+    },
+    {
+      term: "Fail-safe",
+      definition: "A 7-day period following the Time Travel retention window during which Snowflake retains deleted or expired micro-partition data. Data can only be recovered by Snowflake Support. Only applies to permanent tables.",
+      abbr: ""
+    },
+    {
+      term: "Transient table",
+      definition: "A Snowflake table type with no fail-safe period and a maximum of 1 day of Time Travel retention. Lower storage cost than permanent tables. Suitable for staging and ETL intermediate data.",
+      abbr: ""
+    },
+    {
+      term: "Natural clustering",
+      definition: "The implicit ordering of data within micro-partitions based on insertion order, without any defined clustering key. Works well for chronologically loaded time-series data.",
+      abbr: ""
+    },
+    {
+      term: "TABLE_STORAGE_METRICS",
+      definition: "An INFORMATION_SCHEMA view that reports active_bytes, time_travel_bytes, and failsafe_bytes per table, enabling detailed analysis of storage costs across Snowflake table types.",
+      abbr: "TSM"
+    }
+  ]}
+/>
+
+---
+
+## Flashcard Review
+
+<Flashcard client:load
+  question="What is the compressed size range of a Snowflake micro-partition?"
+  answer="50 MB to 500 MB compressed. Snowflake automatically determines the exact size — you cannot configure it. Micro-partitions are contiguous, immutable, and stored in columnar format."
+  category="Micro-Partitions"
+/>
+
+<Flashcard client:load
+  question="What four metadata statistics does Snowflake store per column per micro-partition?"
+  answer="1. Min value — smallest value in that column within the micro-partition. 2. Max value — largest value. 3. NDV (Number of Distinct Values) — cardinality within the micro-partition. 4. Null count — number of null values. This metadata is stored in the Cloud Services layer and used for query pruning."
+  category="Micro-Partition Metadata"
+/>
+
+<Flashcard client:load
+  question="What does a cluster depth of 1.0 indicate versus a depth of 8.0?"
+  answer="A cluster depth of 1.0 means each micro-partition has a unique, non-overlapping key range — perfect clustering. A depth of 8.0 means an average of 8 micro-partitions share overlapping key ranges for any given key value — poor clustering requiring more micro-partitions to be scanned per query."
+  category="Clustering Metrics"
+/>
+
+<Flashcard client:load
+  question="What are the three storage cost components billed by Snowflake for a permanent table?"
+  answer="1. Active bytes — current live data. 2. Time Travel bytes — data retained within the Time Travel retention window (0–90 days for permanent tables). 3. Fail-safe bytes — data retained for 7 days after Time Travel expires. Transient tables have no fail-safe bytes. Visible via INFORMATION_SCHEMA.TABLE_STORAGE_METRICS."
+  category="Storage Billing"
+/>
+
+<Flashcard client:load
+  question="Name two situations where you should NOT define a clustering key on a Snowflake table."
+  answer="1. Small tables (< 1 TB) — full micro-partition scans are fast enough that the overhead and cost of Automatic Clustering is not justified. 2. Highly volatile tables with frequent updates/deletes — constant DML triggers constant re-clustering, generating significant and continuous serverless credit consumption."
+  category="Clustering Keys"
+/>
+
+---
+
+## Practice Quizzes
+
+<Quiz client:load
+  question="A data engineer notices that a query scanning a 5 TB SALES table reads 98% of all micro-partitions every time. The WHERE clause filters on SALE_DATE. What is the MOST likely cause?"
+  options={[
+    { label: "A", text: "The virtual warehouse is too small to cache micro-partition metadata." },
+    { label: "B", text: "The data is not naturally ordered or clustered by SALE_DATE — micro-partition min/max ranges overlap extensively, preventing effective pruning." },
+    { label: "C", text: "SALE_DATE is stored as VARCHAR instead of DATE, which disables pruning." },
+    { label: "D", text: "Query pruning only works on tables with fewer than 1,000 micro-partitions." }
+  ]}
+  correct="B"
+  explanation="When partitions scanned ≈ partitions total, it almost always indicates that the column being filtered on has poor natural clustering — micro-partitions contain overlapping date ranges so Snowflake cannot eliminate them via min/max metadata. The solution is to define a clustering key on SALE_DATE and enable Automatic Clustering. Warehouse size, data types (Snowflake can prune VARCHAR dates), and micro-partition counts are not the root cause here."
+  category="Query Pruning"
+/>
+
+<Quiz client:load
+  question="Which Snowflake function returns the average cluster depth of a table for a given set of columns?"
+  options={[
+    { label: "A", text: "INFORMATION_SCHEMA.CLUSTERING_HISTORY()" },
+    { label: "B", text: "SHOW CLUSTER DEPTH FOR TABLE sales;" },
+    { label: "C", text: "SYSTEM$CLUSTERING_INFORMATION('table_name', '(col1, col2)')" },
+    { label: "D", text: "GET_DDL('TABLE', 'sales')" }
+  ]}
+  correct="C"
+  explanation="SYSTEM$CLUSTERING_INFORMATION is the correct function. It returns a JSON object including average_depth, average_overlaps, total_partition_count, and a partition_depth_histogram. You pass the table name and the column set in parentheses as a string. AUTOMATIC_CLUSTERING_HISTORY (in ACCOUNT_USAGE) tracks re-clustering job history but does not return cluster depth. GET_DDL returns table DDL. There is no SHOW CLUSTER DEPTH command in Snowflake."
+  category="Clustering Metrics"
+/>
+
+<Quiz client:load
+  question="An organisation has a STAGING_ORDERS table used only as an ETL landing zone. Data is loaded, transformed, and moved to production tables within 24 hours. The table currently accumulates significant fail-safe storage costs. What table type change would ELIMINATE fail-safe costs?"
+  options={[
+    { label: "A", text: "Set DATA_RETENTION_TIME_IN_DAYS = 0 on the permanent table." },
+    { label: "B", text: "Recreate the table as a TRANSIENT table." },
+    { label: "C", text: "Recreate the table as a TEMPORARY table." },
+    { label: "D", text: "Enable Automatic Clustering on the table." }
+  ]}
+  correct="B"
+  explanation="A TRANSIENT table has zero fail-safe period and a maximum of 1 day of Time Travel. This completely eliminates fail-safe storage costs. Setting DATA_RETENTION_TIME_IN_DAYS = 0 on a permanent table reduces Time Travel costs to zero but does NOT eliminate the 7-day fail-safe period — permanent tables always have fail-safe regardless of retention settings. A TEMPORARY table would also have no fail-safe, but it is session-scoped and would be dropped when the session ends, making it unsuitable for a shared ETL table. Automatic Clustering has no effect on fail-safe behaviour."
+  category="Table Types"
+/>
+
+---
+
+## Cheat Sheet
+
+<CheatSheet client:load
+  title="Data Storage & Clustering — COF-C02 Quick Reference"
+  sections={[
+    {
+      title: "Micro-Partition Facts",
+      icon: "🗂️",
+      items: [
+        { label: "Size", value: "50–500 MB compressed", note: "Automatic, not configurable" },
+        { label: "Format", value: "Columnar (PAX)", note: "Within each micro-partition" },
+        { label: "Mutability", value: "Immutable", note: "DML creates new micro-partitions" },
+        { label: "Metadata location", value: "Cloud Services layer", note: "Free to query — no compute cost" },
+        { label: "Metadata fields", value: "Min, Max, NDV, Null count", note: "Per column, per micro-partition" }
+      ]
+    },
+    {
+      title: "Clustering Commands",
+      icon: "🔑",
+      items: [
+        { label: "Add clustering key", value: "ALTER TABLE t CLUSTER BY (col)", note: "Enables Automatic Clustering" },
+        { label: "Remove clustering key", value: "ALTER TABLE t DROP CLUSTERING KEY", note: "" },
+        { label: "Suspend re-clustering", value: "ALTER TABLE t SUSPEND RECLUSTER", note: "Keeps key, stops jobs" },
+        { label: "Check cluster depth", value: "SYSTEM$CLUSTERING_INFORMATION('t','(col)')", note: "Lower depth = better" },
+        { label: "View AC history", value: "SNOWFLAKE.ACCOUNT_USAGE.AUTOMATIC_CLUSTERING_HISTORY", note: "Credits, bytes, partitions" }
+      ]
+    },
+    {
+      title: "Table Type Storage",
+      icon: "💾",
+      items: [
+        { label: "Permanent", value: "Active + Time Travel (0–90d) + Fail-safe (7d)", note: "Highest cost" },
+        { label: "Transient", value: "Active + Time Travel (0–1d) + NO fail-safe", note: "Medium cost" },
+        { label: "Temporary", value: "Active + Time Travel (0–1d) + NO fail-safe", note: "Session-scoped" },
+        { label: "Storage view", value: "INFORMATION_SCHEMA.TABLE_STORAGE_METRICS", note: "active/tt/failsafe bytes" }
+      ]
+    },
+    {
+      title: "When to Cluster",
+      icon: "✅",
+      items: [
+        { label: "DO cluster", value: "Multi-TB tables, consistent filter columns", note: "" },
+        { label: "DO NOT cluster", value: "Small tables, highly volatile tables", note: "" },
+        { label: "Cluster cost type", value: "Serverless credits", note: "Not warehouse credits" },
+        { label: "Ideal cluster depth", value: "Close to 1.0", note: "Higher = worse pruning" }
+      ]
+    }
+  ]}
+/>
+
+---
+
+## Summary
+
+Snowflake's storage architecture is built on **immutable, columnar micro-partitions** that are automatically sized and created without any DBA intervention. The rich per-column metadata stored in the Cloud Services layer powers **query pruning** — the ability to skip entire micro-partitions without reading them — which is fundamental to Snowflake's query performance.
+
+**Natural clustering** works well for chronologically loaded time-series data, but large tables with varied query patterns benefit from explicitly defined **clustering keys**. **Automatic Clustering** maintains cluster quality continuously as a serverless background service, charged separately from virtual warehouse credits.
+
+For the COF-C02 exam, internalise:
+- Micro-partition size: **50–500 MB compressed**
+- Metadata tracked: **min, max, NDV, null count** per column per micro-partition
+- Cluster depth: **lower is better**, check with `SYSTEM$CLUSTERING_INFORMATION`
+- Clustering cost: **serverless credits** (not warehouse credits)
+- Table types: **permanent** (fail-safe 7d) vs **transient** (no fail-safe) vs **temporary** (session-scoped, no fail-safe)
+- Storage billing: **active + time_travel + failsafe bytes**, visible in `INFORMATION_SCHEMA.TABLE_STORAGE_METRICS`

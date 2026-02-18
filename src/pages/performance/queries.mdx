@@ -1,0 +1,314 @@
+---
+layout: ../../layouts/CourseLayout.astro
+title: "Query Performance & Optimisation"
+description: "Understand Snowflake query execution, the Query Profile, micro-partition pruning, spill-to-disk, and optimisation strategies for the SnowPro Core exam"
+moduleId: "query-optimization"
+domain: "Performance"
+---
+
+import Flashcard from '../../components/Flashcard.tsx';
+import CodeBlock from '../../components/CodeBlock.tsx';
+import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
+import Diagram from '../../components/Diagram.tsx';
+import CalloutBox from '../../components/CalloutBox.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import CompareTable from '../../components/CompareTable.tsx';
+import KeyTerms from '../../components/KeyTerms.tsx';
+import StepByStep from '../../components/StepByStep.tsx';
+import CheatSheet from '../../components/CheatSheet.tsx';
+
+<KeyTerms
+  client:load
+  title="Key Terms — Query Performance"
+  terms={[
+    { term: "Query Profile", abbr: "QP", definition: "Snowsight's visual execution plan for a completed query — shows operator tree, timing, pruning stats, and spilling information." },
+    { term: "Micro-Partition Pruning", abbr: "—", definition: "Snowflake's automatic optimisation that skips micro-partitions whose metadata (min/max) indicates they cannot match the query's WHERE clause." },
+    { term: "Spilling", abbr: "—", definition: "When query intermediate data exceeds warehouse memory and overflows to local SSD, then to remote cloud storage — a key performance warning sign." },
+    { term: "Result Cache", abbr: "—", definition: "A 24-hour Cloud Services cache that returns identical query results instantly with zero warehouse credits." },
+    { term: "EXPLAIN", abbr: "—", definition: "SQL command that shows the logical execution plan without actually running the query — no credits consumed." },
+    { term: "Scale Up", abbr: "—", definition: "Increasing warehouse size to provide more memory/compute per query — fixes spilling." },
+    { term: "Scale Out", abbr: "—", definition: "Adding multi-cluster capacity to handle more concurrent queries — fixes queueing." },
+  ]}
+/>
+
+---
+
+## Query Lifecycle
+
+Every SQL statement in Snowflake follows the same execution path through three layers:
+
+<Diagram
+  client:load
+  title="Query Execution Flow"
+  description="Flow diagram: 1) User submits SQL. 2) Cloud Services Layer parses, optimises, and creates execution plan. 3) Virtual Warehouse executes the plan against micro-partitions in cloud storage. 4) Results returned via Cloud Services Layer. Each step labelled with what happens: parse/compile, optimise/prune metadata, distribute to compute nodes, scan/join/aggregate, return result set."
+  altText="Flow diagram showing SQL submission through Cloud Services parsing and optimisation, then execution on Virtual Warehouse compute nodes, then results returned"
+/>
+
+1. **Cloud Services** — parses SQL, resolves objects, checks privileges, generates optimised execution plan, determines which micro-partitions to scan
+2. **Virtual Warehouse** — executes the plan: scans micro-partitions, applies filters, performs joins, aggregations, and sorts
+3. **Cloud Services** — returns results to client, caches result for potential reuse
+
+<CalloutBox type="info" title="No Indexes, No VACUUM, No Manual Tuning">
+  Unlike traditional databases, Snowflake has **no indexes** to create, no statistics to update, and no VACUUM to run. The query optimiser uses micro-partition metadata (min/max, NDV, null counts) automatically. Your main levers for performance are: warehouse sizing, clustering keys, and writing efficient SQL.
+</CalloutBox>
+
+---
+
+## The Query Profile
+
+The Query Profile in Snowsight is your **most important diagnostic tool**. It shows the actual execution plan as a tree of operator nodes.
+
+<Diagram
+  client:load
+  title="Query Profile Operator Tree"
+  description="Tree diagram of a typical Query Profile: Result node at top, below it an Aggregate node, feeding into a Join node with two branches — left branch shows TableScan on ORDERS with Filter, right branch shows TableScan on CUSTOMERS. Each node shows percentage of total time, rows processed, bytes scanned. The Join node consumes 45% of time. The TableScan shows partitions scanned 120 of 5000 total, indicating good pruning."
+  altText="Tree diagram of Query Profile nodes: Result, Aggregate, Join, Filter, TableScan with timing statistics"
+/>
+
+### Key Operator Nodes
+
+| Node | Purpose |
+|------|---------|
+| **TableScan** | Reads micro-partitions from storage — shows pruning stats |
+| **Filter** | Applies WHERE clause predicates |
+| **Join** | Combines data from multiple tables (hash join, merge join) |
+| **Aggregate** | GROUP BY, COUNT, SUM operations |
+| **Sort** | ORDER BY and merge join preparation |
+| **Exchange** | Redistributes data between compute nodes — often the most expensive |
+
+### What to Look For
+
+- **Partitions scanned vs total** — Is pruning effective?
+- **Bytes spilled to local/remote storage** — Is the warehouse too small?
+- **Percentage bars** — Which operators consume the most time?
+- **Exploding joins** — Does a join produce far more rows than its inputs?
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Viewing Query Profile Programmatically"
+  code={`-- Get the last query's ID
+SELECT LAST_QUERY_ID();
+
+-- Retrieve operator stats for any query
+SELECT *
+FROM TABLE(GET_QUERY_OPERATOR_STATS(LAST_QUERY_ID()));`}
+/>
+
+---
+
+## Micro-Partition Pruning
+
+Pruning is Snowflake's primary query optimisation. Every micro-partition stores column-level metadata (min/max values). When your WHERE clause specifies a range or equality predicate, Snowflake compares the filter against each partition's metadata and **skips** partitions that cannot contain matching rows.
+
+<Diagram
+  client:load
+  title="Micro-Partition Pruning in Action"
+  description="Eight micro-partitions labelled MP1-MP8 with date ranges. A WHERE clause for dates in February prunes 6 partitions (greyed out) and scans only 2 partitions (highlighted green). Shows: Partitions scanned 2 of 8 total — 75% pruning efficiency."
+  altText="Diagram showing eight micro-partitions with date ranges, WHERE clause pruning six and scanning two"
+/>
+
+<CalloutBox type="warning" title="Pruning Killer: Functions on WHERE Columns">
+  Applying a function to a column in WHERE **disables pruning** on that column. `WHERE YEAR(order_date) = 2024` prevents Snowflake from using min/max metadata. Rewrite as `WHERE order_date >= '2024-01-01' AND order_date < '2025-01-01'` to preserve pruning.
+</CalloutBox>
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Checking Pruning Effectiveness"
+  code={`-- Run a filtered query and check Query Profile for partition stats
+SELECT order_id, customer_id, order_date, total_amount
+FROM sales.orders
+WHERE order_date BETWEEN '2024-06-01' AND '2024-06-30'
+  AND region = 'EMEA';
+
+-- In Query Profile, click TableScan node:
+-- Partitions scanned: 150 / Partitions total: 12,000
+-- = 98.75% of partitions pruned`}
+/>
+
+---
+
+## Spilling to Disk
+
+When a query's intermediate data exceeds warehouse memory, Snowflake **spills** data through a hierarchy:
+
+<Diagram
+  client:load
+  title="Spilling Hierarchy"
+  description="Three-tier pyramid: Top (green) = Memory/RAM (fastest, all processing ideally here). Middle (amber) = Local SSD (slower, data spills when memory exceeded). Bottom (red) = Remote Cloud Storage S3/Blob/GCS (slowest, severe performance degradation). Arrows point downward labelled Overflow."
+  altText="Pyramid showing Memory at top, Local SSD in middle, Remote Storage at bottom"
+/>
+
+<CalloutBox type="important" title="Fixing Spilling: Scale Up the Warehouse">
+  The primary fix for spilling is to **increase warehouse size** (e.g., Medium to Large). Each size doubles memory and compute. If spilling persists, also optimise the query: reduce data volume with better filters, avoid SELECT *, or break into smaller steps with temporary tables.
+</CalloutBox>
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Finding Queries That Spill"
+  code={`SELECT query_id, query_text, warehouse_name, warehouse_size,
+       execution_time / 1000 AS exec_seconds,
+       bytes_spilled_to_local_storage,
+       bytes_spilled_to_remote_storage
+FROM snowflake.account_usage.query_history
+WHERE bytes_spilled_to_remote_storage > 0
+ORDER BY bytes_spilled_to_remote_storage DESC
+LIMIT 20;`}
+/>
+
+---
+
+## Query History
+
+<CompareTable
+  client:load
+  title="INFORMATION_SCHEMA vs ACCOUNT_USAGE Query History"
+  leftLabel="INFORMATION_SCHEMA.QUERY_HISTORY"
+  rightLabel="ACCOUNT_USAGE.QUERY_HISTORY"
+  rows={[
+    { feature: "Retention", left: "14 days", right: "365 days", winner: "right" },
+    { feature: "Latency", left: "Real-time (no delay)", right: "Up to 45 minutes", winner: "left" },
+    { feature: "Scope", left: "Current database only", right: "Entire account", winner: "right" },
+    { feature: "Dropped objects", left: "Not available after drop", right: "Available for full retention", winner: "right" },
+    { feature: "Privileges", left: "Any role with database access", right: "IMPORTED PRIVILEGES on SNOWFLAKE db", winner: "left" },
+  ]}
+/>
+
+<CalloutBox type="exam" title="Exam Focus: 14 Days vs 365 Days">
+  The exam tests the difference: INFORMATION_SCHEMA = **14 days, real-time, database-scoped**. ACCOUNT_USAGE = **365 days, 45-minute latency, full account**.
+</CalloutBox>
+
+---
+
+## EXPLAIN Command
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Using EXPLAIN"
+  code={`-- Logical plan without execution (zero credits)
+EXPLAIN USING TABULAR
+SELECT c.name, SUM(o.total) AS total_spend
+FROM customers c
+JOIN orders o ON c.id = o.customer_id
+WHERE o.order_date >= '2024-01-01'
+GROUP BY c.name
+ORDER BY total_spend DESC;
+
+-- EXPLAIN shows operators and expected rows
+-- Query Profile shows ACTUAL execution after completion`}
+/>
+
+---
+
+## Warehouse Sizing Strategy
+
+<StepByStep
+  client:load
+  title="Warehouse Sizing Decision Process"
+  steps={[
+    { title: "Identify the Problem", description: "Check Query Profile for spilling, poor pruning, or queue times. Examine top 10 slowest queries via ACCOUNT_USAGE.", tip: "Look for bytes_spilled_to_remote_storage > 0 first — that's the biggest red flag." },
+    { title: "Spilling? Scale Up", description: "Increase warehouse size (Medium to Large, Large to X-Large). Each step doubles memory and compute.", code: `ALTER WAREHOUSE analytics_wh SET WAREHOUSE_SIZE = 'X-LARGE';` },
+    { title: "Queueing? Scale Out", description: "Enable multi-cluster warehouses (Enterprise+). Adds clusters for concurrent queries.", code: `ALTER WAREHOUSE analytics_wh SET\n  MAX_CLUSTER_COUNT = 3\n  SCALING_POLICY = 'STANDARD';` },
+    { title: "Over-provisioned? Scale Down", description: "If queries finish in seconds with no spilling, use a smaller warehouse to save credits.", code: `ALTER WAREHOUSE dashboard_wh SET WAREHOUSE_SIZE = 'X-SMALL';` },
+  ]}
+/>
+
+---
+
+## Scale Up vs Scale Out
+
+<CompareTable
+  client:load
+  title="Scale Up vs Scale Out"
+  leftLabel="Scale Up (Larger Warehouse)"
+  rightLabel="Scale Out (Multi-Cluster)"
+  rows={[
+    { feature: "Problem solved", left: "Slow individual queries, spilling", right: "Too many concurrent queries queueing", winner: "none" },
+    { feature: "Effect on single query", left: "Faster — more memory/compute per query", right: "No change — same per-query resources", winner: "left" },
+    { feature: "Effect on concurrency", left: "Minimal improvement", right: "Significant — queries distributed across clusters", winner: "right" },
+    { feature: "Cost impact", left: "Doubles credits per size step", right: "Linear with clusters added", winner: "none" },
+    { feature: "Best for", left: "ETL, large aggregations, heavy joins", right: "Dashboards, BI, many concurrent users", winner: "none" },
+  ]}
+/>
+
+---
+
+## Common Anti-Patterns
+
+<CalloutBox type="warning" title="Performance Anti-Patterns">
+  1. **SELECT \*** on large tables — reads all columns, Snowflake is columnar — specify only needed columns
+  2. **Functions on WHERE columns** — disables pruning: WHERE YEAR(date) = 2024
+  3. **Unnecessary DISTINCT** — forces expensive sort/aggregate
+  4. **Cartesian joins** — missing join conditions
+  5. **Wrong data types** — VARCHAR compared to NUMBER forces implicit casting
+  6. **Overly complex CTEs** — deeply nested CTEs can confuse the optimiser
+</CalloutBox>
+
+---
+
+## Cheat Sheet
+
+<CheatSheet
+  client:load
+  title="Query Performance Quick Reference"
+  sections={[
+    { title: "Query Profile", icon: "🔍", items: [
+      { label: "Access", value: "Snowsight → Query History → select query → Query Profile", note: "" },
+      { label: "Pruning", value: "TableScan node: partitions scanned vs total", note: "" },
+      { label: "Spilling", value: "Sort/Join nodes: bytes spilled to local/remote", note: "" },
+    ]},
+    { title: "Warehouse Sizing", icon: "⚡", items: [
+      { label: "Spilling", value: "Scale UP — increase warehouse size", note: "" },
+      { label: "Queueing", value: "Scale OUT — multi-cluster (Enterprise+)", note: "" },
+      { label: "Result Cache", value: "Same SQL + unchanged data = free, 24h TTL", note: "No warehouse needed" },
+    ]},
+    { title: "Query History", icon: "📊", items: [
+      { label: "INFO_SCHEMA", value: "14 days, real-time, database scope", note: "" },
+      { label: "ACCOUNT_USAGE", value: "365 days, 45-min latency, full account", note: "" },
+    ]},
+  ]}
+/>
+
+---
+
+## Practice Quiz
+
+<Quiz client:load category="Query Performance" question="A Sort operator is spilling 50 GB to remote storage. What is the MOST appropriate fix?" options={[{label:"A",text:"Enable multi-cluster warehousing"},{label:"B",text:"Increase the warehouse size"},{label:"C",text:"Add a clustering key"},{label:"D",text:"Disable the result cache"}]} correct="B" explanation="Spilling = insufficient memory. Scale UP the warehouse to get more memory/compute. Multi-cluster (A) fixes concurrency, not single-query memory. Clustering (C) improves pruning, not sort memory." />
+
+<Quiz client:load category="Query Performance" question="A user runs the same SELECT twice in 10 minutes. Data unchanged. Warehouse is suspended. What happens on the second run?" options={[{label:"A",text:"Query fails — warehouse is suspended"},{label:"B",text:"Warehouse resumes and re-executes"},{label:"C",text:"Cached result returned from Cloud Services — zero credits"},{label:"D",text:"Query queues until warehouse resumes"}]} correct="C" explanation="Result cache is in the Cloud Services Layer, not the warehouse. Same SQL + unchanged data + same context = cached result returned instantly with no warehouse needed and zero credits consumed." />
+
+<Quiz client:load category="Query Performance" question="A query filters WHERE YEAR(created_at) = 2024. Only 200 of 10,000 partitions are pruned. What is the best fix?" options={[{label:"A",text:"Add a clustering key on YEAR(created_at)"},{label:"B",text:"Rewrite as WHERE created_at >= '2024-01-01' AND created_at < '2025-01-01'"},{label:"C",text:"Increase warehouse size"},{label:"D",text:"Create a materialised view"}]} correct="B" explanation="The YEAR() function on the column prevents min/max metadata pruning. Rewriting as a direct range comparison allows the optimiser to prune effectively. Warehouse size (C) doesn't improve pruning." />
+
+---
+
+## Flashcards
+
+<Flashcard client:load category="Query Performance" question="What are the two spilling locations and which is worse?" answer="First: local SSD (attached to warehouse nodes). Second: remote cloud storage (S3/Blob/GCS). Remote spilling is much slower and indicates the warehouse should be scaled up immediately." />
+
+<Flashcard client:load category="Query Performance" question="What three conditions must be met for the result cache to fire?" answer="1) Exact same SQL text. 2) Underlying data unchanged since caching. 3) Same role and context (database, schema). Cache lasts 24 hours. No warehouse needed — served from Cloud Services." />
+
+<Flashcard client:load category="Query Performance" question="INFORMATION_SCHEMA vs ACCOUNT_USAGE: retention and latency?" answer="INFORMATION_SCHEMA: 14 days, real-time, current database. ACCOUNT_USAGE: 365 days, up to 45-minute latency, full account scope." />
+
+<Flashcard client:load category="Query Performance" question="How does EXPLAIN differ from Query Profile?" answer="EXPLAIN shows the logical plan BEFORE execution — zero credits. Query Profile shows ACTUAL execution AFTER completion — real timing, data volumes, and spilling." />
+
+<Flashcard client:load category="Query Performance" question="When should you scale up vs scale out?" answer="Scale UP: individual queries are slow or spilling (more memory per query). Scale OUT (multi-cluster): many concurrent queries queueing (more clusters for concurrency)." />
+
+---
+
+## Resources
+
+- [Query Profile Documentation](https://docs.snowflake.com/en/user-guide/ui-query-profile)
+- [Query History Views](https://docs.snowflake.com/en/sql-reference/account-usage/query_history)
+- [EXPLAIN Command](https://docs.snowflake.com/en/sql-reference/sql/explain)
+- [Warehouse Sizing Guide](https://docs.snowflake.com/en/user-guide/warehouses-overview)
+
+---
+
+## Next Steps
+
+- [Caching Mechanisms](/performance/caching)
+- [Clustering Keys](/performance/clustering)
+- [Search Optimisation Service](/performance/search)

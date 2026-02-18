@@ -1,0 +1,602 @@
+---
+layout: ../../layouts/CourseLayout.astro
+title: "Stages & File Formats"
+moduleId: "external-stages"
+domain: "Data Loading"
+description: "Master Snowflake's stage types, external cloud storage integration, and file format objects for loading and unloading data for the SnowPro Core exam"
+---
+
+import KeyTerms from '../../components/KeyTerms'
+import YouTubeEmbed from '../../components/YouTubeEmbed'
+import Diagram from '../../components/Diagram'
+import CalloutBox from '../../components/CalloutBox'
+import CodeBlock from '../../components/CodeBlock'
+import CompareTable from '../../components/CompareTable'
+import StepByStep from '../../components/StepByStep'
+import CheatSheet from '../../components/CheatSheet'
+import Quiz from '../../components/Quiz'
+import Flashcard from '../../components/Flashcard'
+
+# Stages & File Formats
+
+Stages are one of the most heavily tested topics in the COF-C02 SnowPro Core exam. Understanding the differences between stage types, how to configure external storage integrations, and how to define file format objects is essential for both the exam and real-world Snowflake data engineering work.
+
+<KeyTerms client:load title="Key Terms: Stages & File Formats" terms={[
+  { term: "Stage", definition: "A named location — internal to Snowflake or external in cloud storage — where data files are held before loading into Snowflake tables or after unloading from them." },
+  { term: "User Stage", abbr: "@~", definition: "A private staging area automatically created for every Snowflake user. Cannot be explicitly created, dropped, or shared. Accessed via SnowSQL PUT and GET commands." },
+  { term: "Table Stage", abbr: "@%tablename", definition: "An automatically created staging area tied to a specific table. Accessible to users with INSERT or OWNERSHIP privilege on that table. Cannot be shared across tables." },
+  { term: "Named Internal Stage", definition: "A schema-level object explicitly created with CREATE STAGE. Fully shareable, supports encryption options, and can serve multiple tables. The most flexible internal stage type." },
+  { term: "Named External Stage", definition: "A schema-level object pointing to cloud storage (S3, Azure Blob, GCS). Requires URL and authentication configuration (credentials or storage integration)." },
+  { term: "Storage Integration", definition: "A Snowflake account-level object that enables secure, credential-free authentication to cloud storage providers by establishing a trust relationship with Snowflake's IAM role." },
+  { term: "File Format Object", definition: "A schema-level object (CREATE FILE FORMAT) that encapsulates parsing options for a specific file type such as CSV, JSON, Parquet, Avro, ORC, or XML." },
+  { term: "Directory Table", definition: "A feature on named stages (DIRECTORY = ENABLE = TRUE) that allows querying stage file metadata — file name, size, last modified — as a virtual table." },
+  { term: "PUT", definition: "A SnowSQL command used to upload files from a local machine to an internal stage (user, table, or named)." },
+  { term: "GET", definition: "A SnowSQL command used to download files from an internal stage to a local machine." },
+  { term: "LIST", abbr: "LS", definition: "A SQL command (LIST @stage_name) that returns metadata about files in a stage: file name, size, MD5 checksum, and last modified timestamp." },
+  { term: "REMOVE", abbr: "RM", definition: "A SQL command used to delete files from a stage. Supports PATTERN parameter for regex-based deletion." },
+  { term: "Parquet", definition: "A columnar binary file format commonly used with Snowflake for efficient loading. Preserves data types and supports SNAPPY and GZIP compression." },
+  { term: "COPY INTO", definition: "The primary SQL command for loading data from a stage into a Snowflake table, or unloading data from a table to a stage." }
+]} />
+
+---
+
+## What Is a Stage?
+
+A **stage** in Snowflake is a named location where data files are stored either before being loaded into Snowflake tables or after being exported from them. Stages act as the intermediary between your raw data files and your Snowflake tables.
+
+There are two broad categories:
+
+- **Internal stages** — storage managed by Snowflake itself
+- **External stages** — references to your own cloud storage (AWS S3, Azure Blob Storage, or Google Cloud Storage)
+
+<Diagram client:load
+  title="Snowflake Stage Architecture Overview"
+  description="Snowflake provides three internal stage types and three external stage targets. Data flows from local files or cloud storage through a stage and into Snowflake tables via COPY INTO. The same pathway works in reverse for unloading."
+  altText="Diagram showing local files going to user stage, table stage, or named internal stage, and cloud storage going to named external stages (S3, Azure, GCS), all feeding into Snowflake tables via COPY INTO commands"
+/>
+
+<CalloutBox type="exam" title="Exam Focus: Stage Type Characteristics">
+The exam regularly tests which stage type can or cannot be shared, which requires explicit creation, and which privileges are needed for access. Memorise the key distinctions: user stage is private and auto-created; table stage is table-scoped and auto-created; named internal stage is explicitly created and fully shareable.
+</CalloutBox>
+
+---
+
+## Internal Stage Types
+
+### User Stage (@~)
+
+Every Snowflake user automatically has a private staging area referenced as `@~`. Key characteristics:
+
+- **Cannot be explicitly created** — it exists automatically for every user
+- **Cannot be dropped or altered**
+- **Cannot be shared** with other users or roles
+- **Cannot have a file format assigned** at the stage level
+- Files are uploaded via SnowSQL `PUT` and downloaded via `GET`
+- Useful for quick, personal, one-off data loads
+
+<CodeBlock client:load language="sql" title="Using the User Stage (@~)" code={`-- Upload a file from local machine (SnowSQL only)
+PUT file:///tmp/my_data.csv @~;
+
+-- List files in your user stage
+LIST @~;
+
+-- Load from user stage into a table
+COPY INTO my_table
+FROM @~/my_data.csv
+FILE_FORMAT = (TYPE = CSV SKIP_HEADER = 1);
+
+-- Remove a file from user stage
+REMOVE @~/my_data.csv;`} />
+
+### Table Stage (@%table_name)
+
+Every Snowflake table automatically has an associated stage. It is referenced using `@%` followed by the table name.
+
+- **Cannot be explicitly created** — auto-created with each table
+- **Cannot be shared** across tables
+- **Accessible** to users with INSERT or OWNERSHIP privilege on the table
+- Cannot have a file format assigned at the stage level
+- Good for simple, single-table loading workflows
+
+<CodeBlock client:load language="sql" title="Using the Table Stage (@%tablename)" code={`-- Upload a file to the table stage (SnowSQL)
+PUT file:///tmp/sales_data.csv @%sales;
+
+-- List files in the table stage
+LIST @%sales;
+
+-- Load from table stage (file format specified inline)
+COPY INTO sales
+FROM @%sales
+FILE_FORMAT = (
+  TYPE = CSV
+  FIELD_DELIMITER = ','
+  SKIP_HEADER = 1
+  NULL_IF = ('NULL', 'null', '')
+);
+
+-- Remove all CSV files from the table stage
+REMOVE @%sales PATTERN='.*\\.csv';`} />
+
+### Named Internal Stage
+
+The most flexible internal stage type. Created explicitly as a schema-level object and can be shared across roles and used for multiple tables.
+
+- **Explicitly created** with CREATE STAGE
+- **Shareable** via GRANT
+- **Supports encryption** options (SNOWFLAKE_SSE)
+- Can have a **default file format** assigned
+- Can be used by multiple tables and workflows
+
+<CodeBlock client:load language="sql" title="Creating and Using a Named Internal Stage" code={`-- Create a named internal stage with server-side encryption
+CREATE OR REPLACE STAGE my_internal_stage
+  ENCRYPTION = (TYPE = 'SNOWFLAKE_SSE')
+  COMMENT = 'Named internal stage for sales data';
+
+-- Assign a file format at stage creation
+CREATE OR REPLACE STAGE my_csv_stage
+  FILE_FORMAT = (
+    TYPE = CSV
+    FIELD_DELIMITER = ','
+    SKIP_HEADER = 1
+    EMPTY_FIELD_AS_NULL = TRUE
+  );
+
+-- Grant usage to a role
+GRANT USAGE ON STAGE my_internal_stage TO ROLE data_engineer;
+GRANT READ ON STAGE my_internal_stage TO ROLE data_analyst;
+
+-- List files in named stage
+LIST @my_internal_stage;
+
+-- Load data from named stage
+COPY INTO orders
+FROM @my_internal_stage/orders/2024/
+FILE_FORMAT = (FORMAT_NAME = 'my_csv_format')
+ON_ERROR = 'CONTINUE';`} />
+
+<CalloutBox type="tip" title="Tip: Stage Encryption">
+Named internal stages support SNOWFLAKE_SSE (Snowflake-managed server-side encryption). This is the recommended option for internal stages. External stages use the cloud provider's encryption (e.g., AWS SSE-S3 or SSE-KMS).
+</CalloutBox>
+
+---
+
+## External Stages
+
+External stages point to cloud storage buckets or containers that you own and manage. Snowflake reads files from (or writes files to) these locations without storing the data itself.
+
+<Diagram client:load
+  title="External Stage Authentication Methods"
+  description="External stages can authenticate using inline credentials (AWS key/secret, SAS token for Azure) or via Storage Integrations. Storage Integrations are the recommended approach as they use IAM trust relationships and avoid storing sensitive credentials in Snowflake metadata."
+  altText="Diagram comparing two authentication paths: inline credentials path where AWS keys or Azure SAS tokens are embedded in the stage definition, versus storage integration path where Snowflake assumes an IAM role via a trust policy to access cloud storage without storing credentials"
+/>
+
+### External Stage — AWS S3
+
+<CodeBlock client:load language="sql" title="Creating an AWS S3 External Stage" code={`-- Option 1: Using inline credentials (less secure, not recommended for production)
+CREATE OR REPLACE STAGE my_s3_stage
+  URL = 's3://my-bucket/data/sales/'
+  CREDENTIALS = (
+    AWS_KEY_ID = 'AKIAIOSFODNN7EXAMPLE'
+    AWS_SECRET_KEY = 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+  )
+  FILE_FORMAT = (TYPE = CSV FIELD_DELIMITER = ',' SKIP_HEADER = 1);
+
+-- Option 2: Using a Storage Integration (recommended)
+CREATE OR REPLACE STAGE my_s3_stage_secure
+  URL = 's3://my-bucket/data/sales/'
+  STORAGE_INTEGRATION = my_s3_integration
+  FILE_FORMAT = (TYPE = CSV FIELD_DELIMITER = ',' SKIP_HEADER = 1)
+  COMMENT = 'Secure S3 stage using storage integration';
+
+-- Query the external stage directly (using directory table or INFER_SCHEMA)
+SELECT * FROM @my_s3_stage (FILE_FORMAT => 'my_csv_format') LIMIT 10;`} />
+
+### External Stage — Azure Blob Storage
+
+<CodeBlock client:load language="sql" title="Creating an Azure Blob Storage External Stage" code={`-- Using a Storage Integration (recommended)
+CREATE OR REPLACE STAGE my_azure_stage
+  URL = 'azure://myaccount.blob.core.windows.net/mycontainer/data/'
+  STORAGE_INTEGRATION = my_azure_integration
+  FILE_FORMAT = (
+    TYPE = JSON
+    STRIP_OUTER_ARRAY = TRUE
+  );
+
+-- Using a SAS token (less secure)
+CREATE OR REPLACE STAGE my_azure_stage_sas
+  URL = 'azure://myaccount.blob.core.windows.net/mycontainer/data/'
+  CREDENTIALS = (AZURE_SAS_TOKEN = '?sv=2020-08-04&ss=bfqt...')
+  FILE_FORMAT = (TYPE = JSON);`} />
+
+### External Stage — Google Cloud Storage
+
+```sql
+-- GCS requires a Storage Integration (no credential-based option)
+CREATE OR REPLACE STAGE my_gcs_stage
+  URL = 'gcs://my-gcs-bucket/data/'
+  STORAGE_INTEGRATION = my_gcs_integration
+  FILE_FORMAT = (TYPE = PARQUET);
+```
+
+<CalloutBox type="warning" title="Warning: Inline Credentials and Security">
+Storing AWS keys or Azure SAS tokens directly in a stage definition is a security risk. Those credentials can be retrieved by anyone with DESCRIBE STAGE privilege. Always use Storage Integrations in production environments to avoid embedding cloud provider secrets in Snowflake metadata.
+</CalloutBox>
+
+---
+
+## Storage Integrations
+
+A **Storage Integration** is an account-level Snowflake object that establishes a trust relationship between Snowflake and your cloud storage provider. This means Snowflake can access your storage without you needing to store cloud provider credentials.
+
+The trust model works as follows:
+1. You create the Storage Integration in Snowflake
+2. Snowflake generates an IAM principal (AWS IAM role ARN, Azure Service Principal, GCS Service Account)
+3. You grant that principal access to your cloud storage
+4. Snowflake assumes the identity to read/write files
+
+<StepByStep client:load title="Setting Up an AWS S3 Storage Integration" steps={[
+  {
+    title: "Create the Storage Integration in Snowflake",
+    description: "Define which S3 bucket paths Snowflake is allowed to access. Use ACCOUNTADMIN role.",
+    code: `CREATE OR REPLACE STORAGE INTEGRATION my_s3_integration
+  TYPE = EXTERNAL_STAGE
+  STORAGE_PROVIDER = 'S3'
+  ENABLED = TRUE
+  STORAGE_AWS_ROLE_ARN = 'arn:aws:iam::123456789012:role/snowflake-s3-role'
+  STORAGE_ALLOWED_LOCATIONS = ('s3://my-bucket/data/', 's3://my-bucket/exports/')
+  COMMENT = 'S3 integration for data loading';`,
+    tip: "STORAGE_ALLOWED_LOCATIONS restricts which buckets/paths this integration can access. Use the principle of least privilege."
+  },
+  {
+    title: "Retrieve the Snowflake IAM Details",
+    description: "Snowflake generates an AWS IAM user ARN and external ID. You need these to configure the trust policy in AWS.",
+    code: `DESC INTEGRATION my_s3_integration;
+-- Note these output values:
+-- STORAGE_AWS_IAM_USER_ARN (e.g., arn:aws:iam::snowflake-account:user/...)
+-- STORAGE_AWS_EXTERNAL_ID  (e.g., ABC12345_SFCRole=...)`,
+    tip: "Copy the STORAGE_AWS_IAM_USER_ARN and STORAGE_AWS_EXTERNAL_ID values — you will need them in the AWS IAM console."
+  },
+  {
+    title: "Update the AWS IAM Role Trust Policy",
+    description: "In the AWS console, edit the trust policy of the IAM role to allow Snowflake's IAM user to assume it.",
+    code: `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::snowflake-account:user/sfcuser"
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {
+          "sts:ExternalId": "ABC12345_SFCRole=..."
+        }
+      }
+    }
+  ]
+}`,
+    tip: "The ExternalId condition prevents the confused deputy problem — always include it."
+  },
+  {
+    title: "Create the External Stage Using the Integration",
+    description: "Reference the storage integration in your CREATE STAGE statement instead of inline credentials.",
+    code: `CREATE OR REPLACE STAGE my_s3_stage
+  URL = 's3://my-bucket/data/'
+  STORAGE_INTEGRATION = my_s3_integration
+  FILE_FORMAT = (TYPE = CSV SKIP_HEADER = 1);`,
+    tip: "The stage URL must fall within the STORAGE_ALLOWED_LOCATIONS defined in the integration."
+  },
+  {
+    title: "Verify the Setup",
+    description: "Test the integration by listing files in the stage.",
+    code: `-- List files in the external stage
+LIST @my_s3_stage;
+
+-- Attempt to load a sample file
+COPY INTO my_table
+FROM @my_s3_stage/sample.csv
+FILE_FORMAT = (FORMAT_NAME = 'my_csv_format')
+VALIDATION_MODE = 'RETURN_ERRORS';`,
+    tip: "VALIDATION_MODE = 'RETURN_ERRORS' runs the COPY dry-run and returns any parse errors without loading data."
+  }
+]} />
+
+---
+
+## LIST and REMOVE Commands
+
+<CompareTable client:load title="LIST vs REMOVE Commands" leftLabel="LIST" rightLabel="REMOVE" rows={[
+  { feature: "Purpose", left: "View files in a stage", right: "Delete files from a stage", winner: "neither" },
+  { feature: "Syntax", left: "LIST @stage_name;", right: "REMOVE @stage/file.csv;", winner: "neither" },
+  { feature: "Pattern support", left: "LIST @stage PATTERN='.*\\.csv';", right: "REMOVE @stage PATTERN='.*\\.csv';", winner: "neither" },
+  { feature: "Returns", left: "File name, size, MD5, last modified", right: "Confirmation of deleted files", winner: "neither" },
+  { feature: "Subfolder support", left: "LIST @stage/subfolder/;", right: "REMOVE @stage/subfolder/;", winner: "neither" },
+  { feature: "Alias", left: "LS @stage_name;", right: "RM @stage/file.csv;", winner: "neither" },
+  { feature: "Affects billing?", left: "No (read-only metadata)", right: "No cost, but frees storage", winner: "neither" }
+]} />
+
+```sql
+-- List all files in a named stage
+LIST @my_internal_stage;
+
+-- List files in a subfolder path
+LIST @my_s3_stage/data/2024/;
+
+-- List only CSV files using PATTERN
+LIST @my_internal_stage PATTERN='.*\\.csv';
+
+-- Remove a specific file
+REMOVE @my_internal_stage/old_data.csv;
+
+-- Remove all Parquet files using PATTERN
+REMOVE @my_s3_stage PATTERN='.*\\.parquet';
+```
+
+---
+
+## File Format Objects
+
+A **file format object** is a schema-level object that captures all the parsing configuration for a specific file type. Using file format objects promotes reuse and consistency across multiple COPY INTO statements.
+
+<CodeBlock client:load language="sql" title="Creating File Format Objects" code={`-- CSV file format with common options
+CREATE OR REPLACE FILE FORMAT my_csv_format
+  TYPE = CSV
+  FIELD_DELIMITER = ','
+  RECORD_DELIMITER = '\\n'
+  SKIP_HEADER = 1
+  NULL_IF = ('NULL', 'null', '\\\\N', '')
+  EMPTY_FIELD_AS_NULL = TRUE
+  FIELD_OPTIONALLY_ENCLOSED_BY = '"'
+  DATE_FORMAT = 'YYYY-MM-DD'
+  TIMESTAMP_FORMAT = 'YYYY-MM-DD HH24:MI:SS'
+  ESCAPE = '\\\\'
+  TRIM_SPACE = TRUE
+  ERROR_ON_COLUMN_COUNT_MISMATCH = FALSE;
+
+-- JSON file format
+CREATE OR REPLACE FILE FORMAT my_json_format
+  TYPE = JSON
+  STRIP_OUTER_ARRAY = TRUE
+  ALLOW_DUPLICATE = FALSE
+  IGNORE_UTF8_ERRORS = FALSE;
+
+-- Parquet file format
+CREATE OR REPLACE FILE FORMAT my_parquet_format
+  TYPE = PARQUET
+  SNAPPY_COMPRESSION = TRUE;
+
+-- Avro file format
+CREATE OR REPLACE FILE FORMAT my_avro_format
+  TYPE = AVRO;
+
+-- ORC file format
+CREATE OR REPLACE FILE FORMAT my_orc_format
+  TYPE = ORC;`} />
+
+<CalloutBox type="info" title="File Format Object Hierarchy">
+When a COPY INTO statement references both a stage with a default file format and an inline FILE_FORMAT clause, the inline specification takes precedence. The order of precedence is: inline FILE_FORMAT option > stage-level file format > file format object referenced by FORMAT_NAME.
+</CalloutBox>
+
+### CSV File Format Key Options
+
+| Option | Description | Example |
+|---|---|---|
+| `FIELD_DELIMITER` | Character separating fields | `','` or `'|'` or `'\t'` |
+| `RECORD_DELIMITER` | Character separating rows | `'\n'` or `'\r\n'` |
+| `SKIP_HEADER` | Number of header rows to skip | `1` |
+| `NULL_IF` | Values to treat as SQL NULL | `('NULL', '', '\\N')` |
+| `EMPTY_FIELD_AS_NULL` | Treat empty string as NULL | `TRUE` |
+| `FIELD_OPTIONALLY_ENCLOSED_BY` | Quote character for fields | `'"'` or `"'"` |
+| `DATE_FORMAT` | Pattern for date parsing | `'YYYY-MM-DD'` |
+| `TIMESTAMP_FORMAT` | Pattern for timestamp parsing | `'YYYY-MM-DD HH24:MI:SS'` |
+| `ESCAPE` | Escape character | `'\\'` |
+| `TRIM_SPACE` | Remove leading/trailing spaces | `TRUE` |
+| `ERROR_ON_COLUMN_COUNT_MISMATCH` | Fail if column count differs | `FALSE` |
+
+### JSON File Format Key Options
+
+| Option | Description |
+|---|---|
+| `STRIP_OUTER_ARRAY` | Remove the outer `[...]` array wrapper — use when JSON is an array of objects |
+| `ALLOW_DUPLICATE` | Whether to allow duplicate keys in JSON objects |
+| `IGNORE_UTF8_ERRORS` | Replace invalid UTF-8 characters rather than failing |
+
+### Columnar Formats (Parquet, Avro, ORC)
+
+<CalloutBox type="note" title="Columnar Format Behaviour">
+Parquet, Avro, and ORC files are binary, self-describing, and schema-embedded. When loading into Snowflake VARIANT columns, no format options are needed for basic ingestion. Use MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE when loading into typed tables to map Parquet column names to Snowflake column names automatically.
+</CalloutBox>
+
+---
+
+## Directory Tables
+
+Directory tables are a special feature available on named internal and external stages. When enabled, they expose file metadata as a queryable virtual table.
+
+```sql
+-- Enable directory table on a named stage
+CREATE OR REPLACE STAGE my_stage_with_dir
+  URL = 's3://my-bucket/files/'
+  STORAGE_INTEGRATION = my_s3_integration
+  DIRECTORY = (ENABLE = TRUE);
+
+-- Refresh the directory table (sync with underlying storage)
+ALTER STAGE my_stage_with_dir REFRESH;
+
+-- Query the directory table
+SELECT *
+FROM DIRECTORY(@my_stage_with_dir);
+
+-- Query with filters
+SELECT
+  RELATIVE_PATH,
+  SIZE,
+  LAST_MODIFIED,
+  MD5,
+  ETAG
+FROM DIRECTORY(@my_stage_with_dir)
+WHERE RELATIVE_PATH LIKE '%.parquet'
+ORDER BY LAST_MODIFIED DESC;
+```
+
+<Diagram client:load
+  title="Stage URL Reference Patterns"
+  description="Snowflake uses consistent URL prefixes to reference different stage types. Understanding the @ prefix syntax is critical for writing COPY INTO, LIST, REMOVE, and GET commands correctly."
+  altText="Reference table diagram showing four stage URL patterns: @~ for user stage, @%tablename for table stage, @stagename for named internal stage, and @stagename/path/ for a subdirectory within a named stage. Each pattern is shown with an example command."
+/>
+
+### Stage URL Quick Reference
+
+| Stage Type | URL Pattern | Example |
+|---|---|---|
+| User stage | `@~` | `LIST @~;` |
+| User stage file | `@~/filename` | `@~/data.csv` |
+| Table stage | `@%tablename` | `@%orders` |
+| Table stage file | `@%tablename/file` | `@%orders/data.csv` |
+| Named stage | `@stagename` | `@my_stage` |
+| Named stage subfolder | `@stagename/path/` | `@my_stage/2024/01/` |
+| Named stage file | `@stagename/file` | `@my_stage/data.csv` |
+
+---
+
+## Cheat Sheet
+
+<CheatSheet client:load title="Stages & File Formats Cheat Sheet" sections={[
+  {
+    title: "Stage Types at a Glance",
+    icon: "table",
+    items: [
+      { label: "User Stage", value: "@~", note: "Private, auto-created, not shareable, no explicit creation" },
+      { label: "Table Stage", value: "@%tablename", note: "Auto-created per table, needs INSERT/OWNERSHIP privilege" },
+      { label: "Named Internal", value: "CREATE STAGE", note: "Schema object, shareable, supports encryption, most flexible" },
+      { label: "Named External (S3)", value: "URL='s3://...'", note: "Points to your S3 bucket, use storage integration" },
+      { label: "Named External (Azure)", value: "URL='azure://...'", note: "Points to Azure Blob, use storage integration" },
+      { label: "Named External (GCS)", value: "URL='gcs://...'", note: "Points to GCS bucket, requires storage integration" }
+    ]
+  },
+  {
+    title: "File Format Types",
+    icon: "file",
+    items: [
+      { label: "CSV", value: "TYPE = CSV", note: "Most common; configure FIELD_DELIMITER, SKIP_HEADER, NULL_IF" },
+      { label: "JSON", value: "TYPE = JSON", note: "Use STRIP_OUTER_ARRAY=TRUE for arrays of objects" },
+      { label: "Parquet", value: "TYPE = PARQUET", note: "Columnar, typed, SNAPPY/GZIP compression" },
+      { label: "Avro", value: "TYPE = AVRO", note: "Schema embedded in file, binary format" },
+      { label: "ORC", value: "TYPE = ORC", note: "Columnar binary, commonly from Hive/Hadoop" },
+      { label: "XML", value: "TYPE = XML", note: "Loads into VARIANT; use XMLGET for querying" }
+    ]
+  },
+  {
+    title: "Essential Commands",
+    icon: "terminal",
+    items: [
+      { label: "PUT", value: "PUT file:///path @stage;", note: "SnowSQL only — upload local file to internal stage" },
+      { label: "GET", value: "GET @stage/file file://path;", note: "SnowSQL only — download from internal stage" },
+      { label: "LIST", value: "LIST @stage;", note: "Returns file name, size, MD5, last modified" },
+      { label: "REMOVE", value: "REMOVE @stage/file;", note: "Deletes file(s); supports PATTERN for regex" },
+      { label: "COPY INTO table", value: "COPY INTO t FROM @stage", note: "Loads files from stage into table" },
+      { label: "COPY INTO location", value: "COPY INTO @stage FROM t", note: "Unloads table data to stage" }
+    ]
+  },
+  {
+    title: "Storage Integration Key Facts",
+    icon: "shield",
+    items: [
+      { label: "Object level", value: "ACCOUNT level", note: "Created by ACCOUNTADMIN, referenced by stages" },
+      { label: "Supported providers", value: "S3, Azure, GCS", note: "Each has its own STORAGE_PROVIDER value" },
+      { label: "Key option", value: "STORAGE_ALLOWED_LOCATIONS", note: "Restricts which paths the integration can access" },
+      { label: "DESC command", value: "DESC INTEGRATION name;", note: "Reveals IAM USER ARN and EXTERNAL ID for trust setup" },
+      { label: "Security benefit", value: "No stored credentials", note: "Credentials never embedded in stage metadata" }
+    ]
+  }
+]} />
+
+---
+
+## Practice Quizzes
+
+<Quiz client:load
+  category="Stages & File Formats"
+  question="A data engineer needs to load files from multiple tables and share the staging area with multiple roles. Which stage type is most appropriate?"
+  options={[
+    { label: "A", value: "User stage (@~) because it is always available without creation" },
+    { label: "B", value: "Table stage (@%tablename) because it is tied to a specific table" },
+    { label: "C", value: "Named internal stage because it is shareable and supports multiple tables" },
+    { label: "D", value: "Any stage type — they are all equally shareable" }
+  ]}
+  correct="C"
+  explanation="Named internal stages are schema-level objects that can be granted to multiple roles and used across multiple tables. User stages are private and not shareable. Table stages are tied to a single table and cannot be shared across tables. Named internal stages are the correct answer for multi-role, multi-table scenarios."
+/>
+
+<Quiz client:load
+  category="Stages & File Formats"
+  question="Which of the following statements about the user stage (@~) is TRUE?"
+  options={[
+    { label: "A", value: "It must be explicitly created using CREATE STAGE before use" },
+    { label: "B", value: "It can be shared with other users by granting the USAGE privilege" },
+    { label: "C", value: "It is automatically created for every Snowflake user and cannot be explicitly created or dropped" },
+    { label: "D", value: "It supports assigning a default file format at the stage level" }
+  ]}
+  correct="C"
+  explanation="The user stage exists automatically for every Snowflake user — it cannot be created, dropped, or altered explicitly. It is private to the user (cannot be shared), and does not support a default file format at the stage level. These restrictions make it unsuitable for production pipelines but convenient for quick personal loads."
+/>
+
+<Quiz client:load
+  category="Stages & File Formats"
+  question="When loading JSON data where the top-level structure is an array of objects (e.g., [{...},{...}]), which FILE FORMAT option must be set to load each object as a separate row?"
+  options={[
+    { label: "A", value: "ALLOW_DUPLICATE = TRUE" },
+    { label: "B", value: "STRIP_OUTER_ARRAY = TRUE" },
+    { label: "C", value: "IGNORE_UTF8_ERRORS = TRUE" },
+    { label: "D", value: "RECORD_DELIMITER = '}'" }
+  ]}
+  correct="B"
+  explanation="STRIP_OUTER_ARRAY = TRUE tells Snowflake to remove the outermost square brackets from a JSON array and treat each element of the array as a separate row. Without this option, Snowflake would attempt to load the entire array as a single VARIANT value. ALLOW_DUPLICATE handles duplicate keys, IGNORE_UTF8_ERRORS handles encoding issues, and RECORD_DELIMITER is a CSV option not applicable to JSON."
+/>
+
+---
+
+## Flashcards
+
+<Flashcard client:load
+  category="Stages & File Formats"
+  question="What is the URL prefix for a user stage, a table stage, and a named stage respectively?"
+  answer="User stage: @~ | Table stage: @%tablename | Named stage: @stagename. These prefixes are used in all stage-related commands including COPY INTO, LIST, REMOVE, PUT, and GET."
+/>
+
+<Flashcard client:load
+  category="Stages & File Formats"
+  question="What are the two authentication options for an external stage, and which is recommended for production?"
+  answer="Option 1: Inline credentials (AWS_KEY_ID/AWS_SECRET_KEY, Azure SAS token) — embedded in stage definition, less secure. Option 2: Storage Integration — Snowflake assumes a cloud IAM role via a trust relationship, no credentials stored in Snowflake metadata. Storage Integrations are strongly recommended for production."
+/>
+
+<Flashcard client:load
+  category="Stages & File Formats"
+  question="What does the STRIP_OUTER_ARRAY = TRUE option do in a JSON file format, and when should it be used?"
+  answer="STRIP_OUTER_ARRAY = TRUE removes the outermost square brackets from a JSON array, causing each element of the array to be loaded as a separate row. Use it when your JSON files contain an array of objects at the top level, e.g., [{...}, {...}, {...}]. Without it, the entire array is loaded as a single VARIANT row."
+/>
+
+<Flashcard client:load
+  category="Stages & File Formats"
+  question="Which Snowflake command refreshes the directory table metadata for a named stage after new files are added to the underlying cloud storage?"
+  answer="ALTER STAGE stage_name REFRESH; — this synchronises the directory table metadata with the current state of the underlying cloud storage. Without refreshing, newly added files may not appear in DIRECTORY(@stage_name) query results."
+/>
+
+<Flashcard client:load
+  category="Stages & File Formats"
+  question="What privilege is required to access a table stage (@%tablename), and what are the limitations of a table stage compared to a named internal stage?"
+  answer="Access to a table stage requires INSERT or OWNERSHIP privilege on the table. Limitations: cannot be explicitly created or dropped, cannot be shared across tables, cannot have a default file format, and cannot be used for multiple tables. Named internal stages overcome all of these limitations."
+/>
+
+---
+
+<CalloutBox type="important" title="Summary: What to Remember for the COF-C02 Exam">
+1. Stage types and their key characteristics: user (@~) — private, auto-created; table (@%name) — table-scoped, auto-created; named internal — explicit, shareable; named external — points to cloud storage.
+2. External stages authenticate via inline credentials or Storage Integrations. Storage Integrations are the secure, credential-free option and are ACCOUNT-level objects.
+3. Storage Integration setup: create in Snowflake, get IAM details via DESC INTEGRATION, configure trust policy in cloud provider, reference in stage definition.
+4. LIST returns file metadata; REMOVE deletes files. Both support PATTERN for regex-based filtering.
+5. File format precedence: inline FILE_FORMAT > stage-level format > named FILE FORMAT object.
+6. STRIP_OUTER_ARRAY = TRUE is critical for loading JSON arrays as individual rows.
+7. Directory tables require DIRECTORY = (ENABLE = TRUE) on the stage and must be refreshed with ALTER STAGE ... REFRESH.
+</CalloutBox>

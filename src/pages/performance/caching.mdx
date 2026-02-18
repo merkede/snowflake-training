@@ -1,0 +1,536 @@
+---
+layout: ../../layouts/CourseLayout.astro
+title: "Caching Mechanisms"
+moduleId: "caching"
+domain: "Performance"
+description: "Master Snowflake's three-layer caching system — result cache, local disk cache, and metadata cache — to maximise performance and reduce costs for the SnowPro Core exam"
+---
+
+import KeyTerms from '../../components/KeyTerms';
+import YouTubeEmbed from '../../components/YouTubeEmbed';
+import Diagram from '../../components/Diagram';
+import CalloutBox from '../../components/CalloutBox';
+import CodeBlock from '../../components/CodeBlock';
+import CompareTable from '../../components/CompareTable';
+import StepByStep from '../../components/StepByStep';
+import CheatSheet from '../../components/CheatSheet';
+import Quiz from '../../components/Quiz';
+import Flashcard from '../../components/Flashcard';
+
+# Caching Mechanisms
+
+Snowflake's caching architecture is one of the most frequently tested topics on the COF-C02 exam. Unlike traditional databases that rely on a single buffer pool, Snowflake operates three **independent** caching layers, each serving a different purpose, persisting for a different duration, and carrying different cost implications. Mastering all three — and understanding exactly when each fires and when it does not — is essential for both the exam and real-world performance optimisation.
+
+<KeyTerms client:load title="Key Terms — Caching Mechanisms" terms={[
+  {
+    term: "Result Cache",
+    abbr: "QRC",
+    definition: "A centralised, Cloud Services-layer store that holds the complete result set of every successfully executed query for up to 24 hours. Served at zero credit cost when a cache hit occurs."
+  },
+  {
+    term: "Local Disk Cache",
+    abbr: "LDC",
+    definition: "Per-virtual-warehouse SSD storage that caches raw columnar micro-partition data fetched from cloud object storage. Persists only while the warehouse is running."
+  },
+  {
+    term: "Metadata Cache",
+    abbr: "MDC",
+    definition: "A persistent, Snowflake-managed store in the Cloud Services layer that holds table and column statistics — row counts, min/max values, null counts, and distinct value estimates — used for query planning and pruning."
+  },
+  {
+    term: "Cache Hit",
+    definition: "The condition where a query or data request is satisfied entirely from a cache layer without accessing underlying cloud storage or re-executing compute."
+  },
+  {
+    term: "Cache Invalidation",
+    definition: "The process by which a cached entry is marked stale or removed. For the result cache, invalidation occurs when underlying table data changes via DML or DDL."
+  },
+  {
+    term: "Cache Warming",
+    definition: "The process of populating the local disk cache by executing queries that bring micro-partition data from cloud storage into warehouse SSD storage."
+  },
+  {
+    term: "Non-Deterministic Function",
+    definition: "A SQL function that can return different results on successive calls with identical inputs — for example, CURRENT_TIMESTAMP(), RANDOM(), and UUID_STRING(). Queries containing these functions cannot be served from the result cache."
+  },
+  {
+    term: "Micro-Partition",
+    definition: "Snowflake's internal storage unit. Each micro-partition is a contiguous, columnar, compressed file of approximately 50–500 MB of uncompressed data. Caching operates at this granularity."
+  },
+  {
+    term: "Cloud Services Layer",
+    definition: "Snowflake's always-on control plane responsible for authentication, query parsing and optimisation, metadata management, and hosting the result cache and metadata cache."
+  },
+  {
+    term: "Serverless Credits",
+    definition: "A credit-consumption model for Snowflake background services (such as Automatic Clustering and Snowpipe) that do not require a user-managed virtual warehouse."
+  }
+]} />
+
+---
+
+## Why Caching Matters on the Exam
+
+The COF-C02 exam regularly presents scenarios where a candidate must identify **which cache layer** is responsible for a performance outcome, or explain **why** a cache did not fire. Common question patterns include:
+
+- A query returns instantly the second time — which cache is responsible?
+- A warehouse is suspended overnight — what happens to cached data?
+- Two different warehouses run the same query — do they share a cache?
+- A query uses `CURRENT_TIMESTAMP()` — will the result cache help?
+
+Understanding the answers to these questions requires a thorough grasp of all three layers.
+
+<CalloutBox type="exam" title="Exam Priority — Know All Three Caches">
+The COF-C02 exam tests each of the three cache layers separately. You must be able to distinguish between them by: where they live (Cloud Services vs warehouse SSD), how long they persist, what they store, and what invalidates them. Confusing the result cache with the local disk cache is one of the most common candidate errors.
+</CalloutBox>
+
+<YouTubeEmbed client:load videoId="dQw4w9WgXcQ" title="Snowflake Caching Deep Dive — Three Layers Explained" description="Watch a detailed walkthrough of Snowflake's three-layer caching architecture, including live demonstrations of result cache hits in the Query Profile and explanations of cache invalidation scenarios tested on the COF-C02 exam." />
+
+---
+
+## The Three-Layer Caching Architecture
+
+<Diagram client:load title="Snowflake Three-Layer Caching Architecture" description="A layered architectural diagram showing the three independent caching mechanisms in Snowflake. At the top sits the Cloud Services Layer, which houses two of the three caches: the Result Cache (Query Result Cache) shown as a large repository storing complete result sets from every executed query, retained for up to 24 hours, and the Metadata Cache shown as a database of table statistics including row counts, min/max values, null counts, and distinct value estimates. Below the Cloud Services layer sits the Compute Layer containing multiple independent Virtual Warehouses (depicted as separate server clusters). Each virtual warehouse has its own Local Disk Cache (SSD) shown as a fast storage layer attached to the warehouse. Arrows show the flow: a client query first checks the Result Cache in Cloud Services. On a miss, the Cloud Services layer routes the query to a Virtual Warehouse. The Virtual Warehouse checks its Local Disk Cache (SSD). On a miss at the SSD layer, the warehouse fetches micro-partition files from the Remote Cloud Storage (shown at the bottom as an object store — S3, Azure Blob, or GCS). The fetched data is written into the Local Disk Cache for future reuse. The Metadata Cache feeds into the query optimiser in Cloud Services to enable partition pruning before any data is read. A key annotation indicates that the Result Cache and Metadata Cache are centralised and shared across the account, while Local Disk Cache is strictly per-warehouse and is lost on suspension." altText="Three-layer Snowflake caching architecture: Result Cache and Metadata Cache in Cloud Services layer, Local Disk Cache (SSD) per virtual warehouse, and cloud object storage at the bottom." />
+
+The three layers operate independently and serve different stages of query execution:
+
+| Cache Layer | Location | What Is Stored | Duration | Cost When Hit |
+|---|---|---|---|---|
+| **Result Cache** | Cloud Services | Complete result sets | Up to 24 hours | Zero credits |
+| **Local Disk Cache** | Virtual Warehouse SSD | Raw micro-partition data | While warehouse is running | Reduced credits vs cloud read |
+| **Metadata Cache** | Cloud Services | Table/column statistics | Persistent (Snowflake managed) | Zero credits |
+
+---
+
+## Layer 1 — Result Cache (Query Result Cache)
+
+The result cache is the **first** cache layer checked for any incoming query. When Snowflake receives a SQL statement, the Cloud Services layer computes a fingerprint of the query text and checks whether an identical result set already exists in the result cache.
+
+### How the Result Cache Works
+
+1. The user submits a SQL query.
+2. Cloud Services parses the query and computes a cache key from the **exact SQL text** (including whitespace and case).
+3. If a matching entry exists in the result cache **and** is still valid (not invalidated by DML/DDL on the underlying tables), the result set is returned immediately.
+4. **No virtual warehouse is activated.** Zero compute credits are consumed.
+5. If no cache hit, the query proceeds to compute execution and the result is stored in the result cache upon completion.
+
+<Diagram client:load title="Result Cache Hit vs Miss Decision Flow" description="A detailed decision-tree flowchart illustrating the result cache lookup process for every incoming Snowflake query. The flow starts with a client submitting a SQL query to Snowflake Cloud Services. The first decision diamond asks: 'Is the SQL text byte-for-byte identical to a previously cached query, including case and whitespace?' If No, the flow branches to 'Cache Miss — Route to Virtual Warehouse for execution.' If Yes, a second decision diamond asks: 'Has the result cache entry been invalidated by DML or DDL on the underlying tables since the result was cached?' If Yes (i.e., data has changed), the flow branches to Cache Miss. If No, a third decision diamond asks: 'Is the cached result less than 24 hours old?' If No, Cache Miss. If Yes, a fourth decision diamond asks: 'Does the query contain non-deterministic functions such as CURRENT_TIMESTAMP, RANDOM, UUID_STRING, or SEQ?' If Yes, Cache Miss. A fifth decision diamond asks: 'Is the user executing the query operating under the same role context as when the result was originally cached?' If No, Cache Miss. If all checks pass, the flow reaches 'Cache Hit — Return result set immediately, zero compute credits consumed.' The Cache Miss path shows the query going to a virtual warehouse, executing against micro-partitions, and storing the new result in the result cache for future reuse, with a timestamp and table change-detection token saved alongside it." altText="Flowchart of result cache decision logic: identical SQL text, no invalidation, within 24 hours, no non-deterministic functions, same role context — all must be true for a cache hit." />
+
+### Result Cache Rules — Exam Critical
+
+<CalloutBox type="exam" title="Result Cache — Five Conditions for a Cache Hit">
+All five of the following conditions must be true for a result cache hit to occur:
+1. The SQL text must be **byte-for-byte identical** — same case, same whitespace, same schema qualification.
+2. The cached result must be **less than 24 hours old**.
+3. The underlying tables must not have been **modified by DML or DDL** since the result was cached.
+4. The query must **not contain non-deterministic functions** (CURRENT_TIMESTAMP, RANDOM, UUID_STRING, SEQ, etc.).
+5. The executing user must have the **same role context** as the original query.
+If any one of these conditions fails, Snowflake falls through to full query execution.
+</CalloutBox>
+
+### What the Result Cache Stores and Where
+
+The result cache lives **in the Cloud Services layer**, meaning it is:
+- **Centralised** — shared across all virtual warehouses in the account
+- **Account-scoped** — multiple warehouses or users can benefit from a result cached by any warehouse
+- **Transparent** — no user configuration is required; it is always active
+
+The cache entry stores the complete result set. For very large result sets, this can consume significant Cloud Services storage, but this is managed entirely by Snowflake and has no user-visible cost impact.
+
+### Non-Deterministic Functions — Why They Block Caching
+
+A non-deterministic function is one whose output can differ between calls even when given the same inputs. Because Snowflake cannot guarantee that re-serving a cached result would be correct (the function might produce a different value today), any query containing such a function is ineligible for result caching.
+
+<CodeBlock client:load language="sql" title="Queries That Will NOT Hit the Result Cache" code={`-- These queries CANNOT be served from the result cache
+-- because they contain non-deterministic functions.
+
+-- CURRENT_TIMESTAMP returns a different value every second
+SELECT order_id, CURRENT_TIMESTAMP() AS run_time
+FROM orders
+WHERE order_date = '2024-01-15';
+
+-- RANDOM() produces a new random value on every execution
+SELECT TOP 100 customer_id, RANDOM() AS sample_weight
+FROM customers;
+
+-- UUID_STRING generates a unique identifier each call
+SELECT UUID_STRING() AS batch_id, COUNT(*) AS row_count
+FROM transactions;
+
+-- SEQ (sequence objects) advance the sequence each call
+SELECT MY_SEQ.NEXTVAL, product_name
+FROM products;
+
+-- -------------------------------------------------------
+-- These queries CAN be served from the result cache
+-- (deterministic, no DML on underlying tables since last run)
+
+SELECT COUNT(*) FROM orders WHERE order_date = '2024-01-15';
+
+SELECT region, SUM(revenue) AS total_revenue
+FROM sales
+GROUP BY region
+ORDER BY total_revenue DESC;
+
+SELECT customer_id, first_name, last_name
+FROM customers
+WHERE country = 'GB';`} />
+
+### SHOW Commands and the Result Cache
+
+SHOW commands (e.g., `SHOW TABLES`, `SHOW SCHEMAS`, `SHOW WAREHOUSES`) retrieve metadata from the Cloud Services layer. These commands **can** benefit from the result cache in a similar fashion to standard queries, and they **do not require a running virtual warehouse** because they operate entirely within the Cloud Services layer.
+
+---
+
+## Layer 2 — Local Disk Cache (Data Cache / Warehouse Cache)
+
+The local disk cache is fundamentally different from the result cache. Rather than storing final query results, it stores **raw columnar micro-partition data** — the actual files fetched from cloud object storage (S3, Azure Blob, or GCS). This cache lives on the **SSD storage attached to each virtual warehouse's compute nodes**.
+
+### How the Local Disk Cache Works
+
+When a virtual warehouse executes a query, it must fetch the relevant micro-partition files from cloud object storage. These fetches are slower than reading from local SSD. Snowflake automatically caches the fetched micro-partition data on the warehouse's SSD. On the next query that requires the same micro-partitions, Snowflake reads from SSD rather than cloud storage — significantly faster.
+
+<Diagram client:load title="Local Disk Cache — Warm vs Cold Warehouse Behaviour" description="A side-by-side comparison diagram illustrating the difference between a cold warehouse (no local disk cache) and a warm warehouse (populated local disk cache). On the left side, labelled 'Cold Warehouse — First Query After Resume', a timeline shows a client query arriving at a virtual warehouse. The warehouse has an empty SSD cache (shown as a grey empty box). The warehouse sends fetch requests to Remote Cloud Storage (S3/Azure/GCS). Multiple micro-partition files (shown as coloured blocks P1, P2, P3, P4, P5) are transferred over the network from cloud storage to the warehouse's SSD. The query then reads from the freshly populated SSD. An annotation shows 'High latency — cloud storage network fetch required for every micro-partition'. On the right side, labelled 'Warm Warehouse — Subsequent Query on Same Data', the same client query arrives. The warehouse SSD is now shown as populated with the same micro-partition blocks P1-P5 (coloured green to indicate they are cached). The query reads directly from SSD without touching cloud storage. An annotation shows 'Low latency — data served from local SSD, no cloud storage fetch'. At the bottom of both sides, a critical note states: 'Local Disk Cache is LOST when the warehouse is suspended or terminated. The next resume starts with a cold cache.' A separate annotation in the centre highlights: 'Two different warehouses NEVER share local disk cache — each warehouse has its own independent SSD layer.'" altText="Side-by-side diagram: cold warehouse fetching from cloud storage vs warm warehouse reading micro-partitions from local SSD cache. Cache is lost on warehouse suspension." />
+
+### Key Characteristics of the Local Disk Cache
+
+<CalloutBox type="important" title="Local Disk Cache Is Per-Warehouse and Ephemeral">
+The local disk cache is **strictly per-virtual-warehouse**. Two warehouses running the same query against the same table do **not** share local disk cache. Each warehouse must independently warm its own cache. Additionally, the local disk cache is entirely lost when a warehouse is suspended or terminated — the next resume starts with a completely cold cache.
+</CalloutBox>
+
+**Cache persistence:**
+- Persists as long as the warehouse remains in a **Running** state
+- Lost immediately on **Suspend** or **Terminate**
+- Multi-cluster warehouses: each compute cluster within a multi-cluster warehouse maintains its own SSD cache
+
+**Cache size:**
+- Determined by the warehouse size (larger warehouses have more nodes with more aggregate SSD capacity)
+- Not user-configurable directly; scales with warehouse size selection
+
+**Cache eviction:**
+- Uses an LRU (Least Recently Used) eviction policy when SSD capacity is reached
+- Older, less-frequently-accessed micro-partition data is evicted first
+
+### Cache Warming Strategies
+
+Because the local disk cache is lost on suspension, workload patterns and auto-suspend settings have a direct impact on cache effectiveness:
+
+<StepByStep client:load title="Optimising Local Disk Cache Warming for Repeated Workloads" steps={[
+  {
+    title: "Identify Repeated Query Patterns",
+    description: "Use QUERY_HISTORY in the ACCOUNT_USAGE schema to identify which tables and columns are queried most frequently by your workload. Tables that are queried many times per hour benefit most from cache warming.",
+    code: "SELECT\n  query_text,\n  COUNT(*) AS execution_count,\n  AVG(bytes_scanned) AS avg_bytes_scanned,\n  AVG(percentage_scanned_from_cache) AS avg_cache_pct\nFROM SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY\nWHERE start_time >= DATEADD('day', -7, CURRENT_TIMESTAMP())\nGROUP BY query_text\nORDER BY execution_count DESC\nLIMIT 50;"
+  },
+  {
+    title: "Tune Auto-Suspend to Match Workload Patterns",
+    description: "For bursty workloads where queries arrive in waves, increase the auto-suspend delay to keep the warehouse running (and its cache warm) between query bursts. For overnight batch jobs that run once, a shorter auto-suspend is acceptable.",
+    code: "-- Keep warehouse alive for 10 minutes of idle time\n-- to preserve the warm cache between query bursts\nALTER WAREHOUSE my_analytics_wh\nSET AUTO_SUSPEND = 600; -- 600 seconds = 10 minutes",
+    tip: "The credit cost of keeping a warehouse running for an extra few minutes is often far less than the cost of re-scanning terabytes of cloud storage due to a cold cache."
+  },
+  {
+    title: "Use Dedicated Warehouses for Hot Datasets",
+    description: "Assign a dedicated virtual warehouse to workloads that repeatedly query the same set of tables (e.g., a reporting warehouse for a specific data mart). This ensures cache warming efforts are not diluted by unrelated queries from other teams.",
+    tip: "Shared warehouses serve many different workloads, reducing the likelihood that any given dataset stays warm in the cache."
+  },
+  {
+    title: "Monitor Cache Hit Rates in Query Profile",
+    description: "Open the Query Profile for any query in Snowsight. The 'Bytes Scanned from Cache' metric shows what percentage of data was read from local SSD vs cloud storage. A high cache percentage indicates a warm warehouse and efficient cache utilisation.",
+    code: "-- Alternatively, query QUERY_HISTORY for cache statistics\nSELECT\n  query_id,\n  query_text,\n  bytes_scanned,\n  bytes_written,\n  ROUND(\n    (bytes_scanned - bytes_written_to_result) /\n    NULLIF(bytes_scanned, 0) * 100, 2\n  ) AS estimated_cache_pct\nFROM SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY\nWHERE start_time >= DATEADD('hour', -24, CURRENT_TIMESTAMP())\nORDER BY bytes_scanned DESC\nLIMIT 20;"
+  },
+  {
+    title: "Consider Warehouse Sizing for Cache Capacity",
+    description: "Larger warehouse sizes have more compute nodes and therefore more aggregate SSD storage. If your dataset is very large and cache misses are frequent despite a warm warehouse, consider scaling up the warehouse size to increase total SSD cache capacity.",
+    tip: "Scaling up increases both compute power and SSD cache capacity — but only scale up if cache misses are the identified bottleneck, not simply slow query execution."
+  }
+]} />
+
+---
+
+## Layer 3 — Metadata Cache (Cloud Services Layer)
+
+The metadata cache is the most fundamental and persistent of the three layers. It is maintained entirely by Snowflake in the Cloud Services layer and stores **statistical metadata** about every table and its micro-partitions.
+
+### What the Metadata Cache Stores
+
+For every table in Snowflake, the metadata cache maintains:
+- **Row count** — total number of rows in the table
+- **Min / Max values** — minimum and maximum values per column per micro-partition (used for pruning)
+- **Null count** — number of null values per column per micro-partition
+- **Distinct value estimates** — approximate cardinality per column
+- **Micro-partition file references** — locations of all micro-partition files in cloud storage
+
+### How Queries Use the Metadata Cache
+
+<CalloutBox type="info" title="Queries Answered Entirely from Metadata — No Warehouse Required">
+Certain query patterns can be answered entirely from the metadata cache, requiring **no virtual warehouse activation** and consuming **zero compute credits**:
+
+- `SELECT COUNT(*) FROM table_name` with no WHERE clause — the row count is in metadata
+- `SELECT MIN(clustering_key_col), MAX(clustering_key_col) FROM table_name` — min/max from metadata
+- `SHOW TABLES`, `SHOW SCHEMAS`, `SHOW COLUMNS` — entirely metadata-served
+- `DESCRIBE TABLE table_name` — metadata only
+
+These are common exam distractors: candidates may assume a warehouse is needed, but these queries bypass compute entirely.
+</CalloutBox>
+
+### Metadata Cache and Query Pruning
+
+The metadata cache is what enables **micro-partition pruning** — Snowflake's most impactful performance optimisation. Before a virtual warehouse reads a single byte of data, the Cloud Services optimiser consults the metadata cache to determine which micro-partitions **cannot possibly contain** rows matching the WHERE clause.
+
+For example, if a query filters on `order_date = '2024-03-15'` and a particular micro-partition's metadata shows `min_date = '2024-05-01'` and `max_date = '2024-07-31'`, that micro-partition is **pruned** (skipped) without being read. This happens at the Cloud Services layer before the warehouse executes.
+
+**Metadata cache persistence:** The metadata cache is persistent and managed by Snowflake. It is updated automatically whenever DML (INSERT, UPDATE, DELETE, MERGE) or DDL operations occur on a table. Unlike the result cache and local disk cache, users have no mechanism to invalidate or manage the metadata cache — Snowflake handles this entirely.
+
+---
+
+## Cache Comparison — Side by Side
+
+<CompareTable client:load title="Result Cache vs Local Disk Cache" leftLabel="Result Cache" rightLabel="Local Disk Cache" rows={[
+  {
+    feature: "Location",
+    left: "Cloud Services layer (centralised)",
+    right: "Virtual warehouse SSD (per-warehouse)",
+    winner: "none"
+  },
+  {
+    feature: "What is cached",
+    left: "Complete query result sets",
+    right: "Raw micro-partition data files",
+    winner: "none"
+  },
+  {
+    feature: "Shared across warehouses?",
+    left: "Yes — any warehouse can hit a result cached by any other warehouse",
+    right: "No — each warehouse has its own isolated SSD cache",
+    winner: "left"
+  },
+  {
+    feature: "Credit cost on cache hit",
+    left: "Zero credits — no warehouse activation",
+    right: "Reduced credits vs cloud storage read, but warehouse still runs",
+    winner: "left"
+  },
+  {
+    feature: "Cache duration",
+    left: "Up to 24 hours (reset on DML/DDL)",
+    right: "While warehouse is running only (lost on suspend)",
+    winner: "left"
+  },
+  {
+    feature: "Invalidation trigger",
+    left: "DML or DDL on underlying tables; 24-hour expiry",
+    right: "Warehouse suspend or terminate",
+    winner: "none"
+  },
+  {
+    feature: "Non-deterministic functions",
+    left: "Blocks cache hit — query must re-execute",
+    right: "No impact — caches raw data regardless of function use",
+    winner: "right"
+  },
+  {
+    feature: "Role context required?",
+    left: "Yes — same role as original cached query",
+    right: "No — role has no bearing on SSD data cache",
+    winner: "right"
+  },
+  {
+    feature: "Exact SQL match required?",
+    left: "Yes — byte-for-byte identical SQL text",
+    right: "No — caches at data block level, not query level",
+    winner: "right"
+  },
+  {
+    feature: "User configuration required?",
+    left: "None — always active, cannot be disabled",
+    right: "None — automatic; auto-suspend tuning affects warming",
+    winner: "none"
+  }
+]} />
+
+---
+
+## Cache Invalidation Rules
+
+<CalloutBox type="warning" title="Cache Invalidation — Common Exam Trap">
+A frequently tested scenario: a query runs, returns results in 100ms (result cache hit). Then someone runs an INSERT on the underlying table. The very next identical query will NOT hit the result cache — the DML has invalidated it. This catches candidates who assume the 24-hour window is absolute.
+</CalloutBox>
+
+### Result Cache Invalidation
+
+The result cache is invalidated for a specific query when:
+1. **Any DML** (INSERT, UPDATE, DELETE, MERGE, COPY INTO) is executed on any table referenced by the query
+2. **DDL changes** to the table (ALTER TABLE, DROP COLUMN, etc.)
+3. **24 hours have elapsed** since the result was cached (even without any data changes)
+
+### Local Disk Cache Invalidation
+
+The local disk cache is lost when:
+1. The virtual warehouse is **suspended** (even briefly)
+2. The virtual warehouse is **terminated**
+3. For multi-cluster warehouses: when an individual cluster scales down
+
+### Metadata Cache Invalidation
+
+The metadata cache is **not invalidated** by users — Snowflake updates it automatically and continuously. When DML occurs, the metadata for affected micro-partitions is updated immediately. The metadata cache is never "stale" from a correctness standpoint.
+
+<CodeBlock client:load language="sql" title="Testing Cache Behaviour — Practical Examples" code={`-- ============================================================
+-- RESULT CACHE TESTING
+-- ============================================================
+
+-- Run this query first — it executes against the warehouse
+SELECT region, SUM(sales_amount) AS total_sales
+FROM fact_sales
+WHERE sale_date BETWEEN '2024-01-01' AND '2024-03-31'
+GROUP BY region
+ORDER BY total_sales DESC;
+
+-- Run the EXACT same query again — should hit result cache
+-- Check Query Profile: "Query Result Reuse" indicator
+SELECT region, SUM(sales_amount) AS total_sales
+FROM fact_sales
+WHERE sale_date BETWEEN '2024-01-01' AND '2024-03-31'
+GROUP BY region
+ORDER BY total_sales DESC;
+
+-- Inserting data invalidates the result cache for fact_sales
+INSERT INTO fact_sales VALUES (DEFAULT, 'NORTH', 99999, '2024-01-01');
+
+-- Now the same query will NOT hit result cache — cache invalidated
+SELECT region, SUM(sales_amount) AS total_sales
+FROM fact_sales
+WHERE sale_date BETWEEN '2024-01-01' AND '2024-03-31'
+GROUP BY region
+ORDER BY total_sales DESC;
+
+-- ============================================================
+-- METADATA CACHE EXAMPLES — NO WAREHOUSE NEEDED
+-- ============================================================
+
+-- COUNT(*) on large table — served from metadata cache
+-- No warehouse credit consumption
+SELECT COUNT(*) FROM fact_sales;
+
+-- MIN/MAX on well-clustered column — from metadata
+SELECT MIN(sale_date), MAX(sale_date) FROM fact_sales;
+
+-- ============================================================
+-- CHECKING CACHE USAGE IN QUERY HISTORY
+-- ============================================================
+
+SELECT
+  query_id,
+  query_text,
+  execution_status,
+  -- This column indicates result cache reuse
+  -- 'true' means the result was served from the result cache
+  query_tag,
+  start_time,
+  end_time,
+  total_elapsed_time / 1000 AS elapsed_seconds
+FROM SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY
+WHERE start_time >= DATEADD('hour', -1, CURRENT_TIMESTAMP())
+ORDER BY start_time DESC
+LIMIT 20;`} />
+
+---
+
+## Practical Cache Strategies
+
+<CalloutBox type="tip" title="Practical Tip — Standardise SQL Formatting for Result Cache Hits">
+Because the result cache requires byte-for-byte identical SQL, teams that generate queries programmatically (via BI tools, dbt, application code) should standardise SQL formatting: consistent capitalisation, whitespace, and schema qualification. Even a trailing space or different alias can prevent a cache hit. Many BI tools have a "SQL normalisation" or "cache key" setting for this purpose.
+</CalloutBox>
+
+### When to Rely on Each Cache
+
+| Scenario | Best Cache | Strategy |
+|---|---|---|
+| Dashboard with fixed date-range queries | Result Cache | Standardise SQL; same role for all dashboard users |
+| Large fact table scanned repeatedly in one session | Local Disk Cache | Keep warehouse running; increase auto-suspend delay |
+| COUNT(*) and simple aggregations | Metadata Cache | No action needed — automatic |
+| Ad-hoc analytical queries (different every time) | Local Disk Cache | Warm warehouse; consider dedicated warehouse per team |
+| Queries with CURRENT_DATE in WHERE clause | Local Disk Cache | Result cache won't fire (date changes daily) |
+
+---
+
+## Cheat Sheet — Caching for the Exam
+
+<CheatSheet client:load title="Snowflake Caching — COF-C02 Quick Reference" sections={[
+  {
+    title: "Result Cache",
+    icon: "⚡",
+    items: [
+      { label: "Location", value: "Cloud Services layer", note: "Centralised, account-wide" },
+      { label: "Duration", value: "Up to 24 hours", note: "Reset by DML/DDL on tables" },
+      { label: "Credit cost", value: "Zero", note: "No warehouse activation needed" },
+      { label: "SQL match", value: "Byte-for-byte identical", note: "Case and whitespace sensitive" },
+      { label: "Role required", value: "Same role context", note: "Different role = cache miss" },
+      { label: "Blocked by", value: "Non-deterministic functions", note: "CURRENT_TIMESTAMP, RANDOM, etc." },
+      { label: "Shared across warehouses", value: "Yes", note: "Any warehouse can benefit" },
+      { label: "User config needed", value: "None", note: "Always active, cannot disable" }
+    ]
+  },
+  {
+    title: "Local Disk Cache",
+    icon: "💾",
+    items: [
+      { label: "Location", value: "Virtual warehouse SSD", note: "Per-warehouse, not shared" },
+      { label: "Duration", value: "While warehouse is running", note: "Lost on suspend/terminate" },
+      { label: "What is stored", value: "Raw micro-partition files", note: "Columnar data blocks" },
+      { label: "Credit cost", value: "Reduced vs cloud fetch", note: "Warehouse still active" },
+      { label: "Shared across warehouses", value: "No", note: "Each warehouse independent" },
+      { label: "Invalidation", value: "Warehouse suspend/terminate", note: "Not by DML" },
+      { label: "Warming strategy", value: "Run queries on same data", note: "Keep warehouse alive" },
+      { label: "Multi-cluster", value: "Per-cluster, not shared", note: "Each cluster has own SSD" }
+    ]
+  },
+  {
+    title: "Metadata Cache",
+    icon: "📊",
+    items: [
+      { label: "Location", value: "Cloud Services layer", note: "Centralised, always available" },
+      { label: "Duration", value: "Persistent", note: "Snowflake managed, always current" },
+      { label: "What is stored", value: "Row counts, min/max, nulls", note: "Per column per micro-partition" },
+      { label: "Credit cost", value: "Zero", note: "No warehouse for metadata queries" },
+      { label: "Updates", value: "Automatic on DML/DDL", note: "Always accurate" },
+      { label: "Used for", value: "Pruning + query optimisation", note: "Before execution begins" },
+      { label: "COUNT(*) queries", value: "Served from metadata", note: "No warehouse needed" },
+      { label: "User management", value: "None required", note: "Fully Snowflake managed" }
+    ]
+  }
+]} />
+
+---
+
+## Knowledge Check — Quizzes
+
+<Quiz client:load category="Caching" question="A BI dashboard runs the same SQL query every 5 minutes using the same Snowflake role. After the first run, subsequent executions return results in under 100 milliseconds. No one has modified the underlying tables. Which cache is responsible?" options={[{label:"A",text:"Local disk cache — the warehouse SSD holds the query results"},{label:"B",text:"Result cache — the complete result set is served from the Cloud Services layer at zero credit cost"},{label:"C",text:"Metadata cache — the row counts and statistics are served directly"},{label:"D",text:"Both the result cache and local disk cache work together to serve the results"}]} correct="B" explanation="The result cache stores complete query result sets in the Cloud Services layer for up to 24 hours. When the same SQL text is submitted by the same role context and the underlying tables have not been modified, Snowflake returns the cached result at zero compute credit cost. The local disk cache stores raw micro-partition data, not result sets, and the metadata cache stores table statistics — neither stores complete query outputs." />
+
+<Quiz client:load category="Caching" question="A virtual warehouse processes a large query that scans 500 GB of data from cloud storage. The warehouse then auto-suspends due to inactivity. Two hours later, the warehouse resumes and runs the same query again. What is the expected behaviour?" options={[{label:"A",text:"The query reads entirely from the local disk cache because the data was cached before suspension"},{label:"B",text:"The query hits the result cache and returns instantly if the underlying data has not changed"},{label:"C",text:"The query must re-fetch all 500 GB of micro-partition data from cloud storage because the local disk cache was lost when the warehouse suspended"},{label:"D",text:"Snowflake preserves the local disk cache across suspensions if the warehouse resumes within 24 hours"}]} correct="C" explanation="The local disk cache (SSD) is lost when a virtual warehouse is suspended or terminated. On resume, the warehouse starts with a completely cold cache. The first query must re-fetch all required micro-partitions from cloud storage. The result cache may help if the SQL is identical, the data unchanged, and within 24 hours — but the local disk cache is definitively gone. Snowflake does NOT preserve the SSD cache across suspend/resume cycles regardless of how short the suspension was." />
+
+<Quiz client:load category="Caching" question="Which of the following SQL queries will ALWAYS be ineligible for the result cache, regardless of when it runs or whether the underlying data has changed?" options={[{label:"A",text:"SELECT COUNT(*) FROM orders WHERE status = 'SHIPPED';"},{label:"B",text:"SELECT region, SUM(revenue) FROM sales GROUP BY region;"},{label:"C",text:"SELECT order_id, CURRENT_TIMESTAMP() AS retrieved_at FROM orders WHERE order_id = 42;"},{label:"D",text:"SELECT MIN(order_date), MAX(order_date) FROM orders;"}]} correct="C" explanation="CURRENT_TIMESTAMP() is a non-deterministic function — it returns a different value on every call. Any query containing a non-deterministic function is permanently ineligible for the result cache because Snowflake cannot guarantee that re-serving a previously cached result would produce the correct current timestamp. The other three queries are fully deterministic and will be eligible for result caching provided the other conditions (same SQL, same role, unchanged tables, within 24 hours) are met." />
+
+---
+
+## Flashcards — Caching
+
+<Flashcard client:load category="Caching" question="What are the three caching layers in Snowflake?" answer="1. Result Cache (Query Result Cache) — stores complete result sets in Cloud Services for up to 24 hours, zero credits on hit. 2. Local Disk Cache — stores raw micro-partition data on each warehouse's SSD, persists while warehouse runs. 3. Metadata Cache — stores table/column statistics (row counts, min/max, nulls) in Cloud Services, persistent and Snowflake-managed." />
+
+<Flashcard client:load category="Caching" question="What five conditions must ALL be true for a result cache hit to occur?" answer="1. SQL text must be byte-for-byte identical (case and whitespace sensitive). 2. Cached result must be less than 24 hours old. 3. Underlying tables must not have been modified by DML or DDL since caching. 4. Query must not contain non-deterministic functions (CURRENT_TIMESTAMP, RANDOM, etc.). 5. Executing user must be operating under the same role context as the original query." />
+
+<Flashcard client:load category="Caching" question="What happens to the local disk cache when a virtual warehouse is suspended?" answer="The local disk cache is completely lost. All micro-partition data cached on the warehouse's SSD is discarded. When the warehouse resumes, it starts with a cold cache and must re-fetch all required micro-partitions from cloud object storage on the next query execution." />
+
+<Flashcard client:load category="Caching" question="Do two different virtual warehouses share the local disk cache?" answer="No. The local disk cache is strictly per-warehouse. Each virtual warehouse has its own independent SSD layer. If Warehouse A caches micro-partitions for Table X, Warehouse B cannot access those cached partitions — it must fetch and cache them independently from cloud storage." />
+
+<Flashcard client:load category="Caching" question="Which types of queries can be answered entirely from the metadata cache without activating a virtual warehouse?" answer="Queries answered from metadata with no warehouse needed: SELECT COUNT(*) FROM table with no WHERE clause (row count in metadata), SELECT MIN(col), MAX(col) on clustering key columns (min/max in metadata per partition), SHOW TABLES / SHOW SCHEMAS / SHOW COLUMNS (metadata only), and DESCRIBE TABLE. All of these consume zero compute credits." />
+
+---
+
+## Summary
+
+Snowflake's three caching layers form a tiered defence against unnecessary computation and cloud storage reads:
+
+- **Result Cache** — the most powerful, serving entire result sets at zero cost, but requiring strict conditions (identical SQL, same role, no DML, no non-deterministic functions, within 24 hours)
+- **Local Disk Cache** — reduces cloud storage I/O by keeping frequently accessed micro-partitions on warehouse SSD, but is per-warehouse and ephemeral (lost on suspend)
+- **Metadata Cache** — always-on, Snowflake-managed statistics that power pruning and answer simple aggregate queries without a warehouse
+
+For the exam, the most critical distinctions are: the result cache is **centralised** and **zero cost**; the local disk cache is **per-warehouse** and **ephemeral**; and the metadata cache is **persistent** and **automatic**. Understanding exactly what invalidates each cache — and when each will NOT fire — is the key to answering exam scenario questions correctly.

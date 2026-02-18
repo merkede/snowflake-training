@@ -1,0 +1,246 @@
+---
+layout: ../../layouts/CourseLayout.astro
+title: "Data Unloading"
+description: "Master Snowflake data unloading — COPY INTO location, GET command, file formats, partitioning, and compression for the SnowPro Core exam"
+moduleId: "unloading"
+domain: "Data Loading"
+---
+
+import Flashcard from '../../components/Flashcard.tsx';
+import CodeBlock from '../../components/CodeBlock.tsx';
+import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
+import Diagram from '../../components/Diagram.tsx';
+import CalloutBox from '../../components/CalloutBox.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import CompareTable from '../../components/CompareTable.tsx';
+import KeyTerms from '../../components/KeyTerms.tsx';
+import StepByStep from '../../components/StepByStep.tsx';
+import CheatSheet from '../../components/CheatSheet.tsx';
+
+<KeyTerms client:load title="Key Terms — Data Unloading" terms={[
+  { term: "COPY INTO <location>", abbr: "—", definition: "SQL command to export data from a Snowflake table into files in a stage (internal or external). The reverse of COPY INTO <table>." },
+  { term: "GET", abbr: "—", definition: "SQL command to download files from an internal stage to a local machine. Only works with internal stages, not external." },
+  { term: "SINGLE", abbr: "—", definition: "COPY INTO option that writes all output to a single file instead of splitting across multiple files." },
+  { term: "MAX_FILE_SIZE", abbr: "—", definition: "Controls the maximum size of each output file. Default is 16 MB for most formats." },
+  { term: "PARTITION BY", abbr: "—", definition: "Organises unloaded files into a directory structure based on column expressions — useful for partitioned data lakes." },
+  { term: "OVERWRITE", abbr: "—", definition: "When TRUE, overwrites existing files in the target location. Default is FALSE." },
+]} />
+
+---
+
+## What is Data Unloading?
+
+Data unloading is the process of **exporting data from Snowflake tables into files** in a stage. This is the reverse of data loading — instead of COPY INTO a table, you COPY INTO a location.
+
+<Diagram client:load title="Unloading Flow" description="Flow diagram: 1) Snowflake table contains the source data. 2) COPY INTO location command executes on a virtual warehouse. 3) Data is written as files (CSV, JSON, Parquet) to internal stage (@~, @%, @named) or external stage (S3/Blob/GCS). 4) Optionally, GET command downloads from internal stage to local filesystem." altText="Flow from Snowflake table through COPY INTO to stage files, then optionally GET to local" />
+
+<CalloutBox type="exam" title="Exam Focus: Loading vs Unloading">
+  COPY INTO **table** = loading (files to table). COPY INTO **location** = unloading (table to files). Both use a virtual warehouse. Snowpipe only supports loading — you cannot use Snowpipe to unload data.
+</CalloutBox>
+
+---
+
+## COPY INTO Location Syntax
+
+<CodeBlock client:load language="sql" title="Basic Unloading" code={`-- Unload to a named internal stage
+COPY INTO @my_stage/export/
+FROM sales.orders
+FILE_FORMAT = (TYPE = CSV COMPRESSION = GZIP)
+HEADER = TRUE;
+
+-- Unload to an external stage (S3)
+COPY INTO @my_s3_stage/daily_export/
+FROM (
+  SELECT order_id, customer_id, total_amount
+  FROM sales.orders
+  WHERE order_date = CURRENT_DATE()
+)
+FILE_FORMAT = (TYPE = PARQUET)
+HEADER = TRUE;`} />
+
+<CalloutBox type="info" title="Query-Based Unloading">
+  You can unload from a full table or from a SELECT query (wrapped in parentheses). This lets you filter, transform, and join data before exporting — no need to create a temporary table first.
+</CalloutBox>
+
+---
+
+## Key COPY INTO Options
+
+<CodeBlock client:load language="sql" title="Important Unloading Options" code={`-- Single file output (default splits into multiple files)
+COPY INTO @my_stage/single_export/
+FROM sales.orders
+SINGLE = TRUE
+MAX_FILE_SIZE = 5368709120;  -- 5 GB max for single file
+
+-- Overwrite existing files
+COPY INTO @my_stage/export/
+FROM sales.orders
+OVERWRITE = TRUE;
+
+-- Control file size (default 16 MB)
+COPY INTO @my_stage/export/
+FROM sales.orders
+MAX_FILE_SIZE = 67108864;  -- 64 MB per file
+
+-- Include column headers
+COPY INTO @my_stage/export/
+FROM sales.orders
+FILE_FORMAT = (TYPE = CSV)
+HEADER = TRUE;`} />
+
+<CalloutBox type="warning" title="SINGLE = TRUE Considerations">
+  Writing to a single file is slower because it cannot parallelise writes. Use SINGLE only when the consumer requires a single file. For large exports, multiple files is significantly faster.
+</CalloutBox>
+
+---
+
+## PARTITION BY
+
+PARTITION BY organises unloaded files into a directory structure based on column expressions — ideal for creating partitioned data lakes.
+
+<CodeBlock client:load language="sql" title="Partitioned Unloading" code={`-- Partition by date
+COPY INTO @my_s3_stage/orders/
+FROM (
+  SELECT *, DATE_TRUNC('month', order_date) AS month
+  FROM sales.orders
+)
+PARTITION BY (month)
+FILE_FORMAT = (TYPE = PARQUET)
+HEADER = TRUE;
+-- Creates: orders/2024-01/data_0_0_0.parquet
+--          orders/2024-02/data_0_0_0.parquet
+
+-- Partition by multiple columns
+COPY INTO @my_s3_stage/events/
+FROM (
+  SELECT *, YEAR(event_date) AS yr, MONTH(event_date) AS mo
+  FROM analytics.events
+)
+PARTITION BY (yr, mo)
+FILE_FORMAT = (TYPE = PARQUET);`} />
+
+---
+
+## Supported File Formats
+
+<CompareTable client:load title="Unloading File Formats" leftLabel="Structured (CSV/TSV)" rightLabel="Semi-Structured (JSON/Parquet)" rows={[
+  { feature: "Formats", left: "CSV, TSV (delimited)", right: "JSON, Parquet", winner: "none" },
+  { feature: "Compression", left: "GZIP (default), BZ2, BROTLI, ZSTD, NONE", right: "GZIP for JSON, SNAPPY for Parquet", winner: "none" },
+  { feature: "Headers", left: "HEADER = TRUE supported", right: "N/A for JSON; column names in Parquet metadata", winner: "none" },
+  { feature: "Best for", left: "Legacy systems, spreadsheets, simple integrations", right: "Data lakes, analytics platforms, schema preservation", winner: "right" },
+  { feature: "VARIANT support", left: "Flattened to string", right: "Native structure preserved", winner: "right" },
+]} />
+
+<CalloutBox type="exam" title="Exam Focus: Parquet Unloading">
+  Parquet is the preferred format for data lake exports. It preserves data types, supports columnar compression, and maintains schema metadata. Snowflake can unload directly to Parquet without any external tools.
+</CalloutBox>
+
+---
+
+## GET Command
+
+The GET command downloads files from an **internal stage** to your local filesystem. It does not work with external stages.
+
+<CodeBlock client:load language="sql" title="GET Command" code={`-- Download from named internal stage
+GET @my_stage/export/ file:///tmp/local_data/;
+
+-- Download from user stage
+GET @~/export/ file:///tmp/local_data/;
+
+-- Download from table stage
+GET @%orders/export/ file:///tmp/local_data/;`} />
+
+<CalloutBox type="important" title="GET = Internal Stages Only">
+  GET only works with internal stages (@~, @%, @named_internal). For external stages, use cloud-native tools (AWS CLI, Azure CLI, gsutil) to download files directly from cloud storage.
+</CalloutBox>
+
+---
+
+## Compression Options
+
+<CheatSheet client:load title="Compression by Format" sections={[
+  { title: "CSV / TSV", icon: "📄", items: [
+    { label: "Default", value: "GZIP", note: "" },
+    { label: "Options", value: "GZIP, BZ2, BROTLI, ZSTD, DEFLATE, RAW_DEFLATE, NONE", note: "" },
+    { label: "Recommendation", value: "GZIP for broad compatibility; ZSTD for best ratio", note: "" },
+  ]},
+  { title: "JSON", icon: "📋", items: [
+    { label: "Default", value: "GZIP", note: "" },
+    { label: "Options", value: "GZIP, BZ2, BROTLI, ZSTD, DEFLATE, RAW_DEFLATE, NONE", note: "" },
+  ]},
+  { title: "Parquet", icon: "📊", items: [
+    { label: "Default", value: "SNAPPY", note: "" },
+    { label: "Options", value: "SNAPPY, LZO, NONE", note: "Limited options for Parquet" },
+  ]},
+]} />
+
+---
+
+## StepByStep: Unloading Data
+
+<StepByStep client:load title="Unloading Data End-to-End" steps={[
+  { title: "Choose your destination", description: "Decide whether to unload to an internal stage (for GET download) or external stage (for cloud storage access).", tip: "Use external stages for data lake patterns; internal stages for ad-hoc exports." },
+  { title: "Write the COPY INTO statement", description: "Specify the target location, source query, file format, and options.", code: `COPY INTO @my_s3_stage/daily/\nFROM (\n  SELECT order_id, customer_id, total_amount\n  FROM sales.orders\n  WHERE order_date = CURRENT_DATE()\n)\nFILE_FORMAT = (TYPE = PARQUET)\nHEADER = TRUE\nOVERWRITE = TRUE;` },
+  { title: "Verify the output", description: "List the files in the stage to confirm they were created.", code: `LIST @my_s3_stage/daily/;` },
+  { title: "Download if needed", description: "For internal stages, use GET to download locally.", code: `-- Only for internal stages\nGET @my_stage/daily/ file:///tmp/export/;` },
+]} />
+
+---
+
+## Cheat Sheet
+
+<CheatSheet client:load title="Data Unloading Quick Reference" sections={[
+  { title: "Key Commands", icon: "⌨️", items: [
+    { label: "Unload", value: "COPY INTO @stage/ FROM table_or_query", note: "" },
+    { label: "Download", value: "GET @internal_stage/ file:///local/path/", note: "Internal only" },
+    { label: "List files", value: "LIST @stage/path/", note: "" },
+    { label: "Remove files", value: "REMOVE @stage/path/file.csv.gz", note: "" },
+  ]},
+  { title: "Key Options", icon: "⚙️", items: [
+    { label: "SINGLE", value: "TRUE = one file; FALSE (default) = multiple parallel files", note: "" },
+    { label: "MAX_FILE_SIZE", value: "Default 16 MB; controls split size", note: "" },
+    { label: "OVERWRITE", value: "TRUE = replace existing; FALSE (default) = fail if exists", note: "" },
+    { label: "HEADER", value: "TRUE = include column headers in CSV", note: "" },
+    { label: "PARTITION BY", value: "Organise output into directory structure", note: "" },
+  ]},
+]} />
+
+---
+
+## Practice Quiz
+
+<Quiz client:load category="Data Loading" question="Which command exports data from a Snowflake table into files?" options={[{label:"A",text:"GET"},{label:"B",text:"PUT"},{label:"C",text:"COPY INTO <location>"},{label:"D",text:"EXPORT TABLE"}]} correct="C" explanation="COPY INTO <location> unloads data from a table into files in a stage. GET downloads files from an internal stage to a local machine. PUT uploads local files to a stage. EXPORT TABLE does not exist in Snowflake." />
+
+<Quiz client:load category="Data Loading" question="What is the default compression for Parquet unloading?" options={[{label:"A",text:"GZIP"},{label:"B",text:"SNAPPY"},{label:"C",text:"ZSTD"},{label:"D",text:"NONE"}]} correct="B" explanation="Parquet files use SNAPPY compression by default in Snowflake. CSV and JSON default to GZIP." />
+
+<Quiz client:load category="Data Loading" question="The GET command can download files from which type of stage?" options={[{label:"A",text:"External stages only"},{label:"B",text:"Internal stages only"},{label:"C",text:"Both internal and external stages"},{label:"D",text:"Table stages only"}]} correct="B" explanation="GET only works with internal stages (user, table, or named internal). For external stages, use cloud-native tools like AWS CLI or gsutil." />
+
+---
+
+## Flashcards
+
+<Flashcard client:load category="Data Loading" question="What is the difference between COPY INTO table and COPY INTO location?" answer="COPY INTO table = loading (files to table). COPY INTO location = unloading (table to files). Both require a virtual warehouse." />
+
+<Flashcard client:load category="Data Loading" question="What does SINGLE = TRUE do when unloading?" answer="Writes all output to a single file instead of splitting across multiple parallel files. Slower but useful when the consumer requires exactly one file." />
+
+<Flashcard client:load category="Data Loading" question="What does PARTITION BY do in an unload operation?" answer="Organises output files into a directory structure based on column expressions. For example, PARTITION BY (year, month) creates folders like /2024/01/, /2024/02/. Ideal for data lake patterns." />
+
+<Flashcard client:load category="Data Loading" question="Can you unload data using Snowpipe?" answer="No. Snowpipe only supports loading (ingesting files into tables). For unloading, use COPY INTO <location> with a virtual warehouse, or schedule it with a Task." />
+
+<Flashcard client:load category="Data Loading" question="What is the default MAX_FILE_SIZE for unloading?" answer="16 MB. Snowflake splits output into multiple files of this size by default. You can increase it or use SINGLE = TRUE for one file." />
+
+---
+
+## Resources
+
+- [COPY INTO Location Documentation](https://docs.snowflake.com/en/sql-reference/sql/copy-into-location)
+- [GET Command](https://docs.snowflake.com/en/sql-reference/sql/get)
+- [Unloading Overview](https://docs.snowflake.com/en/user-guide/data-unload-overview)
+
+---
+
+## Next Steps
+
+- [Stages & File Formats](/data-loading/stages)
+- [Bulk Data Loading](/data-loading/bulk)
+- [Snowpipe](/data-loading/snowpipe)

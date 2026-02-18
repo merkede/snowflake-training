@@ -1,0 +1,206 @@
+---
+layout: ../../layouts/CourseLayout.astro
+title: "Clustering Keys"
+description: "Learn when and how to use Snowflake clustering keys and Automatic Clustering to improve query pruning on large tables for the SnowPro Core exam"
+moduleId: "clustering-keys"
+domain: "Performance"
+---
+
+import Flashcard from '../../components/Flashcard.tsx';
+import CodeBlock from '../../components/CodeBlock.tsx';
+import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
+import Diagram from '../../components/Diagram.tsx';
+import CalloutBox from '../../components/CalloutBox.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import CompareTable from '../../components/CompareTable.tsx';
+import KeyTerms from '../../components/KeyTerms.tsx';
+import StepByStep from '../../components/StepByStep.tsx';
+import CheatSheet from '../../components/CheatSheet.tsx';
+
+<KeyTerms client:load title="Key Terms — Clustering" terms={[
+  { term: "Clustering Key", abbr: "CK", definition: "A user-defined set of columns (or expressions) used by Snowflake to co-locate related data in the same micro-partitions for better pruning." },
+  { term: "Cluster Depth", abbr: "—", definition: "A metric that measures how many overlapping micro-partitions exist for a clustering key's values. Lower depth = better clustering." },
+  { term: "Automatic Clustering", abbr: "AC", definition: "A serverless Snowflake service that continuously re-clusters data in the background. Credits charged per TB reclustered." },
+  { term: "Natural Clustering", abbr: "—", definition: "Data is naturally ordered by insertion order. Tables loaded chronologically are naturally clustered on timestamp columns." },
+  { term: "SYSTEM$CLUSTERING_INFORMATION", abbr: "—", definition: "Built-in function that returns clustering metadata including cluster depth, total partitions, and partition overlap for a table." },
+]} />
+
+---
+
+## Why Clustering Matters
+
+Micro-partition pruning is Snowflake's most impactful optimisation. When data is **well-clustered** on the columns you filter most often, Snowflake can skip the vast majority of partitions — resulting in faster queries and lower credit consumption.
+
+<Diagram client:load title="Well-Clustered vs Poorly-Clustered Data" description="Two diagrams side by side. Left: Well-clustered table where micro-partitions MP1-MP4 each contain a distinct date range (Jan, Feb, Mar, Apr). A WHERE clause for February scans only MP2 — 75% pruning. Right: Poorly-clustered table where each partition MP1-MP4 contains a mix of all months. The same WHERE clause must scan all 4 partitions — 0% pruning. Both have the same data, but clustering makes the difference." altText="Comparison: well-clustered data with distinct ranges per partition vs poorly-clustered with mixed ranges" />
+
+<CalloutBox type="exam" title="Exam Focus: When Clustering Helps">
+  Clustering keys are most valuable on **large tables (hundreds of GB to multi-TB)** where queries consistently filter on the same column(s). If the Query Profile shows most partitions being scanned despite selective WHERE clauses, clustering is the solution.
+</CalloutBox>
+
+---
+
+## Natural Clustering
+
+Data inserted into a Snowflake table is naturally sorted by **insertion order**. For tables loaded chronologically (e.g., daily batch loads of events), data is naturally clustered on timestamp columns.
+
+<CalloutBox type="tip" title="Natural Clustering Is Free">
+  If your queries predominantly filter by date/time and your data is loaded in chronological order, you may not need an explicit clustering key at all. Snowflake's natural ordering already provides good pruning. Check pruning stats in the Query Profile before adding keys.
+</CalloutBox>
+
+---
+
+## Cluster Depth
+
+Cluster depth measures how overlapping micro-partitions are for a given column's value range. **Lower depth = better clustering**.
+
+<CodeBlock client:load language="sql" title="Checking Cluster Depth" code={`-- Check clustering information for a table and column
+SELECT SYSTEM$CLUSTERING_INFORMATION('sales.orders', '(order_date)');
+
+-- Returns JSON with:
+-- cluster_depth: average overlap depth (lower = better)
+-- total_partition_count: total micro-partitions
+-- total_constant_partition_count: partitions with single distinct value
+-- average_overlaps: average number of overlapping partitions
+
+-- Check depth for multi-column key
+SELECT SYSTEM$CLUSTERING_INFORMATION('sales.orders', '(region, order_date)');
+
+-- Quick numeric depth check
+SELECT SYSTEM$CLUSTERING_DEPTH('sales.orders', '(order_date)');`} />
+
+<Diagram client:load title="Cluster Depth Visualisation" description="Diagram showing micro-partitions as horizontal bars on a number line representing column values. Well-clustered: bars are non-overlapping or minimally overlapping — cluster depth = 1. Poorly-clustered: bars heavily overlap, requiring scans of 4-5 partitions for any single value range — cluster depth = 4-5. Arrow showing that Automatic Clustering moves from high depth to low depth over time." altText="Horizontal bars representing partition value ranges: non-overlapping (depth 1) vs heavily overlapping (depth 5)" />
+
+---
+
+## When to Add a Clustering Key
+
+<CompareTable client:load title="Should You Add a Clustering Key?" leftLabel="Yes — Add Clustering" rightLabel="No — Skip Clustering" rows={[
+  { feature: "Table size", left: "Hundreds of GB or multi-TB", right: "Under 10 GB", winner: "none" },
+  { feature: "Query pattern", left: "Consistent filters on same column(s)", right: "Varied, unpredictable filters", winner: "none" },
+  { feature: "Pruning effectiveness", left: "Poor pruning in Query Profile", right: "Good pruning already", winner: "none" },
+  { feature: "DML pattern", left: "Append-heavy, infrequent updates", right: "Frequent updates/deletes", winner: "none" },
+  { feature: "Table type", left: "Permanent production tables", right: "Transient/temporary staging tables", winner: "none" },
+]} />
+
+<CalloutBox type="warning" title="When NOT to Cluster">
+  **Small tables**: Snowflake already scans them efficiently without clustering. **Frequently updated tables**: constant DML causes continuous reclustering, incurring high serverless credit costs. **Very low cardinality columns** (booleans, small enums): not enough distinct values to benefit from clustering.
+</CalloutBox>
+
+---
+
+## CLUSTER BY Syntax
+
+<CodeBlock client:load language="sql" title="Creating and Managing Clustering Keys" code={`-- Add clustering key at table creation
+CREATE TABLE sales.orders (
+  order_id INT,
+  customer_id INT,
+  order_date DATE,
+  region VARCHAR,
+  total DECIMAL(12,2)
+) CLUSTER BY (order_date, region);
+
+-- Add clustering key to existing table
+ALTER TABLE sales.orders CLUSTER BY (order_date, region);
+
+-- Use an expression as clustering key
+ALTER TABLE events CLUSTER BY (TO_DATE(event_timestamp));
+
+-- View current clustering key
+SHOW TABLES LIKE 'ORDERS' IN SCHEMA sales;
+
+-- Drop clustering key
+ALTER TABLE sales.orders DROP CLUSTERING KEY;
+
+-- Manual recluster (prefer Automatic Clustering instead)
+ALTER TABLE sales.orders RECLUSTER;`} />
+
+<CalloutBox type="important" title="Column Order Matters">
+  In `CLUSTER BY (col1, col2)`, **col1** is the primary sort dimension and **col2** is secondary. Choose the column used most frequently in WHERE clauses as the first column. A common pattern is `CLUSTER BY (date_col, high_cardinality_col)`.
+</CalloutBox>
+
+---
+
+## Automatic Clustering
+
+When you define a clustering key, Snowflake's **Automatic Clustering** service continuously re-organises data in the background to maintain optimal clustering.
+
+<StepByStep client:load title="Setting Up Automatic Clustering" steps={[
+  { title: "Identify the target table", description: "Choose a large table with poor pruning on frequently filtered columns. Check current cluster depth with SYSTEM$CLUSTERING_INFORMATION.", code: `SELECT SYSTEM$CLUSTERING_INFORMATION('sales.orders', '(order_date)');` },
+  { title: "Add the clustering key", description: "This automatically enables Automatic Clustering. Snowflake begins reclustering in the background using serverless compute.", code: `ALTER TABLE sales.orders CLUSTER BY (order_date, region);`, tip: "The initial recluster of a large table may consume significant credits. Monitor the first few days closely." },
+  { title: "Monitor credit consumption", description: "Check how many credits Automatic Clustering is consuming. If costs are excessive, consider whether the clustering key is appropriate.", code: `SELECT * FROM SNOWFLAKE.ACCOUNT_USAGE.AUTOMATIC_CLUSTERING_HISTORY\nWHERE start_time >= DATEADD('day', -7, CURRENT_TIMESTAMP())\nORDER BY credits_used DESC;` },
+  { title: "Verify improvement", description: "Re-check cluster depth and run your typical queries. Confirm improved pruning in the Query Profile.", code: `SELECT SYSTEM$CLUSTERING_DEPTH('sales.orders', '(order_date)');` },
+]} />
+
+---
+
+## Clustering Keys vs Search Optimisation Service
+
+<CompareTable client:load title="Clustering Keys vs SOS" leftLabel="Clustering Keys" rightLabel="Search Optimisation Service" rows={[
+  { feature: "Best for", left: "Range queries and large table scans", right: "Point lookups and equality predicates", winner: "none" },
+  { feature: "How it works", left: "Re-sorts data into better micro-partitions", right: "Builds persistent search access paths", winner: "none" },
+  { feature: "Setup cost", left: "Free to define — Automatic Clustering has serverless cost", right: "Build + maintenance serverless credits", winner: "left" },
+  { feature: "Query type", left: "WHERE date BETWEEN x AND y", right: "WHERE id = 12345 or ILIKE '%john%'", winner: "none" },
+  { feature: "Minimum edition", left: "All editions", right: "Enterprise+", winner: "left" },
+  { feature: "Can coexist?", left: "Yes — complementary", right: "Yes — complementary", winner: "none" },
+]} />
+
+---
+
+## Cheat Sheet
+
+<CheatSheet client:load title="Clustering Keys Quick Reference" sections={[
+  { title: "Key Commands", icon: "⌨️", items: [
+    { label: "Add", value: "ALTER TABLE t CLUSTER BY (col1, col2)", note: "" },
+    { label: "Drop", value: "ALTER TABLE t DROP CLUSTERING KEY", note: "" },
+    { label: "Check", value: "SYSTEM$CLUSTERING_INFORMATION('t', '(col)')", note: "Returns JSON" },
+    { label: "Depth", value: "SYSTEM$CLUSTERING_DEPTH('t', '(col)')", note: "Numeric" },
+    { label: "Manual", value: "ALTER TABLE t RECLUSTER", note: "Prefer auto" },
+    { label: "History", value: "AUTOMATIC_CLUSTERING_HISTORY view", note: "Credits used" },
+  ]},
+  { title: "Best Practices", icon: "✅", items: [
+    { label: "Size", value: "Only cluster tables > 100 GB", note: "" },
+    { label: "Columns", value: "Most-filtered column first in CLUSTER BY", note: "" },
+    { label: "Expressions", value: "CLUSTER BY (TO_DATE(ts_col)) for timestamps", note: "" },
+    { label: "Avoid", value: "Don't cluster staging/temp tables or small tables", note: "" },
+  ]},
+]} />
+
+---
+
+## Practice Quiz
+
+<Quiz client:load category="Clustering" question="A 5 TB table filtered on region and order_date shows 95% of partitions scanned in Query Profile. What is the BEST first action?" options={[{label:"A",text:"Increase the virtual warehouse size"},{label:"B",text:"Add a clustering key on (order_date, region)"},{label:"C",text:"Enable the Search Optimisation Service"},{label:"D",text:"Create a materialised view"}]} correct="B" explanation="Poor pruning (95% scanned) on a large table with known filter columns is the exact use case for clustering keys. Warehouse size (A) doesn't improve pruning. SOS (C) is for point lookups, not range scans. A materialised view (D) doesn't address the root issue." />
+
+<Quiz client:load category="Clustering" question="Which Snowflake service continuously maintains clustering in the background without a user warehouse?" options={[{label:"A",text:"Cloud Services Layer"},{label:"B",text:"Automatic Clustering"},{label:"C",text:"Search Optimisation Service"},{label:"D",text:"Result Cache Manager"}]} correct="B" explanation="Automatic Clustering is a serverless background service that continuously re-clusters data based on defined clustering keys. It uses its own serverless compute — no user warehouse is needed." />
+
+<Quiz client:load category="Clustering" question="A table has CLUSTER BY (region). The region column has only 4 distinct values. Is this an effective clustering key?" options={[{label:"A",text:"Yes — fewer values means better clustering"},{label:"B",text:"No — very low cardinality columns provide minimal pruning benefit"},{label:"C",text:"Yes — all clustering keys work equally"},{label:"D",text:"No — clustering keys require numeric columns"}]} correct="B" explanation="With only 4 distinct values, the column provides minimal pruning benefit. Effective clustering columns typically have moderate to high cardinality so data can be meaningfully separated across micro-partitions." />
+
+---
+
+## Flashcards
+
+<Flashcard client:load category="Clustering" question="What does cluster depth measure?" answer="Cluster depth measures how many overlapping micro-partitions exist for a clustering key's values. Lower depth = better clustering = better pruning. Check with SYSTEM$CLUSTERING_INFORMATION or SYSTEM$CLUSTERING_DEPTH." />
+
+<Flashcard client:load category="Clustering" question="What is the difference between natural clustering and explicit clustering keys?" answer="Natural clustering: data ordered by insertion time automatically. Free. Explicit clustering keys: user-defined columns for Snowflake to sort data by — enables Automatic Clustering (serverless credit cost). Natural clustering works well for time-series; explicit keys needed when queries filter on non-time columns." />
+
+<Flashcard client:load category="Clustering" question="What are the credit implications of Automatic Clustering?" answer="Automatic Clustering runs as a serverless service — no user warehouse needed. Credits are consumed per TB of data reclustered. Initial reclustering of a large table can be expensive. Monitor with AUTOMATIC_CLUSTERING_HISTORY view." />
+
+<Flashcard client:load category="Clustering" question="Can you use expressions in a CLUSTER BY definition?" answer="Yes. CLUSTER BY (TO_DATE(timestamp_col)) is valid. Expressions are evaluated and the result is used for clustering. Useful for clustering high-precision timestamps by date only." />
+
+<Flashcard client:load category="Clustering" question="What is the relationship between clustering and the Search Optimisation Service?" answer="They are complementary, not alternatives. Clustering improves range query pruning (WHERE date BETWEEN x AND y). SOS accelerates point lookups (WHERE id = 123, ILIKE). Both can be active on the same table. SOS requires Enterprise+." />
+
+---
+
+## Resources
+
+- [Clustering Keys Documentation](https://docs.snowflake.com/en/user-guide/tables-clustering-keys)
+- [Automatic Clustering](https://docs.snowflake.com/en/user-guide/tables-auto-reclustering)
+- [SYSTEM$CLUSTERING_INFORMATION](https://docs.snowflake.com/en/sql-reference/functions/system_clustering_information)
+
+---
+
+## Next Steps
+
+- [Search Optimisation Service](/performance/search)
+- [Query Performance & Optimisation](/performance/queries)
+- [Caching Mechanisms](/performance/caching)

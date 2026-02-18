@@ -1,0 +1,205 @@
+---
+layout: ../../layouts/CourseLayout.astro
+title: "Zero-Copy Cloning"
+description: "Master Snowflake zero-copy cloning — metadata-only copies, cloneable objects, Time Travel with clones, and privilege behaviour for the SnowPro Core exam"
+moduleId: "cloning"
+domain: "Data Protection"
+---
+
+import Flashcard from '../../components/Flashcard.tsx';
+import CodeBlock from '../../components/CodeBlock.tsx';
+import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
+import Diagram from '../../components/Diagram.tsx';
+import CalloutBox from '../../components/CalloutBox.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import CompareTable from '../../components/CompareTable.tsx';
+import KeyTerms from '../../components/KeyTerms.tsx';
+import StepByStep from '../../components/StepByStep.tsx';
+import CheatSheet from '../../components/CheatSheet.tsx';
+
+<KeyTerms client:load title="Key Terms — Zero-Copy Cloning" terms={[
+  { term: "Zero-Copy Clone", abbr: "—", definition: "A metadata-only copy of a database, schema, or table that references the same underlying micro-partitions. No data is physically duplicated — instant and free at creation." },
+  { term: "CREATE ... CLONE", abbr: "—", definition: "The SQL command to create a zero-copy clone of a database, schema, or table." },
+  { term: "Clone + Time Travel", abbr: "—", definition: "Cloning AT or BEFORE a specific point in time, creating a snapshot of the object as it existed in the past." },
+  { term: "Child Clone", abbr: "—", definition: "When cloning a database or schema, all child objects (tables, views, stages, etc.) are cloned recursively." },
+  { term: "Micro-Partition Sharing", abbr: "—", definition: "Source and clone share the same physical micro-partitions until one side modifies data — then only changed partitions are written independently." },
+]} />
+
+---
+
+## What is Zero-Copy Cloning?
+
+Zero-copy cloning creates an **instant, metadata-only copy** of a database, schema, or table. No data is physically duplicated — the clone points to the same underlying micro-partitions as the source.
+
+<Diagram client:load title="Zero-Copy Cloning Mechanics" description="Diagram showing: Source table points to micro-partitions MP1, MP2, MP3, MP4. After CREATE TABLE clone CLONE source, the clone table also points to the same MP1, MP2, MP3, MP4. No data copied — both share the same storage. When the clone later modifies data affecting MP2, a new MP2-prime is created for the clone while the source still points to the original MP2. Only the changed partition uses additional storage." altText="Source and clone sharing micro-partitions, with divergence only on modified partitions" />
+
+<CalloutBox type="exam" title="Exam Focus: Zero Storage Cost at Creation">
+  A clone consumes **zero additional storage** when first created. Storage costs only accrue when data in either the source or clone is modified, because only changed micro-partitions are written independently. This is a favourite exam topic.
+</CalloutBox>
+
+---
+
+## Creating Clones
+
+<CodeBlock client:load language="sql" title="Cloning Syntax" code={`-- Clone a table
+CREATE TABLE orders_dev CLONE orders;
+
+-- Clone a schema (all child objects cloned recursively)
+CREATE SCHEMA staging_clone CLONE staging;
+
+-- Clone an entire database
+CREATE DATABASE analytics_dev CLONE analytics;
+
+-- Clone with Time Travel — snapshot from the past
+CREATE TABLE orders_backup CLONE orders
+  AT (TIMESTAMP => '2024-06-15 09:00:00'::TIMESTAMP_NTZ);
+
+CREATE TABLE orders_before_delete CLONE orders
+  BEFORE (STATEMENT => '01a1b2c3-0000-0000-0000-000000000001');
+
+-- Clone at a specific offset
+CREATE TABLE orders_1hr_ago CLONE orders
+  AT (OFFSET => -3600);`} />
+
+---
+
+## What Can Be Cloned?
+
+<CompareTable client:load title="Cloneable vs Non-Cloneable Objects" leftLabel="Can Be Cloned" rightLabel="Cannot Be Cloned" rows={[
+  { feature: "Tables", left: "Permanent, transient, temporary tables", right: "External tables", winner: "none" },
+  { feature: "Schemas", left: "Yes — all child objects cloned recursively", right: "—", winner: "none" },
+  { feature: "Databases", left: "Yes — all schemas and their children cloned", right: "—", winner: "none" },
+  { feature: "Streams", left: "Yes (but offset is not preserved)", right: "—", winner: "none" },
+  { feature: "Tasks", left: "Yes (cloned in suspended state)", right: "—", winner: "none" },
+  { feature: "Stages", left: "Named internal stages (empty clone)", right: "External stages are referenced, not cloned", winner: "none" },
+  { feature: "Pipes", left: "Yes (cloned in paused state)", right: "—", winner: "none" },
+]} />
+
+<CalloutBox type="warning" title="Important Clone Behaviours">
+  - **Internal stages** are cloned but **empty** — files are not copied
+  - **Streams** are cloned but the **offset resets** — historical change data is not preserved
+  - **Tasks** are cloned in a **suspended state** — they do not automatically start running
+  - **Pipes** are cloned in a **paused state**
+</CalloutBox>
+
+---
+
+## Clone + Time Travel
+
+You can clone an object as it existed at a past point in time, effectively creating a historical snapshot.
+
+<CodeBlock client:load language="sql" title="Time Travel Cloning" code={`-- Recover a dropped table using clone + Time Travel
+-- Step 1: The table was accidentally truncated 30 minutes ago
+CREATE TABLE orders_recovered CLONE orders
+  AT (OFFSET => -1800);
+
+-- Step 2: Verify the data
+SELECT COUNT(*) FROM orders_recovered;
+
+-- Step 3: Swap if needed
+ALTER TABLE orders SWAP WITH orders_recovered;`} />
+
+<CalloutBox type="exam" title="Exam Focus: Clone AT vs UNDROP">
+  Both CLONE AT and UNDROP can recover data. UNDROP restores a dropped object with its original name. CLONE AT creates a new object from a past snapshot — the original remains unchanged. CLONE AT works even if the object was not dropped (e.g., after an accidental UPDATE or TRUNCATE).
+</CalloutBox>
+
+---
+
+## Privileges and Cloning
+
+<CalloutBox type="important" title="Privilege Behaviour on Clones">
+  - **Table clones** do NOT inherit grants — the cloning role becomes the owner
+  - **Schema clones** do NOT inherit grants on the schema or its child objects
+  - **Database clones** do NOT inherit grants on the database, its schemas, or child objects
+  - The role that executes CREATE ... CLONE becomes the **owner** of the clone and all its children
+  - To preserve grants, use **CREATE ... CLONE ... COPY GRANTS** (available for databases and schemas)
+</CalloutBox>
+
+<CodeBlock client:load language="sql" title="Cloning with Grants" code={`-- Clone database and preserve grants
+CREATE DATABASE analytics_dev CLONE analytics COPY GRANTS;
+
+-- Clone schema and preserve grants
+CREATE SCHEMA staging_dev CLONE staging COPY GRANTS;
+
+-- Note: COPY GRANTS is not available for individual table clones`} />
+
+---
+
+## Storage and Billing
+
+<Diagram client:load title="Clone Storage Over Time" description="Timeline diagram: At creation (T0), clone uses 0 additional storage. At T1, source table receives an UPDATE affecting 10% of data — 10% new micro-partitions created for source. At T2, clone table receives a DELETE affecting 5% of data — 5% new micro-partitions created for clone. Total additional storage = only the changed partitions on each side. Shared (unchanged) partitions are counted once in storage billing." altText="Timeline showing zero initial cost then incremental storage as source and clone diverge" />
+
+<CalloutBox type="info" title="Storage Billing for Clones">
+  Snowflake uses a **copy-on-write** model. Shared micro-partitions are billed once (to the source). When either side modifies data, only the new/changed micro-partitions incur additional storage cost on that side. Time Travel and Fail-safe apply independently to both source and clone.
+</CalloutBox>
+
+---
+
+## Common Use Cases
+
+<StepByStep client:load title="Common Cloning Patterns" steps={[
+  { title: "Development and testing", description: "Clone production to create a dev/test environment with real data — instantly and at zero initial cost.", code: `CREATE DATABASE prod_dev CLONE production;`, tip: "Clone regularly to keep dev environments fresh." },
+  { title: "Disaster recovery", description: "Clone with Time Travel to recover from accidental data modifications.", code: `CREATE TABLE orders_recovered CLONE orders\n  AT (OFFSET => -3600);` },
+  { title: "Pre-release snapshots", description: "Clone before a major deployment so you can quickly roll back if needed.", code: `CREATE SCHEMA release_backup CLONE app_schema;` },
+  { title: "Data sandboxing", description: "Give analysts a clone to experiment with — modifications do not affect the source.", code: `CREATE SCHEMA analyst_sandbox CLONE analytics;\nGRANT USAGE ON SCHEMA analyst_sandbox TO ROLE analyst_role;` },
+]} />
+
+---
+
+## Cheat Sheet
+
+<CheatSheet client:load title="Zero-Copy Cloning Quick Reference" sections={[
+  { title: "Key Facts", icon: "📋", items: [
+    { label: "Storage at creation", value: "Zero — metadata only", note: "" },
+    { label: "Speed", value: "Near-instant regardless of data size", note: "" },
+    { label: "Cloneable", value: "Tables, schemas, databases (and child objects)", note: "" },
+    { label: "Not cloneable", value: "External tables; internal stage files", note: "" },
+    { label: "Grants", value: "NOT inherited by default; use COPY GRANTS", note: "" },
+  ]},
+  { title: "Commands", icon: "⌨️", items: [
+    { label: "Basic clone", value: "CREATE TABLE t2 CLONE t1", note: "" },
+    { label: "Time Travel clone", value: "CREATE TABLE t2 CLONE t1 AT (OFFSET => -3600)", note: "" },
+    { label: "Clone + grants", value: "CREATE DATABASE d2 CLONE d1 COPY GRANTS", note: "DB/schema only" },
+    { label: "Swap", value: "ALTER TABLE t1 SWAP WITH t2", note: "" },
+  ]},
+]} />
+
+---
+
+## Practice Quiz
+
+<Quiz client:load category="Data Protection" question="How much additional storage does a zero-copy clone consume when first created?" options={[{label:"A",text:"50% of the source"},{label:"B",text:"100% of the source"},{label:"C",text:"Zero — it is metadata only"},{label:"D",text:"It depends on the table size"}]} correct="C" explanation="Zero-copy cloning creates a metadata-only pointer to the same micro-partitions. No data is physically duplicated, so storage cost at creation is zero." />
+
+<Quiz client:load category="Data Protection" question="When you clone a database, what happens to tasks in the cloned database?" options={[{label:"A",text:"They run immediately on the same schedule"},{label:"B",text:"They are cloned in a suspended state"},{label:"C",text:"They are not cloned at all"},{label:"D",text:"They are deleted during cloning"}]} correct="B" explanation="Tasks are cloned but in a suspended state. You must explicitly resume them with ALTER TASK ... RESUME. This prevents unexpected execution in cloned environments." />
+
+<Quiz client:load category="Data Protection" question="Which statement about clone privileges is correct?" options={[{label:"A",text:"Clones always inherit all grants from the source"},{label:"B",text:"The cloning role becomes the owner; grants are NOT inherited by default"},{label:"C",text:"Only ACCOUNTADMIN can create clones"},{label:"D",text:"Grants are always copied for table clones"}]} correct="B" explanation="By default, clones do NOT inherit grants. The role executing CREATE ... CLONE becomes the owner. Use COPY GRANTS (available for database and schema clones) to preserve grants." />
+
+---
+
+## Flashcards
+
+<Flashcard client:load category="Data Protection" question="How does zero-copy cloning work at the storage level?" answer="The clone shares the same micro-partitions as the source (metadata-only copy). When either side modifies data, only the changed partitions are written independently (copy-on-write). Zero additional storage at creation." />
+
+<Flashcard client:load category="Data Protection" question="What objects can be cloned in Snowflake?" answer="Tables (permanent, transient, temporary), schemas (all children recursively), and databases (all schemas and children). Streams, tasks, and pipes are included but with caveats: streams lose offset, tasks are suspended, pipes are paused, internal stages are empty." />
+
+<Flashcard client:load category="Data Protection" question="How does cloning interact with Time Travel?" answer="You can clone AT or BEFORE a timestamp, statement ID, or offset to create a snapshot from the past. This is useful for recovering from accidental modifications without UNDROP. Time Travel and Fail-safe apply independently to both source and clone after creation." />
+
+<Flashcard client:load category="Data Protection" question="What happens to grants when you clone a database?" answer="By default, grants are NOT inherited — the cloning role becomes owner of the clone and all children. Use COPY GRANTS to preserve the original grants. COPY GRANTS is available for database and schema clones but not individual table clones." />
+
+<Flashcard client:load category="Data Protection" question="What is the difference between CLONE AT and UNDROP?" answer="UNDROP restores a dropped object with its original name. CLONE AT creates a new object from a past snapshot — works even if the source was not dropped (e.g., after accidental UPDATE/TRUNCATE). Both leverage Time Travel." />
+
+---
+
+## Resources
+
+- [Cloning Overview](https://docs.snowflake.com/en/user-guide/object-clone)
+- [CREATE ... CLONE](https://docs.snowflake.com/en/sql-reference/sql/create-clone)
+- [Time Travel & Cloning](https://docs.snowflake.com/en/user-guide/data-time-travel)
+
+---
+
+## Next Steps
+
+- [Time Travel & Fail-safe](/data-protection/time-travel)
+- [Secure Data Sharing](/data-protection/sharing)
+- [Streams & Tasks](/data-transformations/streams-tasks)

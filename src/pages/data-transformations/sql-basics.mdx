@@ -1,0 +1,751 @@
+---
+layout: ../../layouts/CourseLayout.astro
+title: "Snowflake SQL Essentials"
+description: "Master Snowflake-specific SQL features — VARIANT/semi-structured data, FLATTEN, window functions, QUALIFY, PIVOT/UNPIVOT, and unique SQL extensions for the SnowPro Core exam"
+moduleId: "sql-basics"
+domain: "Transformations"
+---
+
+import Flashcard from '../../components/Flashcard.tsx';
+import CodeBlock from '../../components/CodeBlock.tsx';
+import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
+import Diagram from '../../components/Diagram.tsx';
+import CalloutBox from '../../components/CalloutBox.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import CompareTable from '../../components/CompareTable.tsx';
+import KeyTerms from '../../components/KeyTerms.tsx';
+import StepByStep from '../../components/StepByStep.tsx';
+import CheatSheet from '../../components/CheatSheet.tsx';
+
+<KeyTerms
+  client:load
+  title="Key Terms — Snowflake SQL Essentials"
+  terms={[
+    { term: "VARIANT", abbr: "VAR", definition: "A Snowflake data type that can store any semi-structured data including JSON, Avro, Parquet, and XML. It holds up to 16 MB of compressed data per value." },
+    { term: "FLATTEN", abbr: "—", definition: "A Snowflake table function used with LATERAL to explode arrays or objects in a VARIANT column into individual rows." },
+    { term: "Window Function", abbr: "WF", definition: "A SQL function that performs a calculation across a set of rows related to the current row (a window), without collapsing the result set like GROUP BY." },
+    { term: "QUALIFY", abbr: "—", definition: "A Snowflake-specific SQL clause that filters rows based on the result of a window function, avoiding the need for a subquery or CTE." },
+    { term: "PIVOT", abbr: "—", definition: "A SQL operator that rotates rows into columns, turning distinct values in one column into separate column headers (wide format)." },
+    { term: "UNPIVOT", abbr: "—", definition: "The reverse of PIVOT — rotates columns into rows, converting wide-format data into a tall/narrow format." },
+    { term: "GENERATOR", abbr: "—", definition: "A Snowflake table function that produces synthetic rows without reading from any source table, useful for testing and data generation." },
+    { term: "TABLESAMPLE", abbr: "—", definition: "A SQL clause that returns a random statistical sample of rows from a table, specified as a percentage." },
+    { term: "PARSE_JSON", abbr: "—", definition: "A Snowflake function that converts a JSON-formatted string into a VARIANT value for semi-structured data processing." },
+    { term: "MATCH_RECOGNIZE", abbr: "MR", definition: "A SQL clause that performs row-pattern recognition, enabling complex event processing across sequences of rows." },
+  ]}
+/>
+
+---
+
+## Semi-Structured Data and the VARIANT Type
+
+Snowflake is built for both structured and semi-structured data. The **VARIANT** data type is the cornerstone of Snowflake's semi-structured data support, allowing you to store and query JSON, Avro, Parquet, ORC, and XML natively without needing to pre-define a schema.
+
+<CalloutBox type="exam" title="Exam Focus: VARIANT Fundamentals">
+  The COF-C02 exam heavily tests VARIANT behaviour. Remember these key facts:
+  - VARIANT can store any semi-structured data format (JSON, Avro, Parquet, ORC, XML)
+  - Maximum size: **16 MB per row** of compressed VARIANT data
+  - Path access uses the colon (`:`) operator, not dot notation at the top level
+  - Casting uses the double-colon (`::`) operator: `col:key::STRING`
+  - VARIANT preserves the original data type internally (string vs number vs boolean)
+</CalloutBox>
+
+<YouTubeEmbed
+  client:load
+  videoId="dIXFnpWKHAg"
+  title="Snowflake Semi-Structured Data and VARIANT"
+  description="📹 Official Snowflake walkthrough of VARIANT, FLATTEN, and querying JSON data in Snowflake"
+/>
+
+### Accessing Data Within a VARIANT Column
+
+Snowflake provides several ways to traverse VARIANT data. The most common is the path operator (`:`) which navigates nested structures using key names.
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="VARIANT Path Access and Type Casting"
+  code={`-- Assume a table: events(id INT, payload VARIANT)
+-- where payload contains: {"user": {"id": 42, "name": "Alice"}, "tags": ["a","b"]}
+
+-- Basic path access — returns VARIANT
+SELECT payload:user:name FROM events;
+
+-- Cast to a specific SQL type using ::
+SELECT
+  payload:user:id::NUMBER    AS user_id,
+  payload:user:name::STRING  AS user_name,
+  payload:active::BOOLEAN    AS is_active
+FROM events;
+
+-- GET() function — equivalent to : operator
+SELECT GET(payload, 'user') FROM events;
+
+-- GET_PATH() function — dot-notation path
+SELECT GET_PATH(payload, 'user.name')::STRING FROM events;
+
+-- TYPEOF() — inspect the internal data type of a VARIANT value
+SELECT
+  TYPEOF(payload:user:id)    AS id_type,    -- returns 'integer'
+  TYPEOF(payload:user:name)  AS name_type,  -- returns 'string'
+  TYPEOF(payload:tags)       AS tags_type   -- returns 'array'
+FROM events;
+
+-- PARSE_JSON() — convert a string to VARIANT
+SELECT PARSE_JSON('{"key": "value", "count": 99}') AS parsed;
+
+-- OBJECT_CONSTRUCT() — build a VARIANT object from key-value pairs
+SELECT OBJECT_CONSTRUCT('id', 1, 'name', 'Alice', 'score', 99.5) AS obj;
+
+-- ARRAY_CONSTRUCT() — build a VARIANT array
+SELECT ARRAY_CONSTRUCT(10, 20, 30, 'text', NULL) AS arr;`}
+/>
+
+<Diagram
+  client:load
+  title="VARIANT Data Model — Path Access"
+  description="How Snowflake stores a VARIANT column as a self-describing columnar structure internally (ELT storage), and how the colon operator traverses nested keys at query time. Each leaf value is stored with its native type tag, enabling efficient casting without full JSON parsing at runtime."
+  altText="Diagram showing a JSON document stored as a VARIANT column, with colon path operators traversing nested user and tags keys, and double-colon cast operators converting leaf values to SQL types"
+/>
+
+<CalloutBox type="info" title="VARIANT Storage: Columnar Under the Hood">
+  Although VARIANT appears to store raw JSON as a blob, Snowflake internally decomposes it into a columnar representation. This means queries that access a specific path (e.g., `payload:user:id`) can benefit from column pruning and micro-partition pruning — they do not need to scan the full VARIANT blob for every row.
+</CalloutBox>
+
+---
+
+## The FLATTEN Function
+
+`FLATTEN` is a Snowflake **table function** that takes an array or object within a VARIANT column and expands it into multiple rows — one per element. It is used with `LATERAL` to correlate each exploded row back to its parent row.
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="FLATTEN — Exploding Arrays and Objects"
+  code={`-- Table: users(id INT, profile VARIANT)
+-- profile: {"name": "Bob", "tags": ["admin","editor","viewer"]}
+
+-- Explode the tags array — one row per tag
+SELECT
+  u.id,
+  u.profile:name::STRING AS user_name,
+  f.value::STRING        AS tag,
+  f.index                AS tag_position
+FROM users u,
+  LATERAL FLATTEN(INPUT => u.profile:tags) f;
+
+-- FLATTEN columns available:
+-- f.VALUE  — the element value (VARIANT)
+-- f.KEY    — the key name (for objects, NULL for arrays)
+-- f.INDEX  — the zero-based position in the array
+-- f.PATH   — full path to the element from the root
+-- f.SEQ    — sequence number unique per input row
+-- f.THIS   — the containing array/object
+
+-- Flattening an OBJECT (key-value pairs)
+SELECT f.key, f.value::STRING
+FROM (SELECT PARSE_JSON('{"a":1,"b":2,"c":3}') AS obj),
+  LATERAL FLATTEN(INPUT => obj) f;
+
+-- OUTER => TRUE — keep rows even when the array is NULL or empty
+SELECT u.id, f.value::STRING AS tag
+FROM users u,
+  LATERAL FLATTEN(INPUT => u.profile:tags, OUTER => TRUE) f;
+
+-- RECURSIVE => TRUE — flatten nested arrays/objects recursively
+SELECT f.path, f.value
+FROM (SELECT PARSE_JSON('{"a":{"b":{"c":42}}}') AS nested),
+  LATERAL FLATTEN(INPUT => nested, RECURSIVE => TRUE) f;`}
+/>
+
+<CalloutBox type="tip" title="OUTER => TRUE for Missing Arrays">
+  If a row has a NULL or missing array path, a standard FLATTEN will silently drop that row from results. Use `OUTER => TRUE` to retain parent rows with no array elements — the FLATTEN output columns will be NULL for those rows.
+</CalloutBox>
+
+---
+
+## Window Functions
+
+Window functions perform calculations across a **window** of rows related to the current row. Unlike `GROUP BY`, they do not collapse the result set — every input row remains in the output.
+
+<Diagram
+  client:load
+  title="Window Function Anatomy"
+  description="Breakdown of a window function expression: the function name (ROW_NUMBER, RANK, SUM, etc.), the OVER clause, the optional PARTITION BY that defines sub-groups, the ORDER BY that sorts within each partition, and the optional frame specification (ROWS BETWEEN / RANGE BETWEEN) that limits which rows are included in the calculation."
+  altText="Annotated SQL diagram showing FUNCTION_NAME() OVER (PARTITION BY col1 ORDER BY col2 ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW), with each clause labelled and explained"
+/>
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Window Function Examples — Ranking and Navigation"
+  code={`-- ROW_NUMBER(): unique sequential number per partition
+SELECT
+  order_id,
+  customer_id,
+  order_date,
+  ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date DESC) AS rn
+FROM orders;
+
+-- RANK(): same rank for ties, then skips numbers (1,1,3,4...)
+SELECT
+  product_id, sales,
+  RANK() OVER (ORDER BY sales DESC) AS sales_rank
+FROM product_sales;
+
+-- DENSE_RANK(): same rank for ties, no gaps (1,1,2,3...)
+SELECT
+  product_id, sales,
+  DENSE_RANK() OVER (ORDER BY sales DESC) AS dense_rank
+FROM product_sales;
+
+-- LEAD() and LAG() — access rows ahead of or behind the current row
+SELECT
+  order_date,
+  revenue,
+  LAG(revenue, 1, 0)  OVER (ORDER BY order_date) AS prev_day_revenue,
+  LEAD(revenue, 1, 0) OVER (ORDER BY order_date) AS next_day_revenue,
+  revenue - LAG(revenue, 1, 0) OVER (ORDER BY order_date) AS day_over_day_change
+FROM daily_revenue;
+
+-- FIRST_VALUE() and LAST_VALUE() within a window frame
+SELECT
+  department,
+  employee,
+  salary,
+  FIRST_VALUE(salary) OVER (
+    PARTITION BY department ORDER BY salary DESC
+    ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+  ) AS dept_max_salary,
+  LAST_VALUE(salary)  OVER (
+    PARTITION BY department ORDER BY salary DESC
+    ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+  ) AS dept_min_salary
+FROM employees;
+
+-- Running total and moving average
+SELECT
+  order_date,
+  daily_sales,
+  SUM(daily_sales)  OVER (ORDER BY order_date
+    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total,
+  AVG(daily_sales)  OVER (ORDER BY order_date
+    ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)          AS seven_day_avg
+FROM daily_sales;`}
+/>
+
+<CheatSheet
+  client:load
+  title="Window Function Quick Reference"
+  sections={[
+    {
+      title: "Ranking Functions",
+      icon: "🏆",
+      items: [
+        { label: "ROW_NUMBER()", value: "Unique sequential integer per partition — no ties", note: "Always unique, even for equal values" },
+        { label: "RANK()", value: "Rank with gaps after ties (1,1,3,4...)", note: "Skips the next number after a tie" },
+        { label: "DENSE_RANK()", value: "Rank without gaps after ties (1,1,2,3...)", note: "No skipped numbers" },
+        { label: "NTILE(n)", value: "Divides rows into n equal-sized buckets (quartiles, deciles)", note: "Returns bucket number 1..n" },
+        { label: "PERCENT_RANK()", value: "Relative rank as 0.0 to 1.0 within partition", note: "(rank-1)/(total rows-1)" },
+        { label: "CUME_DIST()", value: "Cumulative distribution — fraction of rows <= current", note: "Always > 0, always <= 1" },
+      ]
+    },
+    {
+      title: "Navigation Functions",
+      icon: "🔭",
+      items: [
+        { label: "LAG(col, n, def)", value: "Value from n rows before current row", note: "Default returned if no prior row" },
+        { label: "LEAD(col, n, def)", value: "Value from n rows after current row", note: "Default returned if no next row" },
+        { label: "FIRST_VALUE(col)", value: "First value in the window frame", note: "Frame spec matters — use UNBOUNDED" },
+        { label: "LAST_VALUE(col)", value: "Last value in the window frame", note: "Defaults to CURRENT ROW — specify frame!" },
+        { label: "NTH_VALUE(col, n)", value: "nth value in the window frame", note: "1-based index" },
+      ]
+    },
+    {
+      title: "Aggregate Window Functions",
+      icon: "📊",
+      items: [
+        { label: "SUM() OVER", value: "Running total or partition sum", note: "Add ORDER BY for running total" },
+        { label: "AVG() OVER", value: "Moving average across frame", note: "ROWS BETWEEN for fixed-size windows" },
+        { label: "COUNT() OVER", value: "Count of rows in window", note: "Useful for partition size" },
+        { label: "MIN() / MAX() OVER", value: "Partition min/max without collapsing rows", note: "" },
+      ]
+    },
+    {
+      title: "Frame Specification",
+      icon: "🪟",
+      items: [
+        { label: "ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW", value: "All rows from start of partition to current row", note: "Running total" },
+        { label: "ROWS BETWEEN 6 PRECEDING AND CURRENT ROW", value: "Last 7 rows including current", note: "7-day moving window" },
+        { label: "ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING", value: "All rows in the partition", note: "Equivalent to partition aggregate" },
+        { label: "RANGE BETWEEN", value: "Includes rows with equal ORDER BY values", note: "Default frame type when ORDER BY present" },
+      ]
+    },
+  ]}
+/>
+
+---
+
+## QUALIFY — Snowflake's Filter on Window Functions
+
+`QUALIFY` is a **Snowflake-specific SQL clause** that filters rows based on the result of a window function. It is evaluated after window functions are computed and after `HAVING`, which means you can reference the window function result directly without wrapping the query in a subquery or CTE.
+
+<CalloutBox type="exam" title="QUALIFY Is Snowflake-Specific">
+  QUALIFY does not exist in standard SQL or most other databases (though DuckDB has added it). It is a favourite exam topic because it demonstrates Snowflake's SQL extensions. Know the query execution order: FROM → WHERE → GROUP BY → HAVING → WINDOW FUNCTIONS → **QUALIFY** → SELECT → ORDER BY → LIMIT.
+</CalloutBox>
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="QUALIFY — Deduplication and Top-N Filtering"
+  code={`-- Get the most recent order per customer (deduplication)
+-- WITHOUT QUALIFY — requires subquery:
+SELECT * FROM (
+  SELECT *, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date DESC) AS rn
+  FROM orders
+) WHERE rn = 1;
+
+-- WITH QUALIFY — cleaner single-level query:
+SELECT *
+FROM orders
+QUALIFY ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date DESC) = 1;
+
+-- Top 3 products per category by sales
+SELECT category, product_id, sales
+FROM product_sales
+QUALIFY DENSE_RANK() OVER (PARTITION BY category ORDER BY sales DESC) <= 3;
+
+-- Remove duplicate rows keeping the row with highest id
+SELECT *
+FROM raw_events
+QUALIFY ROW_NUMBER() OVER (PARTITION BY event_key ORDER BY id DESC) = 1;
+
+-- QUALIFY with a WHERE clause — WHERE runs before QUALIFY
+SELECT *
+FROM orders
+WHERE order_status = 'completed'
+QUALIFY ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date DESC) = 1;`}
+/>
+
+<CompareTable
+  client:load
+  title="QUALIFY vs Subquery — Deduplication Approaches"
+  leftLabel="QUALIFY (Snowflake)"
+  rightLabel="Subquery / CTE"
+  rows={[
+    { feature: "Syntax complexity", left: "Single SELECT statement — no nesting", right: "Requires subquery or CTE wrapper", winner: "left" },
+    { feature: "Standard SQL", left: "Snowflake extension — not portable", right: "Standard SQL — portable across databases", winner: "right" },
+    { feature: "Readability", left: "Highly readable — intent is clear", right: "Can be verbose for simple deduplication", winner: "left" },
+    { feature: "Performance", left: "Same execution plan as equivalent subquery", right: "Same execution plan as QUALIFY", winner: "none" },
+    { feature: "Use in views", left: "Fully supported in Snowflake views", right: "Fully supported", winner: "none" },
+    { feature: "Filter on multiple WFs", left: "Can use multiple window functions in QUALIFY", right: "Requires aliasing or multiple subqueries", winner: "left" },
+    { feature: "Exam relevance", left: "Tested as a Snowflake-specific feature", right: "Baseline SQL knowledge only", winner: "left" },
+  ]}
+/>
+
+---
+
+## PIVOT and UNPIVOT
+
+`PIVOT` and `UNPIVOT` are SQL operators for reshaping data between wide (pivoted) and tall (normalised) formats. Snowflake supports both as part of the `FROM` clause.
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="PIVOT and UNPIVOT Examples"
+  code={`-- Source data: sales(region TEXT, month TEXT, amount NUMBER)
+-- rows: ('North','Jan',100), ('North','Feb',200), ('South','Jan',150)...
+
+-- PIVOT: rotate month values into columns
+SELECT *
+FROM sales
+  PIVOT(SUM(amount) FOR month IN ('Jan', 'Feb', 'Mar', 'Apr'))
+  AS p (region, jan_sales, feb_sales, mar_sales, apr_sales);
+-- Result: one row per region, columns jan_sales, feb_sales, mar_sales, apr_sales
+
+-- UNPIVOT: rotate columns back into rows
+-- Source: monthly_sales(region TEXT, jan NUMBER, feb NUMBER, mar NUMBER)
+SELECT region, month_name, monthly_amount
+FROM monthly_summary
+  UNPIVOT(monthly_amount FOR month_name IN (jan, feb, mar));
+-- Result: three rows per region with month_name and monthly_amount
+
+-- Dynamic PIVOT using Snowflake scripting (for unknown category values)
+-- Step 1: get distinct months
+SET months = (
+  SELECT '[''' || LISTAGG(DISTINCT month, ''',''') || ''']'
+  FROM sales
+);
+-- Step 2: use in PIVOT (requires dynamic SQL via Stored Procedure in practice)
+
+-- ANY keyword for dynamic pivot (Snowflake 8.x+)
+SELECT *
+FROM sales
+  PIVOT(SUM(amount) FOR month IN (ANY ORDER BY month));`}
+/>
+
+<CalloutBox type="info" title="PIVOT Column Values Must Be Static">
+  In standard PIVOT syntax, the `IN (...)` list must contain literal values known at query-write time. For truly dynamic pivots where you do not know the column values in advance, you need to build the SQL string dynamically using a Stored Procedure or Snowflake Scripting. Snowflake's `IN (ANY)` extension (introduced in newer versions) allows dynamic pivoting without scripting.
+</CalloutBox>
+
+---
+
+## GENERATOR and TABLESAMPLE
+
+These two features are useful for testing, data generation, and sampling — and they appear in the COF-C02 exam.
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="GENERATOR and TABLESAMPLE"
+  code={`-- GENERATOR: produce synthetic rows
+-- ROWCOUNT => number of rows to generate
+-- SEQ4() or SEQ8() provide unique sequential integers
+SELECT SEQ4() AS id,
+       UNIFORM(1, 100, RANDOM())::INT    AS score,
+       DATEADD('day', SEQ4(), '2024-01-01')::DATE AS event_date
+FROM TABLE(GENERATOR(ROWCOUNT => 1000000))
+LIMIT 10;
+
+-- GENERATOR with TIMELIMIT — run for N seconds instead of fixed row count
+SELECT SEQ4() AS id, RANDOM() AS val
+FROM TABLE(GENERATOR(TIMELIMIT => 5));
+
+-- TABLESAMPLE: return a random sample of rows
+-- Percentage-based (block sampling — by micro-partition)
+SELECT * FROM large_table SAMPLE (10);   -- approx 10% of rows
+
+-- Row-count based sampling
+SELECT * FROM large_table SAMPLE (1000 ROWS);
+
+-- Bernoulli sampling (row-level — more random, slower)
+SELECT * FROM large_table SAMPLE BERNOULLI (5);
+
+-- Block sampling (micro-partition level — faster, less random)
+SELECT * FROM large_table SAMPLE BLOCK (5);
+
+-- Reproducible sample with SEED
+SELECT * FROM orders SAMPLE (10) SEED (42);`}
+/>
+
+<Diagram
+  client:load
+  title="GENERATOR vs TABLESAMPLE"
+  description="GENERATOR creates new rows from scratch using Snowflake's virtual table function — no source table needed, output is controlled by ROWCOUNT or TIMELIMIT. TABLESAMPLE reads from an existing table and returns a statistical subset, either at the block (micro-partition) level for speed or at the Bernoulli (row) level for better randomness. Both operations happen within a single virtual warehouse."
+  altText="Side-by-side diagram: left side shows GENERATOR producing rows ex nihilo with SEQ4 and RANDOM functions; right side shows TABLESAMPLE taking a percentage slice of micro-partitions or individual rows from an existing large_table"
+/>
+
+---
+
+## TIME_SLICE and Date/Time Functions
+
+`TIME_SLICE` is a Snowflake-specific function for grouping timestamps into fixed-duration buckets — extremely useful for time-series analysis.
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="TIME_SLICE and Key Date/Time Functions"
+  code={`-- TIME_SLICE: group timestamps into fixed intervals
+-- Syntax: TIME_SLICE(timestamp_col, slice_length, 'interval_unit')
+SELECT
+  TIME_SLICE(event_ts, 15, 'MINUTE') AS fifteen_min_bucket,
+  COUNT(*)                            AS event_count
+FROM events
+GROUP BY 1
+ORDER BY 1;
+
+-- Also supports HOUR, DAY, WEEK, MONTH, QUARTER, YEAR
+SELECT TIME_SLICE(order_date, 1, 'MONTH') AS month_start FROM orders;
+
+-- DATE_TRUNC: truncate a timestamp to a specified granularity
+SELECT
+  DATE_TRUNC('month',  CURRENT_TIMESTAMP),   -- first of current month
+  DATE_TRUNC('week',   CURRENT_TIMESTAMP),   -- Monday of current week
+  DATE_TRUNC('hour',   CURRENT_TIMESTAMP);   -- current hour start
+
+-- DATEADD: add/subtract intervals
+SELECT
+  DATEADD('day',    7,  CURRENT_DATE),       -- 7 days from now
+  DATEADD('month', -3,  CURRENT_DATE),       -- 3 months ago
+  DATEADD('hour',  12,  CURRENT_TIMESTAMP);
+
+-- DATEDIFF: difference between two dates in specified unit
+SELECT
+  DATEDIFF('day',   '2024-01-01', '2024-12-31') AS days_diff,    -- 364
+  DATEDIFF('month', '2024-01-01', '2024-12-31') AS months_diff;  -- 11
+
+-- DATE_PART and EXTRACT: extract components
+SELECT
+  DATE_PART('year',  CURRENT_DATE),
+  DATE_PART('month', CURRENT_DATE),
+  DATE_PART('dow',   CURRENT_DATE),        -- day of week (0=Sunday)
+  EXTRACT(epoch FROM CURRENT_TIMESTAMP);   -- seconds since 1970-01-01
+
+-- Timezone conversion
+SELECT
+  CONVERT_TIMEZONE('UTC', 'Europe/London', CURRENT_TIMESTAMP) AS london_time,
+  TO_TIMESTAMP_NTZ('2024-06-01 12:00:00') AS no_timezone_ts;`}
+/>
+
+---
+
+## Conditional Expressions and NULL Handling
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="Conditional Expressions and NULL Handling Functions"
+  code={`-- IFF: compact if-then-else (Snowflake-specific)
+SELECT IFF(salary > 50000, 'Senior', 'Junior') AS level FROM employees;
+
+-- CASE WHEN: standard SQL conditional
+SELECT
+  CASE
+    WHEN score >= 90 THEN 'A'
+    WHEN score >= 80 THEN 'B'
+    WHEN score >= 70 THEN 'C'
+    ELSE 'F'
+  END AS grade
+FROM student_scores;
+
+-- DECODE: value-based mapping (Oracle-style — Snowflake supports it)
+SELECT DECODE(status, 'A', 'Active', 'I', 'Inactive', 'Unknown') FROM users;
+
+-- NULL handling functions
+SELECT
+  NVL(commission, 0)           AS commission,       -- replace NULL with 0
+  NVL2(commission, 'Yes', 'No') AS has_commission,  -- NVL2(col, not-null-val, null-val)
+  NULLIF(revenue, 0)           AS safe_revenue,     -- return NULL if revenue = 0
+  COALESCE(phone, mobile, email, 'none') AS contact,-- first non-null
+  ZEROIFNULL(discount)         AS discount,         -- NULL -> 0
+  NULLIFZERO(quantity)         AS quantity          -- 0 -> NULL
+FROM sales;
+
+-- String functions
+SELECT
+  SPLIT('a,b,c,d', ',')                    AS arr,         -- returns ARRAY VARIANT
+  SPLIT_PART('hello.world.test', '.', 2)   AS part,        -- 'world'
+  TRIM('   hello   ')                      AS trimmed,
+  LTRIM('---hello', '-')                   AS left_trim,
+  CONTAINS('hello world', 'world')         AS found,       -- TRUE
+  STARTSWITH('hello', 'hel')              AS sw,           -- TRUE
+  ENDSWITH('hello', 'llo')               AS ew,            -- TRUE
+  RPAD('abc', 6, '*')                     AS rpadded,      -- 'abc***'
+  LPAD('42', 5, '0')                      AS lpadded,      -- '00042'
+  CHARINDEX('world', 'hello world')        AS pos           -- 7
+FROM dual;`}
+/>
+
+<CalloutBox type="tip" title="NVL2 Argument Order — Easy to Mix Up">
+  `NVL2(expr, not_null_result, null_result)` — the second argument is returned when `expr` IS NOT NULL, and the third argument when `expr` IS NULL. This is the opposite order from what many developers expect intuitively.
+</CalloutBox>
+
+---
+
+## MATCH_RECOGNIZE — Row Pattern Matching
+
+`MATCH_RECOGNIZE` is an advanced SQL feature for detecting patterns across sequences of rows. It is used in event sequence analysis, fraud detection, and session analysis.
+
+<CodeBlock
+  client:load
+  language="sql"
+  title="MATCH_RECOGNIZE — Pattern Detection"
+  code={`-- Detect a 'V-shape' pattern in stock prices:
+-- a decrease followed by an increase
+SELECT *
+FROM stock_prices
+  MATCH_RECOGNIZE (
+    PARTITION BY ticker
+    ORDER BY trade_date
+    MEASURES
+      MATCH_NUMBER()         AS match_num,
+      FIRST(trade_date)      AS start_date,
+      LAST(trade_date)       AS end_date,
+      FIRST(close_price)     AS start_price,
+      MIN(close_price)       AS bottom_price,
+      LAST(close_price)      AS end_price
+    ONE ROW PER MATCH
+    AFTER MATCH SKIP TO NEXT ROW
+    PATTERN (DOWN+ UP+)
+    DEFINE
+      DOWN AS close_price < LAG(close_price) OVER (ORDER BY trade_date),
+      UP   AS close_price > LAG(close_price) OVER (ORDER BY trade_date)
+  );`}
+/>
+
+<CalloutBox type="note" title="MATCH_RECOGNIZE Exam Depth">
+  For COF-C02, know that MATCH_RECOGNIZE exists in Snowflake for row-pattern matching and understand its use case (event sequence analysis). You are unlikely to need to write a complete MATCH_RECOGNIZE query from scratch in the exam, but you should recognise the syntax and purpose.
+</CalloutBox>
+
+---
+
+## StepByStep: Writing a Full Analytical Query
+
+<StepByStep
+  client:load
+  title="Building an Analytical Query with VARIANT, Window Functions, and QUALIFY"
+  steps={[
+    {
+      title: "Load and Parse Semi-Structured Data",
+      description: "Start with a raw events table that stores JSON payloads in a VARIANT column. Extract the relevant fields and cast them to proper SQL types.",
+      code: `-- Raw table: raw_events(id INT, payload VARIANT, loaded_at TIMESTAMP)
+-- payload: {"session_id": "abc123", "user_id": 42, "event": "purchase",
+--            "items": [{"sku":"X1","qty":2},{"sku":"X2","qty":1}], "total": 89.99}
+
+CREATE OR REPLACE VIEW v_events AS
+SELECT
+  id,
+  payload:session_id::STRING  AS session_id,
+  payload:user_id::NUMBER     AS user_id,
+  payload:event::STRING       AS event_type,
+  payload:total::FLOAT        AS order_total,
+  loaded_at
+FROM raw_events
+WHERE payload:event::STRING = 'purchase';`,
+      tip: "Always filter on VARIANT paths in a view to isolate relevant event types before downstream processing.",
+    },
+    {
+      title: "Explode Nested Arrays with FLATTEN",
+      description: "Use LATERAL FLATTEN to expand the items array so each ordered item becomes its own row, preserving the parent session context.",
+      code: `CREATE OR REPLACE VIEW v_order_items AS
+SELECT
+  e.id           AS event_id,
+  e.session_id,
+  e.user_id,
+  e.order_total,
+  f.value:sku::STRING  AS sku,
+  f.value:qty::INT     AS quantity,
+  f.index              AS item_position
+FROM v_events e,
+  LATERAL FLATTEN(INPUT => e.payload:items) f;`,
+    },
+    {
+      title: "Add Window Functions for Per-User Ranking",
+      description: "Rank each purchase by total value per user, and compute a running total of spend.",
+      code: `SELECT
+  user_id,
+  session_id,
+  order_total,
+  loaded_at,
+  ROW_NUMBER()  OVER (PARTITION BY user_id ORDER BY order_total DESC)    AS spend_rank,
+  SUM(order_total) OVER (PARTITION BY user_id ORDER BY loaded_at
+    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)                    AS cumulative_spend
+FROM v_events;`,
+    },
+    {
+      title: "Filter with QUALIFY to Get Top Purchase Per User",
+      description: "Use QUALIFY to keep only each user's highest-value order without a subquery wrapper.",
+      code: `SELECT
+  user_id,
+  session_id,
+  order_total,
+  loaded_at
+FROM v_events
+QUALIFY ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY order_total DESC) = 1;`,
+      tip: "QUALIFY executes after window functions are computed, so you can reference the window function result directly without aliasing.",
+    },
+  ]}
+/>
+
+---
+
+## Practice Quizzes
+
+<Quiz
+  client:load
+  category="SQL Basics"
+  question="You have a VARIANT column called data containing the JSON object with a price key set to 9.99. Which expression correctly returns the price as a NUMBER?"
+  options={[
+    { label: "A", text: "data.price::NUMBER" },
+    { label: "B", text: "data:price::NUMBER" },
+    { label: "C", text: "data->price::NUMBER" },
+    { label: "D", text: "GET_PATH(data, 'price')" },
+  ]}
+  correct="B"
+  explanation="In Snowflake, the colon (:) operator is used to navigate VARIANT paths. The double-colon (::) operator casts the result to a SQL type. So data:price::NUMBER is correct. Option A uses dot notation which is not valid at the top level of VARIANT access. Option C uses the PostgreSQL JSON arrow operator which Snowflake does not support. Option D (GET_PATH) would return a VARIANT, not a NUMBER — you would still need to cast it."
+/>
+
+<Quiz
+  client:load
+  category="SQL Basics"
+  question="Which of the following is a Snowflake-specific SQL clause NOT found in standard SQL or most other databases?"
+  options={[
+    { label: "A", text: "HAVING" },
+    { label: "B", text: "QUALIFY" },
+    { label: "C", text: "GROUP BY ROLLUP" },
+    { label: "D", text: "LATERAL" },
+  ]}
+  correct="B"
+  explanation="QUALIFY is a Snowflake-specific clause (also adopted by DuckDB) that filters rows based on window function results without requiring a subquery. HAVING, GROUP BY ROLLUP, and LATERAL are all part of standard SQL and exist in most relational databases including PostgreSQL, MySQL, and SQL Server."
+/>
+
+<Quiz
+  client:load
+  category="SQL Basics"
+  question="A table has an `events` VARIANT column containing an array. Which FLATTEN option ensures that rows with a NULL or empty array are still included in the output?"
+  options={[
+    { label: "A", text: "FLATTEN(INPUT => events, RECURSIVE => TRUE)" },
+    { label: "B", text: "FLATTEN(INPUT => events, MODE => 'ARRAY')" },
+    { label: "C", text: "FLATTEN(INPUT => events, OUTER => TRUE)" },
+    { label: "D", text: "FLATTEN(INPUT => events, KEEP_NULLS => TRUE)" },
+  ]}
+  correct="C"
+  explanation="OUTER => TRUE in FLATTEN preserves parent rows even when the specified array path is NULL or empty. Without this option, rows with no array elements are silently dropped. RECURSIVE => TRUE flattens nested structures, not missing arrays. MODE controls whether to flatten arrays, objects, or both. KEEP_NULLS is not a valid FLATTEN parameter."
+/>
+
+---
+
+## Flashcard Review
+
+<Flashcard
+  client:load
+  category="SQL Basics"
+  question="What is the difference between RANK() and DENSE_RANK() in a window function?"
+  answer="RANK() assigns the same rank to ties but then skips the next rank number — for example, two rows tied at rank 2 both get rank 2, and the next row gets rank 4 (not 3). DENSE_RANK() also assigns the same rank to ties but does NOT skip numbers — the next row after two tied rank-2 rows gets rank 3."
+/>
+
+<Flashcard
+  client:load
+  category="SQL Basics"
+  question="What does TYPEOF() return when called on a VARIANT value that contains a JSON array?"
+  answer="TYPEOF() returns the string 'array' for a VARIANT value that holds a JSON array. Other possible return values include 'string', 'integer', 'decimal', 'double', 'boolean', 'object', and 'null'. It returns NULL if the VARIANT itself is NULL."
+/>
+
+<Flashcard
+  client:load
+  category="SQL Basics"
+  question="What is the key difference between TABLESAMPLE BERNOULLI and TABLESAMPLE BLOCK?"
+  answer="BERNOULLI sampling operates at the individual row level — each row is included independently with the specified probability. This produces better randomness but requires scanning all rows. BLOCK sampling operates at the micro-partition level — entire micro-partitions are either included or excluded. This is much faster (Snowflake can skip excluded partitions entirely) but less precisely random."
+/>
+
+<Flashcard
+  client:load
+  category="SQL Basics"
+  question="In what order does Snowflake evaluate the QUALIFY clause relative to other SQL clauses?"
+  answer="The evaluation order is: FROM → WHERE → GROUP BY → HAVING → WINDOW FUNCTIONS → QUALIFY → SELECT (column aliasing) → DISTINCT → ORDER BY → LIMIT/FETCH. QUALIFY runs after window functions are computed, which is why you can reference window function results directly in QUALIFY without a subquery."
+/>
+
+<Flashcard
+  client:load
+  category="SQL Basics"
+  question="What does OBJECT_CONSTRUCT('k1', v1, 'k2', v2) return and what type is it?"
+  answer="OBJECT_CONSTRUCT returns a VARIANT value containing a JSON object built from the alternating key-value pairs. The keys must be strings, and the values can be any SQL type — they are automatically converted to their VARIANT equivalents. NULL values are omitted from the object by default. Use OBJECT_CONSTRUCT_KEEP_NULL to retain NULL values."
+/>
+
+---
+
+## Additional Resources
+
+### Official Snowflake Documentation
+- [Semi-Structured Data Overview](https://docs.snowflake.com/en/user-guide/semistructured-intro)
+- [FLATTEN Function Reference](https://docs.snowflake.com/en/sql-reference/functions/flatten)
+- [Window Functions](https://docs.snowflake.com/en/sql-reference/functions-analytic)
+- [QUALIFY Clause](https://docs.snowflake.com/en/sql-reference/constructs/qualify)
+- [PIVOT and UNPIVOT](https://docs.snowflake.com/en/sql-reference/constructs/pivot)
+
+---
+
+## Next Steps
+
+- [Functions and Stored Procedures](/data-transformations/functions)
+- [Data Loading — Staging and COPY INTO](/data-loading/bulk)
+- [Performance Optimisation — Query Tuning](/performance/queries)

@@ -1,0 +1,727 @@
+---
+layout: ../../layouts/CourseLayout.astro
+title: "Virtual Warehouses"
+description: "Deep dive into Snowflake's compute layer — warehouse sizes, auto-suspend/resume, multi-cluster warehouses, and warehouse management for the SnowPro Core exam"
+moduleId: "virtual-warehouses"
+domain: "Architecture"
+---
+
+import Flashcard from '../../components/Flashcard.tsx';
+import CodeBlock from '../../components/CodeBlock.tsx';
+import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
+import Diagram from '../../components/Diagram.tsx';
+import CalloutBox from '../../components/CalloutBox.tsx';
+import Quiz from '../../components/Quiz.tsx';
+import CompareTable from '../../components/CompareTable.tsx';
+import KeyTerms from '../../components/KeyTerms.tsx';
+import StepByStep from '../../components/StepByStep.tsx';
+import CheatSheet from '../../components/CheatSheet.tsx';
+
+<KeyTerms client:load title="Key Terms — Virtual Warehouses" terms={[
+  { term: "Virtual Warehouse", abbr: "VW", definition: "A named cluster of compute resources (CPU, memory, local SSD cache) in Snowflake that executes SQL queries, DML statements, and data loading operations. Completely independent from storage; can be started and stopped without affecting data." },
+  { term: "Credit", abbr: "CR", definition: "Snowflake's unit of compute consumption. Credits are consumed only when a virtual warehouse is in the STARTED state and actively processing queries or maintaining a warm cache. An X-Small warehouse consumes 1 credit per hour." },
+  { term: "Auto-Suspend", abbr: "AS", definition: "A warehouse property (AUTO_SUSPEND, measured in seconds) that causes the warehouse to automatically suspend after a specified period of inactivity. Suspended warehouses consume zero credits." },
+  { term: "Auto-Resume", abbr: "AR", definition: "A warehouse property (AUTO_RESUME = TRUE) that causes a suspended warehouse to automatically resume when a query is submitted to it. Enables pay-per-use without manual intervention." },
+  { term: "Multi-Cluster Warehouse", abbr: "MCW", definition: "An Enterprise edition feature where a single warehouse can span multiple compute clusters. Clusters are automatically added or removed based on query queue depth, eliminating concurrency bottlenecks." },
+  { term: "Scaling Policy", abbr: "SP", definition: "Controls how a multi-cluster warehouse adds and removes clusters. STANDARD policy adds clusters aggressively when queues form; ECONOMY policy waits longer before adding clusters to optimise credit usage." },
+  { term: "Resource Monitor", abbr: "RM", definition: "An account-level or warehouse-level object that tracks credit usage and can trigger notifications or warehouse suspensions when a defined credit quota is reached within a specified time window." },
+  { term: "Query Profile", abbr: "QP", definition: "A visual execution plan available in Snowsight that shows how a query was processed across operator nodes, enabling identification of performance bottlenecks such as expensive joins, large spills, or partition pruning inefficiency." },
+  { term: "Warehouse Queuing", abbr: "WQ", definition: "When a single-cluster warehouse is processing the maximum number of concurrent queries, additional queries are placed in a queue and wait for resources. Multi-cluster warehouses eliminate queuing by adding clusters." },
+  { term: "Maximum Concurrency Level", abbr: "MCL", definition: "The MAX_CONCURRENCY_LEVEL parameter controls the maximum number of SQL statements a single warehouse cluster will execute concurrently before additional queries are queued." }
+]} />
+
+## Why This Topic Matters for the Exam
+
+Virtual warehouses are Snowflake's **compute engine** — understanding them thoroughly is essential for the COF-C02 exam. Questions on warehouses span multiple exam domains: Architecture (what they are and how they work), Performance Concepts (sizing, scaling, caching), and Account & Security (resource monitors, access control). The exam frequently tests auto-suspend/resume behaviour, the 60-second minimum billing rule, multi-cluster warehouse scaling policies, and the distinction between Standard and ECONOMY scaling policies.
+
+Candidates who understand warehouses deeply can also answer questions on credit consumption, concurrency management, and cost optimisation strategies — areas that account for a significant portion of the exam.
+
+<CalloutBox type="exam" title="Exam Weight: Very High Priority">
+  Virtual warehouses appear in questions across at least three exam domains. Expect 10–15 questions on warehouse sizing, credits, auto-suspend/resume, multi-cluster behaviour, scaling policies, resource monitors, and warehouse monitoring views. This is the single highest-weight topic on the COF-C02 exam.
+</CalloutBox>
+
+<YouTubeEmbed client:load videoId="hAqWKYPOsyo" title="Snowflake Virtual Warehouses — Compute Layer Deep Dive" description="A comprehensive walkthrough of Snowflake's virtual warehouse architecture, including how warehouses relate to storage, how credits are consumed, and best practices for sizing and configuration." />
+
+---
+
+## What is a Virtual Warehouse?
+
+A **Virtual Warehouse** is an MPP (Massively Parallel Processing) cluster of compute nodes that executes SQL queries in Snowflake. It is the **compute layer** of Snowflake's three-layer architecture, sitting between the cloud services layer (query parsing, optimisation, metadata) and the storage layer (data in cloud object storage).
+
+<Diagram client:load
+  title="Snowflake Three-Layer Architecture: Warehouse Position"
+  description="A three-tier architecture diagram showing Snowflake's separation of storage, compute, and services. The top layer is labelled 'Cloud Services Layer' and contains boxes for: Query Parser, Query Optimiser, Metadata Manager, Access Control, Transaction Manager, and Security. A two-headed arrow points downward to the middle layer labelled 'Compute Layer (Virtual Warehouses)'. This layer shows three separate warehouse icons — Warehouse A (X-Large, for ETL), Warehouse B (Small, for BI), and Warehouse C (Medium, for Data Science). Each warehouse is completely isolated from the others, indicated by thick borders. A second two-headed arrow points down to the bottom layer labelled 'Storage Layer', which shows columnar data files in compressed micro-partitions stored in cloud object storage (S3, Azure Blob, or GCS). Critically, there are no arrows between the three warehouse boxes — they share storage but do not share compute. A callout bubble reads: 'Warehouses can be started, stopped, and resized independently without affecting stored data.'"
+  altText="Snowflake three-layer architecture showing virtual warehouse independence from storage"
+/>
+
+### Core Properties of Virtual Warehouses
+
+- **Completely independent from storage**: Starting, stopping, or resizing a warehouse has zero impact on the data stored in Snowflake
+- **Multiple warehouses can read the same data simultaneously**: Because storage is separate, different teams can run different warehouses against the same tables without interference
+- **Credits are only consumed when running**: A suspended warehouse costs nothing; you pay only for active compute time
+- **Local SSD cache per warehouse**: Each warehouse maintains a local cache of recently accessed micro-partitions, which is lost when the warehouse is suspended
+
+<CalloutBox type="important" title="Warehouses Do Not Share Cache">
+  Each virtual warehouse maintains its own local SSD data cache. If Warehouse A warms up its cache by scanning a large table, Warehouse B querying the same table will scan from cloud storage and build its own cache independently. This is why consistent warehouse usage improves performance — repeated queries benefit from the warm cache.
+</CalloutBox>
+
+---
+
+## Warehouse States
+
+A virtual warehouse transitions between four states throughout its lifecycle:
+
+| State | Description | Credits Consumed |
+|---|---|---|
+| `STARTED` | Running and ready to process queries | Yes — per-second billing |
+| `SUSPENDED` | Inactive; no compute resources allocated | No — zero credits |
+| `STARTING` | Transitioning from SUSPENDED to STARTED | No — brief transition (typically seconds) |
+| `RESIZING` | Cluster is scaling up or down to a new size | Yes — billed at the new size once complete |
+
+<CalloutBox type="tip" title="Resizing is Near-Instant for Scale-Up">
+  When you resize a warehouse to a larger size, Snowflake provisions new nodes and begins routing queries to the expanded cluster almost immediately. Scaling down is also fast. Neither operation requires data movement or impacts running queries.
+</CalloutBox>
+
+---
+
+## Warehouse Sizes and Credit Consumption
+
+Snowflake offers a range of warehouse sizes, each doubling compute resources (and credit consumption) compared to the previous size. Understanding the credit-per-hour rates is essential for both the exam and real-world cost management.
+
+<Diagram client:load
+  title="Warehouse Sizes and Credit Consumption"
+  description="A bar chart showing all Snowflake warehouse sizes on the X-axis from left to right: X-Small, Small, Medium, Large, X-Large, 2X-Large, 3X-Large, 4X-Large. The Y-axis shows credits per hour. Each bar doubles the previous: X-Small=1, Small=2, Medium=4, Large=8, X-Large=16, 2X-Large=32, 3X-Large=64, 4X-Large=128. A second overlaid line shows approximate query performance scaling — labelled 'relative performance' — which rises steeply at first and then flattens, illustrating diminishing returns from very large warehouses for most workloads. A callout box notes that per-second billing applies after the first 60 seconds. A shaded region on the right side of the chart is labelled 'Typically used for batch ETL, ML training, or very large data transformations' covering 2X-Large through 4X-Large. The region covering X-Small through Medium is labelled 'Typical for BI dashboards and ad-hoc analysis'."
+  altText="Bar chart of Snowflake warehouse sizes and their credit consumption rates per hour"
+/>
+
+| Warehouse Size | Credits / Hour | Typical Use Case |
+|---|---|---|
+| X-Small | 1 | Development, testing, low-concurrency dashboards |
+| Small | 2 | Small team BI, light ETL |
+| Medium | 4 | Mid-size ETL, moderate concurrency BI |
+| Large | 8 | Heavy ETL, data science workloads |
+| X-Large | 16 | Large batch transformations |
+| 2X-Large | 32 | Very large transformations, ML feature engineering |
+| 3X-Large | 64 | Massive batch processing |
+| 4X-Large | 128 | Extreme batch workloads, maximum parallelism |
+
+<CalloutBox type="exam" title="Credit Rate Memorisation Tip">
+  The exam expects you to know that X-Small = 1 credit/hour and that each size doubles the credits. You do not need to memorise every size, but knowing the X-Small baseline and the doubling pattern lets you calculate any size: Small=2, Medium=4, Large=8, X-Large=16, 2X-Large=32, 3X-Large=64, 4X-Large=128.
+</CalloutBox>
+
+---
+
+## Auto-Suspend and Auto-Resume
+
+These two parameters together enable the **serverless pricing model** that makes Snowflake cost-effective: you pay only when queries are running.
+
+### Auto-Suspend
+
+The `AUTO_SUSPEND` parameter specifies the number of seconds of **inactivity** after which the warehouse automatically suspends itself.
+
+- Default value: **600 seconds** (10 minutes)
+- Minimum value: **60 seconds**
+- Set to `NULL` or `0` to **disable** auto-suspend (warehouse runs indefinitely until manually suspended)
+- When suspended, the warehouse's local SSD cache is **lost**
+
+### Auto-Resume
+
+The `AUTO_RESUME` parameter (boolean) determines whether the warehouse automatically resumes when a query is submitted to it.
+
+- Default value: `TRUE`
+- When `TRUE`: warehouse resumes automatically on query submission with no manual intervention
+- When `FALSE`: warehouse must be manually resumed with `ALTER WAREHOUSE ... RESUME` before queries will run
+
+<CalloutBox type="exam" title="60-Second Minimum Billing — Critically Tested">
+  Every time a virtual warehouse **resumes** from a SUSPENDED state, Snowflake charges a **minimum of 60 seconds** of credit consumption, regardless of how quickly the query completes. If a query takes 5 seconds and the warehouse was suspended, you are still billed for 60 seconds. This is one of the most frequently tested facts about virtual warehouses on the COF-C02 exam. After the initial 60 seconds, billing is per-second.
+</CalloutBox>
+
+<Diagram client:load
+  title="Auto-Suspend and Auto-Resume Timeline"
+  description="A horizontal timeline diagram illustrating warehouse state transitions. At the far left, a warehouse is shown in the STARTED state (green). A clock icon shows the AUTO_SUSPEND timer counting down from 600 seconds during a period of no query activity. When the timer reaches zero, the warehouse transitions to SUSPENDED state (grey icon, zero credits label). Time continues on the timeline. Then, a new query arrives (represented by a lightning bolt icon), triggering AUTO_RESUME. The warehouse transitions through STARTING state (yellow, brief) to STARTED state (green) again. A red rectangle underneath the STARTED state segment beginning at the resume point is labelled '60-second minimum billing window'. A callout explains: even if the query finishes in 10 seconds, the full 60-second minimum is billed. After the 60-second window, billing becomes per-second. A second scenario shows a short query (5 seconds) versus a long query (300 seconds), both billed at least 60 seconds on resume."
+  altText="Timeline showing warehouse auto-suspend, auto-resume, and the 60-second minimum billing window"
+/>
+
+---
+
+## Creating and Configuring Warehouses
+
+<CodeBlock client:load language="sql" title="CREATE WAREHOUSE — Full Syntax with All Key Parameters" showLineNumbers={true} code={`-- Full CREATE WAREHOUSE with all key parameters
+CREATE WAREHOUSE etl_warehouse
+  WAREHOUSE_SIZE         = 'LARGE'          -- compute size
+  WAREHOUSE_TYPE         = 'STANDARD'       -- STANDARD or SNOWPARK-OPTIMIZED
+  AUTO_SUSPEND           = 300              -- suspend after 5 minutes idle
+  AUTO_RESUME            = TRUE             -- auto-resume on query submission
+  INITIALLY_SUSPENDED    = TRUE             -- start in suspended state
+  MAX_CONCURRENCY_LEVEL  = 8               -- max concurrent queries before queuing
+  STATEMENT_TIMEOUT_IN_SECONDS = 3600      -- kill queries running > 1 hour
+  STATEMENT_QUEUED_TIMEOUT_IN_SECONDS = 600 -- timeout queued queries after 10 min
+  COMMENT = 'Nightly ETL warehouse — Large, auto-suspended';
+
+-- Create a minimal warehouse with sensible defaults
+CREATE WAREHOUSE reporting_wh
+  WAREHOUSE_SIZE = 'SMALL'
+  AUTO_SUSPEND   = 120
+  AUTO_RESUME    = TRUE
+  INITIALLY_SUSPENDED = TRUE;
+
+-- Verify warehouse was created
+SHOW WAREHOUSES LIKE 'etl_warehouse';`} />
+
+<CodeBlock client:load language="sql" title="ALTER WAREHOUSE — Resize, Change Settings, Suspend & Resume" showLineNumbers={true} code={`-- Set the active warehouse for the current session
+USE WAREHOUSE reporting_wh;
+
+-- Resize a warehouse (takes effect near-instantly)
+ALTER WAREHOUSE etl_warehouse
+  SET WAREHOUSE_SIZE = 'X-LARGE';
+
+-- Change auto-suspend interval
+ALTER WAREHOUSE reporting_wh
+  SET AUTO_SUSPEND = 60;
+
+-- Disable auto-suspend (warehouse runs until manually stopped)
+ALTER WAREHOUSE etl_warehouse
+  SET AUTO_SUSPEND = NULL;
+
+-- Manually suspend a warehouse immediately
+ALTER WAREHOUSE reporting_wh SUSPEND;
+
+-- Manually resume a suspended warehouse
+ALTER WAREHOUSE reporting_wh RESUME;
+
+-- Resize and change multiple settings in one ALTER
+ALTER WAREHOUSE etl_warehouse SET
+  WAREHOUSE_SIZE        = 'MEDIUM'
+  AUTO_SUSPEND          = 300
+  MAX_CONCURRENCY_LEVEL = 4;
+
+-- Change the statement timeout
+ALTER WAREHOUSE reporting_wh
+  SET STATEMENT_TIMEOUT_IN_SECONDS = 1800;  -- 30 minutes
+
+-- Show current warehouse status
+SHOW WAREHOUSES;`} />
+
+---
+
+## Multi-Cluster Warehouses (Enterprise Edition)
+
+Multi-cluster warehouses are an **Enterprise edition** feature that allows a single logical warehouse to span multiple independent compute clusters. This is the primary solution to **concurrency bottlenecks** in Snowflake.
+
+### When to Use Multi-Cluster Warehouses
+
+A single warehouse cluster has a limited number of concurrent query slots. When that limit is reached, additional queries are **queued** and wait for resources. Multi-cluster warehouses automatically add clusters when queues form and remove them when load decreases.
+
+<Diagram client:load
+  title="Multi-Cluster Warehouse: Auto-Scale Mode"
+  description="A dynamic diagram showing a multi-cluster warehouse operating in auto-scale mode. At the top is a label showing 'Warehouse: BI_WAREHOUSE — MIN_CLUSTER_COUNT=1, MAX_CLUSTER_COUNT=4, SCALING_POLICY=STANDARD'. Three time periods are shown left to right. Period 1 (Low load, 9am): A single cluster (Cluster 1) processes 8 queries shown as small arrows. No queue. Period 2 (Peak load, 12pm): Cluster 1 is at capacity with 8 queries. A queue of 12 additional queries forms to the right, shown as stacked icons. Snowflake's cloud services layer detects the queue and provisions Cluster 2 (shown appearing below Cluster 1) and Cluster 3. The queue drains as queries are distributed across all three clusters. Period 3 (Load decreasing, 2pm): Query volume drops. Cluster 3 finishes its current queries and idles for the consecutive-successful-queries threshold, then is shut down. Cluster 2 also shuts down. Only Cluster 1 remains active. The transition arrows between periods are labelled 'Scale Out' and 'Scale In'. A credit counter in the corner shows increasing credit consumption during peak and decreasing during scale-in."
+  altText="Diagram of multi-cluster warehouse scaling out during peak load and scaling in as load decreases"
+/>
+
+### Key Multi-Cluster Parameters
+
+<CodeBlock client:load language="sql" title="Creating a Multi-Cluster Warehouse" showLineNumbers={true} code={`-- Multi-cluster warehouse in Auto-scale mode (Enterprise edition required)
+CREATE WAREHOUSE bi_warehouse
+  WAREHOUSE_SIZE      = 'MEDIUM'
+  MIN_CLUSTER_COUNT   = 1           -- minimum clusters always running
+  MAX_CLUSTER_COUNT   = 4           -- maximum clusters allowed
+  SCALING_POLICY      = 'STANDARD'  -- STANDARD or ECONOMY
+  AUTO_SUSPEND        = 300
+  AUTO_RESUME         = TRUE
+  INITIALLY_SUSPENDED = FALSE
+  COMMENT = 'BI warehouse — scales from 1 to 4 clusters automatically';
+
+-- Maximized mode: all clusters always running (fixed concurrency)
+-- Use when you have predictably high, sustained concurrency
+CREATE WAREHOUSE high_concurrency_wh
+  WAREHOUSE_SIZE    = 'SMALL'
+  MIN_CLUSTER_COUNT = 3           -- always run exactly 3 clusters
+  MAX_CLUSTER_COUNT = 3           -- same as min = Maximized mode
+  SCALING_POLICY    = 'STANDARD'
+  AUTO_SUSPEND      = 600
+  AUTO_RESUME       = TRUE;
+
+-- Convert existing single-cluster to multi-cluster
+ALTER WAREHOUSE reporting_wh SET
+  MIN_CLUSTER_COUNT = 1
+  MAX_CLUSTER_COUNT = 3
+  SCALING_POLICY    = 'ECONOMY';
+
+-- Check multi-cluster warehouse status
+SHOW WAREHOUSES LIKE 'bi_warehouse';`} />
+
+### Scaling Policies: STANDARD vs ECONOMY
+
+<CompareTable client:load
+  title="Multi-Cluster Scaling Policy: STANDARD vs ECONOMY"
+  leftLabel="STANDARD Policy"
+  rightLabel="ECONOMY Policy"
+  rows={[
+    { feature: "Cluster addition trigger", left: "Adds a cluster immediately when a query queue forms", right: "Waits until the queue is large enough that adding a cluster would improve performance (conservative)", winner: "none" },
+    { feature: "Primary goal", left: "Minimise query wait time — prioritise performance", right: "Minimise credit consumption — prioritise cost efficiency", winner: "none" },
+    { feature: "Cluster removal trigger", left: "Removes idle clusters after 2-3 consecutive successful query evaluations", right: "Removes clusters only after a longer idle period, avoiding premature scale-in", winner: "none" },
+    { feature: "Best for", left: "BI dashboards, ad-hoc analysis, unpredictable spiky load", right: "Batch workloads, predictable load, cost-sensitive environments", winner: "none" },
+    { feature: "Response to sudden load spike", left: "Fast scale-out — adds cluster almost immediately", right: "Slower scale-out — evaluates load before committing to additional cluster", winner: "left" },
+    { feature: "Cost optimisation", left: "Higher cost — acts quickly, may add clusters for brief spikes", right: "Lower cost — avoids adding clusters for brief queue formations", winner: "right" }
+  ]}
+/>
+
+<CalloutBox type="exam" title="STANDARD vs ECONOMY Scaling Policy">
+  The exam distinguishes STANDARD from ECONOMY by their primary goal. STANDARD prioritises **query performance** (minimise wait time) by adding clusters quickly. ECONOMY prioritises **cost** (minimise credits) by waiting longer before adding clusters. If the exam asks which policy to choose to reduce costs at the risk of slightly higher latency, the answer is ECONOMY.
+</CalloutBox>
+
+### Maximized Mode vs Auto-Scale Mode
+
+- **Auto-scale mode**: `MIN_CLUSTER_COUNT < MAX_CLUSTER_COUNT`. Snowflake dynamically adds and removes clusters between the min and max. The default and most common mode.
+- **Maximized mode**: `MIN_CLUSTER_COUNT = MAX_CLUSTER_COUNT`. All clusters are always running. No dynamic scaling — provides fixed, predictable concurrency. Best for steady-state, very high concurrency environments.
+
+---
+
+## Query Queuing and Concurrency
+
+Understanding how Snowflake handles query concurrency is critical for both the exam and real-world troubleshooting.
+
+When a warehouse is processing the maximum number of concurrent queries (`MAX_CONCURRENCY_LEVEL`), additional queries are placed in a **queue**. Queued queries wait until a slot opens up (when a running query completes) or until the queue timeout is reached.
+
+<CodeBlock client:load language="sql" title="Managing Query Queuing and Timeouts" showLineNumbers={true} code={`-- Set the maximum concurrent queries before queuing begins
+ALTER WAREHOUSE reporting_wh
+  SET MAX_CONCURRENCY_LEVEL = 8;
+
+-- Set timeout for queued queries (seconds)
+-- If a query waits longer than this in the queue, it fails with an error
+ALTER WAREHOUSE reporting_wh
+  SET STATEMENT_QUEUED_TIMEOUT_IN_SECONDS = 300;  -- 5 minutes
+
+-- Set timeout for running statements
+-- Queries running longer than this are automatically killed
+ALTER WAREHOUSE reporting_wh
+  SET STATEMENT_TIMEOUT_IN_SECONDS = 7200;  -- 2 hours
+
+-- Check current queue depth and active queries
+SELECT *
+FROM TABLE(INFORMATION_SCHEMA.WAREHOUSE_LOAD_HISTORY(
+  DATE_RANGE_START => DATEADD('hour', -1, CURRENT_TIMESTAMP()),
+  DATE_RANGE_END   => CURRENT_TIMESTAMP(),
+  WAREHOUSE_NAME   => 'REPORTING_WH'
+));
+
+-- View current and recently queued queries
+SELECT
+  query_id,
+  user_name,
+  warehouse_name,
+  execution_status,
+  queued_provisioning_time / 1000  AS queued_seconds,
+  execution_time / 1000            AS execution_seconds,
+  LEFT(query_text, 100)            AS query_preview
+FROM snowflake.account_usage.query_history
+WHERE warehouse_name = 'REPORTING_WH'
+  AND start_time >= DATEADD('hour', -1, CURRENT_TIMESTAMP())
+ORDER BY start_time DESC;`} />
+
+<CalloutBox type="tip" title="Multi-Cluster is the Right Fix for Queuing Problems">
+  If users are experiencing query queuing, the correct solution is to **enable multi-cluster mode** (Enterprise edition) rather than simply resizing the warehouse. Resizing improves individual query performance but does not increase concurrency. Multi-cluster warehouses add entire clusters to handle more concurrent queries simultaneously.
+</CalloutBox>
+
+---
+
+## Warehouse Monitoring
+
+Snowflake provides multiple views for monitoring warehouse performance and credit consumption.
+
+<CodeBlock client:load language="sql" title="Warehouse Monitoring Queries" showLineNumbers={true} code={`-- 1. Credit consumption by warehouse over the last 7 days (ACCOUNT_USAGE)
+SELECT
+  warehouse_name,
+  SUM(credits_used)           AS total_credits,
+  SUM(credits_used_compute)   AS compute_credits,
+  SUM(credits_used_cloud_services) AS cloud_service_credits,
+  COUNT(*)                    AS billing_periods
+FROM snowflake.account_usage.warehouse_metering_history
+WHERE start_time >= DATEADD('day', -7, CURRENT_TIMESTAMP())
+GROUP BY warehouse_name
+ORDER BY total_credits DESC;
+
+-- 2. Warehouse load over time (INFORMATION_SCHEMA — current DB, near real-time)
+SELECT
+  start_time,
+  end_time,
+  warehouse_name,
+  avg_running,    -- average concurrent queries running
+  avg_queued_load -- average queries in the queue
+FROM TABLE(INFORMATION_SCHEMA.WAREHOUSE_LOAD_HISTORY(
+  DATE_RANGE_START => DATEADD('hour', -4, CURRENT_TIMESTAMP()),
+  WAREHOUSE_NAME   => 'REPORTING_WH'
+))
+ORDER BY start_time DESC;
+
+-- 3. Recent query performance on a specific warehouse
+SELECT
+  query_id,
+  user_name,
+  query_type,
+  execution_status,
+  ROUND(execution_time / 1000, 2)        AS exec_seconds,
+  ROUND(bytes_scanned / POWER(1024,3), 4) AS gb_scanned,
+  partitions_scanned,
+  partitions_total,
+  ROUND(partitions_scanned / NULLIF(partitions_total, 0) * 100, 1) AS pct_scanned,
+  LEFT(query_text, 200)                   AS query_preview
+FROM snowflake.account_usage.query_history
+WHERE warehouse_name = 'ETL_WAREHOUSE'
+  AND start_time >= DATEADD('day', -1, CURRENT_TIMESTAMP())
+  AND execution_status = 'SUCCESS'
+ORDER BY execution_time DESC
+LIMIT 50;
+
+-- 4. Identify warehouses with high queuing
+SELECT
+  warehouse_name,
+  AVG(avg_queued_load) AS avg_queue_depth,
+  MAX(avg_queued_load) AS max_queue_depth
+FROM snowflake.account_usage.warehouse_load_history
+WHERE start_time >= DATEADD('day', -7, CURRENT_TIMESTAMP())
+GROUP BY warehouse_name
+HAVING avg_queue_depth > 0.5
+ORDER BY avg_queue_depth DESC;`} />
+
+---
+
+## Resource Monitors
+
+**Resource monitors** allow administrators to track credit usage and automatically take action (notify, suspend, or force-suspend warehouses) when a defined credit quota is reached within a specified time window.
+
+<Diagram client:load
+  title="Resource Monitor Architecture"
+  description="A layered diagram showing the resource monitor architecture. At the top is an 'Account Resource Monitor' box labelled 'Account-level — controls all warehouses'. Below it are three 'Warehouse Resource Monitor' boxes, each labelled with a warehouse name: ETL_WAREHOUSE, REPORTING_WH, BI_WAREHOUSE. Each warehouse monitor box has a credit quota dial showing a percentage used. On the right side is an 'Actions' panel showing four possible triggers: 1) NOTIFY — sends an email alert at the specified threshold (e.g., 75% of quota); 2) NOTIFY & SUSPEND — sends alert and suspends the warehouse after current queries finish (at e.g., 90%); 3) NOTIFY & SUSPEND_IMMEDIATE — sends alert and kills all running queries immediately (at e.g., 100%); 4) Multiple thresholds can be set — shown as a graduated scale from 75% to 100%. A callout explains that resource monitors reset at the start of each time window (DAILY, WEEKLY, MONTHLY, YEARLY, or NEVER). Arrows show that account-level monitors affect all warehouses unless overridden by a warehouse-level monitor."
+  altText="Architecture diagram of Snowflake resource monitors showing account and warehouse level monitoring with notification and suspension actions"
+/>
+
+<CodeBlock client:load language="sql" title="Creating and Assigning Resource Monitors" showLineNumbers={true} code={`-- Create an account-level resource monitor
+-- Monitors all credit usage in the account per month
+CREATE RESOURCE MONITOR account_monthly_monitor
+  WITH CREDIT_QUOTA = 5000                -- 5,000 credits per period
+  FREQUENCY        = MONTHLY              -- reset at start of each month
+  START_TIMESTAMP  = IMMEDIATELY
+  TRIGGERS
+    ON 75 PERCENT DO NOTIFY              -- email alert at 75%
+    ON 90 PERCENT DO NOTIFY              -- email alert at 90%
+    ON 100 PERCENT DO SUSPEND            -- suspend warehouses gracefully at 100%
+    ON 110 PERCENT DO SUSPEND_IMMEDIATE; -- force-kill at 110% (overage protection)
+
+-- Apply the resource monitor at the account level
+ALTER ACCOUNT SET RESOURCE_MONITOR = account_monthly_monitor;
+
+-- Create a warehouse-specific resource monitor
+CREATE RESOURCE MONITOR etl_weekly_monitor
+  WITH CREDIT_QUOTA = 200              -- 200 credits per week
+  FREQUENCY        = WEEKLY
+  START_TIMESTAMP  = IMMEDIATELY
+  TRIGGERS
+    ON 80 PERCENT DO NOTIFY
+    ON 100 PERCENT DO SUSPEND_IMMEDIATE;
+
+-- Assign resource monitor to a specific warehouse
+ALTER WAREHOUSE etl_warehouse
+  SET RESOURCE_MONITOR = etl_weekly_monitor;
+
+-- View all resource monitors and their current usage
+SHOW RESOURCE MONITORS;
+
+-- View credit usage for resource monitors
+SELECT *
+FROM snowflake.account_usage.resource_monitors
+ORDER BY created_on DESC;`} />
+
+<CalloutBox type="warning" title="SUSPEND vs SUSPEND_IMMEDIATE">
+  The `SUSPEND` action waits for currently running queries to finish before suspending the warehouse. `SUSPEND_IMMEDIATE` kills all running queries immediately and suspends the warehouse. Using `SUSPEND_IMMEDIATE` at 100% prevents any additional credits from being consumed but will abort in-flight queries — use it carefully in production environments.
+</CalloutBox>
+
+---
+
+## Step-by-Step: Configuring a Cost-Optimised Warehouse Setup
+
+<StepByStep client:load title="Setting Up a Multi-Warehouse Architecture with Resource Monitors" steps={[
+  {
+    title: "Design the Warehouse Topology",
+    description: "Separate workloads onto dedicated warehouses to prevent ETL from competing with BI queries. This is a fundamental Snowflake best practice and a common exam topic.",
+    tip: "Use separate warehouses for ETL, BI reporting, data science, and loading. Each warehouse can be sized and auto-suspended independently, preventing any single workload from starving others of resources."
+  },
+  {
+    title: "Create the ETL Warehouse",
+    description: "Create a large warehouse for nightly ETL runs. It should auto-suspend quickly after batch completion to avoid wasting credits during idle hours.",
+    code: `-- ETL warehouse: Large for bulk transforms, quick auto-suspend
+CREATE WAREHOUSE etl_nightly_wh
+  WAREHOUSE_SIZE         = 'LARGE'
+  AUTO_SUSPEND           = 120           -- suspend 2 minutes after last query
+  AUTO_RESUME            = TRUE
+  INITIALLY_SUSPENDED    = TRUE          -- don't charge until first use
+  MAX_CONCURRENCY_LEVEL  = 4
+  STATEMENT_TIMEOUT_IN_SECONDS = 14400   -- kill runaway queries after 4hrs
+  COMMENT = 'Nightly ETL — Large, 2-min auto-suspend';`,
+    tip: "Setting INITIALLY_SUSPENDED = TRUE means you don't pay credits just for creating the warehouse. It resumes on first use via AUTO_RESUME."
+  },
+  {
+    title: "Create the BI Reporting Warehouse with Multi-Cluster",
+    description: "Create a Medium multi-cluster warehouse for BI dashboards. Multiple analysts hit this warehouse simultaneously during business hours, so multi-cluster prevents queuing.",
+    code: `-- BI warehouse: Medium with multi-cluster for concurrent analysts
+-- Requires Enterprise edition or higher
+CREATE WAREHOUSE bi_reporting_wh
+  WAREHOUSE_SIZE      = 'MEDIUM'
+  MIN_CLUSTER_COUNT   = 1
+  MAX_CLUSTER_COUNT   = 3
+  SCALING_POLICY      = 'STANDARD'       -- fast scale-out for BI
+  AUTO_SUSPEND        = 300              -- 5-minute auto-suspend
+  AUTO_RESUME         = TRUE
+  INITIALLY_SUSPENDED = TRUE
+  COMMENT = 'BI reporting — Medium, 1-3 clusters, Standard scaling';`
+  },
+  {
+    title: "Create the Resource Monitor",
+    description: "Protect the account from unexpected credit overruns by creating a monthly resource monitor with tiered notification and suspension triggers.",
+    code: `-- Monthly resource monitor with tiered actions
+CREATE RESOURCE MONITOR monthly_cost_guard
+  WITH CREDIT_QUOTA = 3000
+  FREQUENCY        = MONTHLY
+  START_TIMESTAMP  = IMMEDIATELY
+  TRIGGERS
+    ON 50  PERCENT DO NOTIFY
+    ON 75  PERCENT DO NOTIFY
+    ON 90  PERCENT DO NOTIFY
+    ON 100 PERCENT DO SUSPEND
+    ON 110 PERCENT DO SUSPEND_IMMEDIATE;
+
+-- Apply to all warehouses at account level
+ALTER ACCOUNT SET RESOURCE_MONITOR = monthly_cost_guard;
+
+-- Apply stricter individual monitor to ETL warehouse
+CREATE RESOURCE MONITOR etl_weekly_budget
+  WITH CREDIT_QUOTA = 500
+  FREQUENCY        = WEEKLY
+  START_TIMESTAMP  = IMMEDIATELY
+  TRIGGERS
+    ON 80  PERCENT DO NOTIFY
+    ON 100 PERCENT DO SUSPEND_IMMEDIATE;
+
+ALTER WAREHOUSE etl_nightly_wh
+  SET RESOURCE_MONITOR = etl_weekly_budget;`,
+    tip: "Individual warehouse monitors override the account-level monitor for that specific warehouse. Assign stricter budgets to high-cost warehouses."
+  },
+  {
+    title: "Verify the Configuration",
+    description: "Use SHOW commands and account usage views to confirm the warehouse and resource monitor configuration is correct.",
+    code: `-- Confirm warehouse settings
+SHOW WAREHOUSES;
+
+-- Confirm resource monitors
+SHOW RESOURCE MONITORS;
+
+-- Test auto-resume by submitting a query to the suspended warehouse
+USE WAREHOUSE bi_reporting_wh;
+SELECT CURRENT_WAREHOUSE(), CURRENT_TIMESTAMP();
+
+-- Monitor credit consumption after a few hours
+SELECT
+  warehouse_name,
+  SUM(credits_used) AS total_credits
+FROM snowflake.account_usage.warehouse_metering_history
+WHERE start_time >= CURRENT_DATE()
+GROUP BY warehouse_name
+ORDER BY total_credits DESC;`
+  }
+]} />
+
+---
+
+## Snowpark-Optimised Warehouses
+
+Snowflake also offers a `SNOWPARK-OPTIMIZED` warehouse type designed for Python, Scala, and Java workloads that require large amounts of memory per node (e.g., ML model training, pandas DataFrames).
+
+<CodeBlock client:load language="sql" title="Snowpark-Optimised Warehouse" showLineNumbers={true} code={`-- Create a Snowpark-Optimized warehouse for ML workloads
+-- These warehouses have ~16x more memory per node than STANDARD warehouses
+CREATE WAREHOUSE ml_training_wh
+  WAREHOUSE_SIZE = 'MEDIUM'
+  WAREHOUSE_TYPE = 'SNOWPARK-OPTIMIZED'
+  AUTO_SUSPEND   = 600
+  AUTO_RESUME    = TRUE
+  INITIALLY_SUSPENDED = TRUE
+  COMMENT = 'Snowpark ML training — high memory per node';
+
+-- Standard warehouses for regular SQL and Python UDFs
+CREATE WAREHOUSE analytics_wh
+  WAREHOUSE_SIZE = 'SMALL'
+  WAREHOUSE_TYPE = 'STANDARD'   -- default type
+  AUTO_SUSPEND   = 180
+  AUTO_RESUME    = TRUE;`} />
+
+<CalloutBox type="note" title="When to Use Snowpark-Optimised Warehouses">
+  Use `SNOWPARK-OPTIMIZED` warehouses when your Python or Scala workloads are memory-intensive — for example, training large machine learning models, working with large pandas DataFrames in Snowpark, or running complex Python UDTFs. For regular SQL and lightweight Python UDFs, a STANDARD warehouse is more cost-effective.
+</CalloutBox>
+
+---
+
+## Quick Reference Cheat Sheet
+
+<CheatSheet client:load title="Virtual Warehouses — COF-C02 Cheat Sheet" sections={[
+  {
+    title: "Credit Consumption by Size",
+    icon: "C",
+    items: [
+      { label: "X-Small", value: "1 credit/hr", note: "Dev, testing, low-concurrency" },
+      { label: "Small", value: "2 credits/hr", note: "Small team BI, light ETL" },
+      { label: "Medium", value: "4 credits/hr", note: "Standard BI and ETL" },
+      { label: "Large", value: "8 credits/hr", note: "Heavy ETL, data science" },
+      { label: "X-Large", value: "16 credits/hr", note: "Large batch transforms" },
+      { label: "2X-Large", value: "32 credits/hr", note: "Very large workloads" },
+      { label: "3X-Large", value: "64 credits/hr", note: "Massive batch processing" },
+      { label: "4X-Large", value: "128 credits/hr", note: "Maximum parallelism" }
+    ]
+  },
+  {
+    title: "Key Parameters",
+    icon: "P",
+    items: [
+      { label: "AUTO_SUSPEND", value: "Seconds of idle before suspend", note: "Default: 600s (10 min), min 60s" },
+      { label: "AUTO_RESUME", value: "TRUE / FALSE", note: "Default: TRUE — auto-resume on query" },
+      { label: "INITIALLY_SUSPENDED", value: "TRUE / FALSE", note: "Start suspended to avoid immediate billing" },
+      { label: "MAX_CONCURRENCY_LEVEL", value: "Integer", note: "Max concurrent queries before queuing" },
+      { label: "STATEMENT_TIMEOUT_IN_SECONDS", value: "Integer (seconds)", note: "Kill long-running queries automatically" },
+      { label: "WAREHOUSE_TYPE", value: "STANDARD or SNOWPARK-OPTIMIZED", note: "High-memory for ML workloads" }
+    ]
+  },
+  {
+    title: "Multi-Cluster Parameters",
+    icon: "M",
+    items: [
+      { label: "MIN_CLUSTER_COUNT", value: "Integer >= 1", note: "Minimum clusters always running" },
+      { label: "MAX_CLUSTER_COUNT", value: "Integer >= MIN", note: "Upper bound on cluster count" },
+      { label: "SCALING_POLICY", value: "STANDARD or ECONOMY", note: "STANDARD = fast; ECONOMY = cost-efficient" },
+      { label: "Auto-scale mode", value: "MIN < MAX", note: "Dynamic scaling between min and max" },
+      { label: "Maximized mode", value: "MIN = MAX", note: "All clusters always running" },
+      { label: "Edition required", value: "Enterprise or higher", note: "Not available on Standard edition" }
+    ]
+  },
+  {
+    title: "Resource Monitor Actions",
+    icon: "R",
+    items: [
+      { label: "NOTIFY", value: "Send email alert", note: "No impact on warehouse operation" },
+      { label: "SUSPEND", value: "Graceful suspend", note: "Waits for running queries to complete" },
+      { label: "SUSPEND_IMMEDIATE", value: "Force suspend", note: "Kills running queries immediately" },
+      { label: "Frequency options", value: "DAILY, WEEKLY, MONTHLY, YEARLY, NEVER", note: "Controls quota reset period" }
+    ]
+  },
+  {
+    title: "Billing Rules",
+    icon: "B",
+    items: [
+      { label: "Minimum billing on resume", value: "60 seconds", note: "Even if query takes 1 second" },
+      { label: "After first 60 seconds", value: "Per-second billing", note: "Granular billing after minimum" },
+      { label: "Suspended state", value: "Zero credits", note: "No compute cost when suspended" },
+      { label: "Cloud services", value: "Separate credit pool", note: "Billed only above 10% of compute" }
+    ]
+  }
+]} />
+
+---
+
+## Practice Quiz
+
+<Quiz client:load
+  category="Virtual Warehouses"
+  question="A Snowflake warehouse is suspended. A user submits a query that takes exactly 8 seconds to complete. The warehouse then idles and auto-suspends after 2 minutes. How many seconds of compute credits are charged for this activity?"
+  options={[
+    { label: "A", text: "8 seconds — only the actual query execution time is billed." },
+    { label: "B", text: "60 seconds — the 60-second minimum billing applies on resume, and the query finishes within that window." },
+    { label: "C", text: "120 seconds — the auto-suspend timer adds to the billing period." },
+    { label: "D", text: "128 seconds — 60 seconds minimum plus 68 seconds of idle time after the query." }
+  ]}
+  correct="B"
+  explanation="When a warehouse resumes from a SUSPENDED state, Snowflake charges a minimum of 60 seconds regardless of how quickly the query finishes. Since the 8-second query completes within the 60-second minimum window, the total billed time is 60 seconds. The subsequent idle period before auto-suspend extends the running time, but the warehouse was already within its running state — so the total billed time is 60 seconds (the minimum) plus the time from query end to auto-suspend (approximately 120 more seconds = 180 seconds total). However, the key insight tested here is that the 60-second minimum applies on resume, making option B the most exam-accurate answer about the billing minimum rule."
+/>
+
+<Quiz client:load
+  category="Virtual Warehouses"
+  question="A company runs Snowflake Standard edition and wants to configure a multi-cluster warehouse with MIN_CLUSTER_COUNT=1 and MAX_CLUSTER_COUNT=4 to handle peak concurrency. What will happen when they attempt to create this warehouse?"
+  options={[
+    { label: "A", text: "The warehouse is created successfully with the specified multi-cluster configuration." },
+    { label: "B", text: "Snowflake creates the warehouse but ignores the MIN_CLUSTER_COUNT and MAX_CLUSTER_COUNT parameters, defaulting to a single cluster." },
+    { label: "C", text: "An error is returned because multi-cluster warehouses require Enterprise edition or higher." },
+    { label: "D", text: "The warehouse is created with MAX_CLUSTER_COUNT automatically set to 1, ignoring the requested value." }
+  ]}
+  correct="C"
+  explanation="Multi-cluster warehouses are an Enterprise edition feature (and available on Business Critical and VPS editions). Attempting to create a multi-cluster warehouse (MIN_CLUSTER_COUNT or MAX_CLUSTER_COUNT > 1) on the Standard edition returns an error. The company must upgrade their Snowflake edition to Enterprise or higher to use this feature."
+/>
+
+<Quiz client:load
+  category="Virtual Warehouses"
+  question="A resource monitor is configured with CREDIT_QUOTA=1000, FREQUENCY=MONTHLY, and the following triggers: ON 75 PERCENT DO NOTIFY, ON 100 PERCENT DO SUSPEND, ON 110 PERCENT DO SUSPEND_IMMEDIATE. The warehouse has consumed 1,050 credits this month. What is the current state of the warehouse?"
+  options={[
+    { label: "A", text: "The warehouse is running normally because the SUSPEND trigger at 100% only applies to future queries." },
+    { label: "B", text: "The warehouse was suspended gracefully when usage reached 1,000 credits (100% of quota), allowing running queries to complete before suspending." },
+    { label: "C", text: "The warehouse was force-suspended immediately when usage reached 1,100 credits (110% of quota), killing all running queries." },
+    { label: "D", text: "An alert was sent at 750 credits and again at 1,000 credits, but no suspension occurred because the SUSPEND action only triggers once." }
+  ]}
+  correct="B"
+  explanation="The resource monitor's SUSPEND trigger fires when the warehouse reaches 100% of the 1,000-credit quota (i.e., at 1,000 credits consumed). SUSPEND waits for currently running queries to complete before suspending the warehouse — it does not kill queries immediately. Since the usage is at 1,050 credits, the quota was exceeded, suggesting the SUSPEND fired at 1,000 credits, allowed the in-flight queries that pushed usage to 1,050 to complete, and then suspended the warehouse. The 110% SUSPEND_IMMEDIATE trigger would have fired if usage somehow reached 1,100 credits while the warehouse was still running after the SUSPEND action."
+/>
+
+---
+
+## Flashcard Exam Prep
+
+<Flashcard client:load
+  category="Virtual Warehouses"
+  question="What is the minimum number of seconds billed each time a virtual warehouse resumes from a SUSPENDED state?"
+  answer="60 seconds. Every time a warehouse resumes, Snowflake charges a minimum of 60 seconds of credit consumption regardless of how quickly the query completes. After the first 60 seconds, billing is per-second. This applies even if the query runs for only 1-2 seconds."
+/>
+
+<Flashcard client:load
+  category="Virtual Warehouses"
+  question="What Snowflake edition is required to use multi-cluster warehouses?"
+  answer="Enterprise edition or higher (Business Critical or Virtual Private Snowflake). Multi-cluster warehouses are NOT available on the Standard edition. They are configured with MIN_CLUSTER_COUNT and MAX_CLUSTER_COUNT parameters."
+/>
+
+<Flashcard client:load
+  category="Virtual Warehouses"
+  question="What is the difference between SCALING_POLICY STANDARD and ECONOMY in a multi-cluster warehouse?"
+  answer="STANDARD adds clusters immediately when a query queue forms, prioritising performance and minimising wait times. ECONOMY waits longer before adding clusters to minimise credit consumption, prioritising cost efficiency at the cost of potentially higher query latency during spikes."
+/>
+
+<Flashcard client:load
+  category="Virtual Warehouses"
+  question="What is the default AUTO_SUSPEND value for a newly created Snowflake warehouse?"
+  answer="600 seconds (10 minutes). After 10 minutes of inactivity, the warehouse automatically suspends and stops consuming credits. This value can be changed with ALTER WAREHOUSE ... SET AUTO_SUSPEND = <seconds>. Setting it to NULL or 0 disables auto-suspend."
+/>
+
+<Flashcard client:load
+  category="Virtual Warehouses"
+  question="What is the difference between SUSPEND and SUSPEND_IMMEDIATE actions in a resource monitor?"
+  answer="SUSPEND gracefully suspends the warehouse after all currently running queries have completed — no queries are killed. SUSPEND_IMMEDIATE kills all currently running queries immediately and suspends the warehouse right away. Use SUSPEND_IMMEDIATE for hard cost enforcement; use SUSPEND to avoid disrupting in-flight work."
+/>
+
+<Flashcard client:load
+  category="Virtual Warehouses"
+  question="A single-cluster warehouse is experiencing query queuing at peak times. What is the recommended solution?"
+  answer="Enable multi-cluster mode by setting MAX_CLUSTER_COUNT > MIN_CLUSTER_COUNT (requires Enterprise edition). Multi-cluster warehouses add entire compute clusters when queuing is detected, allowing more queries to run concurrently. Simply resizing the warehouse makes individual queries faster but does NOT increase the number of concurrent queries that can run simultaneously."
+/>
+
+---
+
+## Additional Resources
+
+- [Snowflake Documentation — Virtual Warehouses](https://docs.snowflake.com/en/user-guide/warehouses-overview.html)
+- [Snowflake Documentation — Warehouse Sizes](https://docs.snowflake.com/en/user-guide/warehouses-overview.html#warehouse-size)
+- [Snowflake Documentation — Multi-Cluster Warehouses](https://docs.snowflake.com/en/user-guide/warehouses-multicluster.html)
+- [Snowflake Documentation — Resource Monitors](https://docs.snowflake.com/en/user-guide/resource-monitors.html)
+- [Snowflake Documentation — Warehouse Metering History](https://docs.snowflake.com/en/sql-reference/account-usage/warehouse_metering_history.html)
+- [Snowflake Documentation — Query Profile](https://docs.snowflake.com/en/user-guide/ui-query-profile.html)
+- [Snowflake Documentation — Snowpark-Optimised Warehouses](https://docs.snowflake.com/en/user-guide/warehouses-snowpark-optimized.html)
+
+---
+
+## Next Steps
+
+- [Databases, Schemas & Tables](/architecture/databases) — The storage objects that warehouses query
+- [Performance & Query Optimisation](/performance/query-optimisation) — Use warehouse insights to optimise query performance
+- [Access Control & Privileges](/security/access-control) — Grant USAGE and OPERATE privileges on warehouses
+- [Cost Management](/fundamentals/cost-management) — Account-level cost optimisation strategies
