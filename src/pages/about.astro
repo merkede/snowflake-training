@@ -1,0 +1,175 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="About — Hamzah Javaid | Snowflake Training">
+  <!-- Hero -->
+  <section class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white py-16">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <h1 class="text-4xl md:text-5xl font-bold mb-4 !text-white">About This Project</h1>
+      <p class="text-lg text-slate-300 max-w-2xl mx-auto">
+        The story behind this training resource &mdash; and the person who built it.
+      </p>
+    </div>
+  </section>
+
+  <!-- Profile Section -->
+  <section class="py-16">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid md:grid-cols-5 gap-12 items-start">
+
+        <!-- Photo + Quick Info -->
+        <div class="md:col-span-2 text-center md:text-left">
+          <div class="mb-6">
+            <img
+              src="/hamzah-javaid.jpeg"
+              alt="Hamzah Javaid"
+              class="w-48 h-48 rounded-2xl object-cover mx-auto md:mx-0 shadow-lg"
+              style="border: 3px solid var(--color-snowflake-blue);"
+            />
+          </div>
+          <h2 class="text-2xl font-bold text-slate-900 mb-1">Hamzah Javaid</h2>
+          <p class="text-sm font-medium mb-4" style="color: var(--color-snowflake-blue);">Hastings Direct</p>
+
+          <!-- Quick stats -->
+          <div class="space-y-3 text-sm text-slate-600">
+            <div class="flex items-center gap-2 justify-center md:justify-start">
+              <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <span>Data Analytics & Data Science</span>
+            </div>
+            <div class="flex items-center gap-2 justify-center md:justify-start">
+              <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>United Kingdom</span>
+            </div>
+            <div class="flex items-center gap-2 justify-center md:justify-start">
+              <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+              </svg>
+              <span>Snowflake, Python, SQL, Data Engineering</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bio -->
+        <div class="md:col-span-3">
+          <div class="prose prose-slate max-w-none">
+            <h3 class="text-xl font-bold text-slate-900 mb-4" style="border-bottom: 2px solid var(--color-snowflake-blue); padding-bottom: 0.5rem;">About Me</h3>
+
+            <p class="text-slate-700 leading-relaxed mb-4">
+              I'm Hamzah Javaid &mdash; a data professional at Hastings Direct with a passion for turning complex data challenges into clear, actionable solutions. My work sits at the intersection of data analytics, data science, and modern cloud data platforms, where I help teams unlock the full value of their data.
+            </p>
+
+            <p class="text-slate-700 leading-relaxed mb-4">
+              I specialise in building scalable data pipelines, designing analytical frameworks, and enabling self-service analytics across the organisation. Whether it's architecting Snowflake environments, developing Python-based data products, or translating business questions into SQL, I'm driven by the belief that great data work should empower everyone &mdash; not just the technical few.
+            </p>
+
+            <p class="text-slate-700 leading-relaxed mb-4">
+              I thrive in environments where curiosity is encouraged and impact is measured by outcomes, not outputs. I'm equally comfortable deep in a query profiler optimising warehouse performance as I am presenting insights to senior stakeholders. What sets me apart is the ability to bridge the gap between highly technical data engineering and the strategic thinking that drives real business decisions.
+            </p>
+
+            <h3 class="text-xl font-bold text-slate-900 mt-8 mb-4" style="border-bottom: 2px solid var(--color-snowflake-blue); padding-bottom: 0.5rem;">Why I Built This</h3>
+
+            <p class="text-slate-700 leading-relaxed mb-4">
+              When our teams at Hastings Direct began adopting Snowflake as a core part of our data platform, I noticed a gap. The official documentation is thorough but dense. External courses are generic. What we needed was something tailored &mdash; a training resource that speaks directly to the way our Data Analytics and Data Science teams actually work.
+            </p>
+
+            <p class="text-slate-700 leading-relaxed mb-4">
+              So I built this. Every module is structured around the SnowPro Core (COF-C02) certification blueprint, but the real goal goes beyond exam prep. This is designed to give our colleagues a solid, practical understanding of Snowflake &mdash; from architecture fundamentals to query optimisation, security models to data sharing &mdash; so they can work more confidently and independently with the platform every day.
+            </p>
+
+            <p class="text-slate-700 leading-relaxed mb-6">
+              It's interactive by design: flashcards for active recall, quizzes to test understanding, cheat sheets for quick reference, and progress tracking to keep momentum. I believe the best training doesn't just teach you what to know &mdash; it helps you remember it when it matters.
+            </p>
+          </div>
+
+          <!-- What's Inside -->
+          <div class="mt-8 grid sm:grid-cols-3 gap-4">
+            <div class="bg-slate-50 rounded-xl p-5 text-center">
+              <div class="text-3xl font-bold mb-1" style="color: var(--color-snowflake-blue);">23</div>
+              <div class="text-sm text-slate-600">In-Depth Modules</div>
+            </div>
+            <div class="bg-slate-50 rounded-xl p-5 text-center">
+              <div class="text-3xl font-bold mb-1" style="color: var(--color-snowflake-blue);">100+</div>
+              <div class="text-sm text-slate-600">Flashcards & Quizzes</div>
+            </div>
+            <div class="bg-slate-50 rounded-xl p-5 text-center">
+              <div class="text-3xl font-bold mb-1" style="color: var(--color-snowflake-blue);">6</div>
+              <div class="text-sm text-slate-600">Exam Domains Covered</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Skills & Expertise -->
+  <section class="bg-slate-50 py-16">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-2xl font-bold text-slate-900 mb-8 text-center">Skills & Expertise</h2>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
+            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+            </svg>
+          </div>
+          <h3 class="font-bold text-slate-900 mb-2">Data Platforms</h3>
+          <p class="text-sm text-slate-600">Snowflake, cloud data warehousing, data lake architecture, ETL/ELT pipelines</p>
+        </div>
+
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
+            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+            </svg>
+          </div>
+          <h3 class="font-bold text-slate-900 mb-2">Programming</h3>
+          <p class="text-sm text-slate-600">Python, SQL, data modelling, scripting, automation, and analytical tooling</p>
+        </div>
+
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
+            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </div>
+          <h3 class="font-bold text-slate-900 mb-2">Analytics</h3>
+          <p class="text-sm text-slate-600">Data analysis, visualisation, business intelligence, statistical modelling</p>
+        </div>
+
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
+            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+          </div>
+          <h3 class="font-bold text-slate-900 mb-2">Enablement</h3>
+          <p class="text-sm text-slate-600">Training, documentation, knowledge sharing, upskilling teams, technical communication</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="py-16">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <h2 class="text-2xl font-bold mb-4">Ready to Dive In?</h2>
+      <p class="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">
+        Start with any module that interests you. Every topic is self-contained, so you can learn in whatever order suits you best.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="/modules" class="btn-primary text-lg px-8 py-4 inline-block no-underline">
+          Browse All Modules
+        </a>
+        <a href="/cheatsheets" class="btn-secondary text-lg px-8 py-4 inline-block no-underline">
+          Quick Reference Cheat Sheets
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>
