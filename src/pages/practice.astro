@@ -1,0 +1,54 @@
+---
+import Layout from '../layouts/Layout.astro';
+import SQLPractice from '../components/SQLPractice';
+---
+
+<Layout
+  title="SQL Practice — Snowflake Training"
+  description="20 hands-on Snowflake SQL exercises covering warehouses, RBAC, data loading, semi-structured data, streams, tasks, and more."
+>
+  <!-- Hero -->
+  <div class="bg-gradient-to-b from-slate-50 to-white py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="text-4xl">✏️</span>
+        <div>
+          <p class="text-xs font-bold uppercase tracking-widest mb-0.5" style="color: var(--color-snowflake-blue);">Hands-on Practice</p>
+          <h1 class="mb-0">SQL Practice</h1>
+        </div>
+      </div>
+      <p class="text-xl text-slate-600 max-w-3xl">
+        Write real Snowflake SQL. Each exercise covers an exam-relevant topic with hints, model solutions, and explanations.
+        Filter by topic or difficulty to target your weak areas.
+      </p>
+
+      <!-- Topic pills -->
+      <div class="flex flex-wrap gap-2 mt-6">
+        {[
+          { label: 'Warehouses', color: '#29b5e8' },
+          { label: 'RBAC', color: '#7c3aed' },
+          { label: 'Data Loading', color: '#16a34a' },
+          { label: 'Semi-Structured', color: '#db2777' },
+          { label: 'Streams & Tasks', color: '#ea580c' },
+          { label: 'Data Protection', color: '#164365' },
+        ].map(t => (
+          <span
+            class="px-3 py-1.5 rounded-full text-xs font-medium text-white"
+            style={`background: ${t.color};`}
+          >
+            {t.label}
+          </span>
+        ))}
+      </div>
+
+      <p class="text-sm text-slate-500 mt-4">
+        Tip: Type your answer in the editor and click <strong>Check Answer</strong>. Use hints progressively before peeking at the solution.
+      </p>
+    </div>
+  </div>
+
+  <!-- Practice exercises -->
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <SQLPractice client:load />
+  </div>
+</Layout>

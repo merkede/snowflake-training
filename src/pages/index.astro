@@ -1,5 +1,11 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { flashcards } from '../data/flashcards';
+import { examQuestions } from '../data/examQuestions';
+
+const moduleCount = 23;
+const flashcardCount = flashcards.length;
+const examQCount = examQuestions.length;
 ---
 
 <Layout title="Snowflake Training | Hastings Direct | by Hamzah Javaid">
@@ -35,14 +41,18 @@ import Layout from '../layouts/Layout.astro';
         </div>
 
         <!-- Stats -->
-        <div class="grid grid-cols-3 gap-8 mt-16 max-w-2xl mx-auto">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16 max-w-3xl mx-auto">
           <div class="text-center">
-            <div class="text-4xl font-bold" style="color: var(--color-snowflake-blue);">23</div>
+            <div class="text-4xl font-bold" style="color: var(--color-snowflake-blue);">{moduleCount}</div>
             <div class="text-sm text-slate-400 mt-1">Modules</div>
           </div>
           <div class="text-center">
-            <div class="text-4xl font-bold" style="color: var(--color-snowflake-blue);">100+</div>
+            <div class="text-4xl font-bold" style="color: var(--color-snowflake-blue);">{flashcardCount}</div>
             <div class="text-sm text-slate-400 mt-1">Flashcards</div>
+          </div>
+          <div class="text-center">
+            <div class="text-4xl font-bold" style="color: var(--color-snowflake-blue);">{examQCount}</div>
+            <div class="text-sm text-slate-400 mt-1">Exam Questions</div>
           </div>
           <div class="text-center">
             <div class="text-4xl font-bold" style="color: var(--color-snowflake-blue);">6</div>
@@ -180,17 +190,39 @@ import Layout from '../layouts/Layout.astro';
 
   <!-- CTA Section -->
   <section class="py-20">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-      <h2 class="mb-6">Ready to Get Started?</h2>
-      <p class="text-xl text-slate-600 mb-10 max-w-2xl mx-auto">
-        Dive into the modules at your own pace. Track your progress and build your Snowflake expertise.
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <h2 class="mb-6">Everything You Need to Pass</h2>
+      <p class="text-xl text-slate-600 mb-12 max-w-2xl mx-auto">
+        Structured learning, active recall, exam simulation, and hands-on SQL practice — all in one place.
       </p>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+        <a href="/modules" class="card no-underline hover:shadow-lg transition-all group text-left">
+          <div class="text-2xl mb-2">📚</div>
+          <div class="font-bold text-slate-900 group-hover:text-primary mb-1">23 Modules</div>
+          <div class="text-sm text-slate-500">Full COF-C02 curriculum with diagrams and code</div>
+        </a>
+        <a href="/flashcards" class="card no-underline hover:shadow-lg transition-all group text-left">
+          <div class="text-2xl mb-2">🃏</div>
+          <div class="font-bold text-slate-900 group-hover:text-primary mb-1">{flashcardCount} Flashcards</div>
+          <div class="text-sm text-slate-500">Spaced repetition with SM-2 algorithm</div>
+        </a>
+        <a href="/exam-sim" class="card no-underline hover:shadow-lg transition-all group text-left">
+          <div class="text-2xl mb-2">📋</div>
+          <div class="font-bold text-slate-900 group-hover:text-primary mb-1">{examQCount}-Question Mock Exam</div>
+          <div class="text-sm text-slate-500">Timed, scored, with full explanations</div>
+        </a>
+        <a href="/practice" class="card no-underline hover:shadow-lg transition-all group text-left">
+          <div class="text-2xl mb-2">✏️</div>
+          <div class="font-bold text-slate-900 group-hover:text-primary mb-1">SQL Practice</div>
+          <div class="text-sm text-slate-500">20 hands-on exercises with hints and solutions</div>
+        </a>
+      </div>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <a href="/modules" class="btn-primary text-lg px-8 py-4 inline-block no-underline">
-          Start Your First Module
+          Start Learning
         </a>
         <a href="/cheatsheets" class="btn-secondary text-lg px-8 py-4 inline-block no-underline">
-          Quick Reference Cheat Sheets
+          Cheat Sheets
         </a>
       </div>
     </div>

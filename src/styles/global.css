@@ -351,3 +351,37 @@ a {
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   margin: 1.5rem 0;
 }
+
+/* ── Print / PDF styles (cheat sheets) ───────────────────────────────── */
+@media print {
+  header, footer, .print\:hidden { display: none !important; }
+  body { background: white; font-size: 11pt; }
+  main { padding: 0; }
+  .max-w-7xl { max-width: 100%; padding: 0 1rem; }
+  .card, [class*="rounded-xl"] { break-inside: avoid; page-break-inside: avoid; }
+  section { page-break-before: auto; }
+  a[href]:after { content: none; }
+  .space-y-20 > * + * { margin-top: 2rem; }
+}
+
+/* ── Pagefind search UI overrides ────────────────────────────────────── */
+#pagefind-search .pagefind-ui__search-input {
+  border-radius: 0.75rem;
+  border: 2px solid #e2e8f0;
+  font-size: 1rem;
+  padding: 0.75rem 1rem;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s;
+}
+#pagefind-search .pagefind-ui__search-input:focus {
+  border-color: var(--color-snowflake-blue);
+}
+#pagefind-search .pagefind-ui__result-link {
+  color: var(--color-snowflake-dark);
+  font-weight: 600;
+}
+#pagefind-search .pagefind-ui__result-excerpt mark {
+  background: var(--color-snowflake-light);
+  color: var(--color-snowflake-dark);
+}
