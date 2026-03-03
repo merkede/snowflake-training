@@ -1,4 +1,4 @@
----
+﻿---
 layout: ../../layouts/CourseLayout.astro
 title: "Databases, Schemas & Tables"
 description: "Master Snowflake's database object hierarchy — databases, schemas, table types, data types, and the INFORMATION_SCHEMA for the SnowPro Core exam"
@@ -8,7 +8,6 @@ domain: "Architecture"
 
 import Flashcard from '../../components/Flashcard.tsx';
 import CodeBlock from '../../components/CodeBlock.tsx';
-import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
 import Diagram from '../../components/Diagram.tsx';
 import CalloutBox from '../../components/CalloutBox.tsx';
 import Quiz from '../../components/Quiz.tsx';
@@ -40,7 +39,7 @@ This module will walk you through the complete database object model from the to
   The Snowflake object hierarchy (databases, schemas, tables) appears across multiple exam domains. Expect 8–12 questions touching on table types, DDL syntax, INFORMATION_SCHEMA vs ACCOUNT_USAGE, and constraint behaviour. This is one of the highest-value topics on the COF-C02 exam.
 </CalloutBox>
 
-<YouTubeEmbed client:load videoId="hAqWKYPOsyo" title="Snowflake Architecture & Object Hierarchy" description="A comprehensive walkthrough of Snowflake's three-layer architecture and how databases, schemas, and tables fit into the platform's design." />
+
 
 ---
 
@@ -52,6 +51,7 @@ Snowflake organises all data objects in a strict three-level hierarchy: **Databa
   title="Snowflake Object Hierarchy"
   description="A tree diagram showing the complete Snowflake object hierarchy. At the top is the Snowflake Account, which contains one or more Databases. Each Database contains two auto-created schemas (INFORMATION_SCHEMA and PUBLIC) plus any user-created schemas. Within each Schema live Tables (Permanent, Transient, Temporary, External), Views, Sequences, File Formats, Stages, Stored Procedures, Functions, Tasks, and Streams. Arrows indicate containment relationships flowing top-down. The INFORMATION_SCHEMA schema is highlighted in blue to show it is system-managed and read-only."
   altText="Snowflake object hierarchy from Account down to Tables and Views"
+  imagePath="/images/diagrams/securable-objects.png"
 />
 
 Every object in Snowflake is addressed by its fully qualified name using dot notation:
@@ -176,6 +176,7 @@ Snowflake has four distinct table types, each with different persistence, Time T
   title="Snowflake Table Types Comparison"
   description="A side-by-side comparison matrix of Snowflake's four table types. Columns represent: Permanent Table, Transient Table, Temporary Table, External Table. Rows show: Persistence (Permanent: until dropped; Transient: until dropped; Temporary: session only; External: read-only reference), Time Travel (Permanent: 0-90 days; Transient: 0-1 day; Temporary: 0-1 day; External: none), Fail-safe (Permanent: 7 days; Transient: none; Temporary: none; External: none), Cross-session visibility (Permanent: yes; Transient: yes; Temporary: no, private to session; External: yes), Storage cost (Permanent: highest; Transient: lower, no fail-safe overhead; Temporary: lowest; External: metadata only). The Temporary column is highlighted in yellow with a note 'Session-scoped only'. The External column shows a cloud icon representing data residing in S3/Azure/GCS."
   altText="Comparison matrix of Permanent, Transient, Temporary, and External table types"
+  imagePath="/images/diagrams/micro-partitions.png"
 />
 
 ### 1. Permanent Tables

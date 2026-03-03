@@ -1,4 +1,4 @@
----
+﻿---
 layout: ../../layouts/CourseLayout.astro
 title: "Introduction to Snowflake"
 description: "Understand what Snowflake is, why it was built, its editions, object hierarchy, pricing model, and how it compares to traditional data warehouses — the essential foundation for COF-C02"
@@ -8,7 +8,6 @@ domain: "Architecture"
 
 import Flashcard from '../../components/Flashcard.tsx';
 import CodeBlock from '../../components/CodeBlock.tsx';
-import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
 import Diagram from '../../components/Diagram.tsx';
 import CalloutBox from '../../components/CalloutBox.tsx';
 import Quiz from '../../components/Quiz.tsx';
@@ -42,12 +41,7 @@ Snowflake was founded in 2012 by three data warehouse engineers — Benoit Dagev
 
 The result was a **cloud-native, fully managed SaaS platform** that separates storage from compute, handles all infrastructure automatically, and delivers features that were previously impossible or impractical.
 
-<YouTubeEmbed
-  client:load
-  videoId="dxBe_IDTH2k"
-  title="Snowflake in 100 Seconds"
-  description="📹 A concise introduction to what Snowflake is and why it's different from traditional data warehouses"
-/>
+
 
 <CalloutBox type="exam" title="Exam Focus: Snowflake's Deployment Model">
   Snowflake is a **SaaS (Software as a Service)** offering — **not IaaS or PaaS**. Snowflake manages everything: hardware, software, updates, optimisation, and backups. You bring data and queries; Snowflake handles the rest. This distinction is tested in the COF-C02 exam.
@@ -83,6 +77,7 @@ The result was a **cloud-native, fully managed SaaS platform** that separates st
   title="Traditional vs. Snowflake Architecture"
   description="Side-by-side comparison: traditional shared-nothing MPP (storage coupled to compute nodes) versus Snowflake's decoupled model with shared centralised storage and independent virtual warehouses"
   altText="Two architecture diagrams: left shows traditional MPP with storage and compute tightly coupled per node; right shows Snowflake with separate cloud storage and multiple independent virtual warehouses"
+  imagePath="/images/diagrams/traditional-vs-snowflake.png"
 />
 
 <Flashcard
@@ -274,6 +269,7 @@ Every object in Snowflake lives within a strict hierarchy. Understanding this is
   title="Snowflake Object Hierarchy"
   description="Complete tree diagram of Snowflake objects from Organisation at the top, through Account, Database, and Schema, down to Tables, Views, Stages, Pipes, Tasks, Streams, Functions, Procedures, File Formats, and Sequences"
   altText="Hierarchy tree: Organisation → Account → Database → Schema → (Tables, Views, Stages, Pipes, Tasks, Streams, Functions, Procedures, Sequences, File Formats)"
+  imagePath="/images/diagrams/securable-objects.png"
 />
 
 ```

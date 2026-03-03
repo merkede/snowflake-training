@@ -1,4 +1,4 @@
----
+﻿---
 layout: ../../layouts/CourseLayout.astro
 title: "Search Optimisation Service"
 description: "Master the Snowflake Search Optimisation Service (SOS) — how it works, when to use it, costs, and how it differs from clustering keys for the SnowPro Core exam"
@@ -7,7 +7,6 @@ domain: "Performance"
 ---
 
 import KeyTerms from '../../components/KeyTerms.tsx';
-import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
 import Diagram from '../../components/Diagram.tsx';
 import CalloutBox from '../../components/CalloutBox.tsx';
 import CodeBlock from '../../components/CodeBlock.tsx';
@@ -73,12 +72,7 @@ Consider a table of 500 million customer records. If you query `WHERE customer_i
 
 The Search Optimisation Service solves this by building a **persistent search access path** — effectively a specialised index structure — that allows Snowflake to identify precisely which micro-partitions contain the target value, skipping the rest entirely.
 
-<YouTubeEmbed
-  client:load
-  videoId="NLTCDGhJDCA"
-  title="Snowflake Search Optimisation Service Deep Dive"
-  description="📹 Snowflake engineering walkthrough of the Search Optimisation Service architecture, supported predicate types, and performance benchmarks"
-/>
+
 
 ---
 

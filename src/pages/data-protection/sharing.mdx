@@ -1,4 +1,4 @@
----
+﻿---
 layout: ../../layouts/CourseLayout.astro
 title: "Secure Data Sharing"
 description: "Master Snowflake Secure Data Sharing — CREATE SHARE, consumer accounts, Snowflake Marketplace, Reader accounts, and data exchange for the SnowPro Core exam"
@@ -8,7 +8,6 @@ domain: "Data Protection"
 
 import Flashcard from '../../components/Flashcard.tsx';
 import CodeBlock from '../../components/CodeBlock.tsx';
-import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
 import Diagram from '../../components/Diagram.tsx';
 import CalloutBox from '../../components/CalloutBox.tsx';
 import Quiz from '../../components/Quiz.tsx';
@@ -32,7 +31,8 @@ import CheatSheet from '../../components/CheatSheet.tsx';
 
 Secure Data Sharing allows Snowflake accounts to share **live, read-only data** without copying, moving, or transferring files. Consumers query the provider's data directly — always up to date, zero ETL.
 
-<Diagram client:load title="Secure Data Sharing Architecture" description="Diagram: Provider Account on the left owns tables stored in micro-partitions in shared cloud storage. Provider creates a SHARE object granting access to specific tables/views. Consumer Account on the right creates a database FROM SHARE, which is a read-only pointer to the provider's micro-partitions. No data is copied — the consumer queries the provider's storage directly. Both accounts must be in the same cloud region (or use replication for cross-region)." altText="Provider account sharing micro-partitions with consumer account via SHARE object, no data copy" />
+<Diagram client:load title="Secure Data Sharing Architecture" description="Diagram: Provider Account on the left owns tables stored in micro-partitions in shared cloud storage. Provider creates a SHARE object granting access to specific tables/views. Consumer Account on the right creates a database FROM SHARE, which is a read-only pointer to the provider's micro-partitions. No data is copied — the consumer queries the provider's storage directly. Both accounts must be in the same cloud region (or use replication for cross-region)." altText="Provider account sharing micro-partitions with consumer account via SHARE object, no data copy"   imagePath="/images/diagrams/data-sharing-shares.png"
+/>
 
 <CalloutBox type="exam" title="Exam Focus: No Data Movement">
   Secure Data Sharing involves **zero data copying**. The consumer reads the provider's micro-partitions directly. This means: instant availability of new data, no storage cost for the consumer (only compute), and no ETL pipelines to maintain.

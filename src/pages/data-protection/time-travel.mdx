@@ -1,4 +1,4 @@
----
+﻿---
 layout: ../../layouts/CourseLayout.astro
 title: "Time Travel & Fail-safe"
 description: "Master Snowflake's Time Travel and Fail-safe features for data protection, recovery, and the SnowPro Core exam"
@@ -8,7 +8,6 @@ domain: "Data Protection & Recovery"
 
 import Flashcard from '../../components/Flashcard.tsx';
 import CodeBlock from '../../components/CodeBlock.tsx';
-import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
 import Diagram from '../../components/Diagram.tsx';
 import CalloutBox from '../../components/CalloutBox.tsx';
 import Quiz from '../../components/Quiz.tsx';
@@ -43,12 +42,7 @@ Snowflake's **Time Travel** is one of its most powerful differentiating features
   - **Transient & Temporary tables**: maximum 1 day (regardless of edition)
 </CalloutBox>
 
-<YouTubeEmbed
-  client:load
-  videoId="Yiz6YYhWFLA"
-  title="Snowflake Time Travel Explained"
-  description="📹 Official Snowflake walkthrough of Time Travel and Fail-safe features"
-/>
+
 
 ### How Time Travel Works
 
@@ -59,6 +53,7 @@ Snowflake's immutable micro-partition storage model is what makes Time Travel po
   title="Time Travel Data Lifecycle"
   description="Illustration of how data moves from Active Storage → Time Travel Storage → Fail-safe Storage → Purged, showing the retention timeline and what operations are available at each stage"
   altText="Timeline diagram showing Active, Time Travel (0-90 days), Fail-safe (7 days), and Purge stages"
+  imagePath="/images/diagrams/time-travel-lifecycle.png"
 />
 
 <CalloutBox type="info" title="Storage Is Not Free">
@@ -203,6 +198,7 @@ One of the most powerful combinations in Snowflake is using **Time Travel + Clon
   title="Zero-Copy Clone with Time Travel"
   description="How cloning from a historical point works: the new clone shares micro-partition pointers from the past state, adding only metadata overhead until new writes diverge"
   altText="Diagram showing original table with historical micro-partitions, a clone pointing to past micro-partitions via metadata, and new writes creating independent micro-partitions"
+  imagePath="/images/diagrams/zero-copy-cloning.png"
 />
 
 <CodeBlock
@@ -302,6 +298,7 @@ SHOW TABLES LIKE 'orders';`}
   title="Retention Period Inheritance"
   description="How DATA_RETENTION_TIME_IN_DAYS cascades from account → database → schema → table level, with more specific settings overriding broader ones"
   altText="Hierarchy diagram showing Account at top flowing down to Database, Schema, and Table, with override arrows at each level"
+  imagePath="/images/diagrams/time-travel-extensions.png"
 />
 
 ---

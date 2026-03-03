@@ -1,4 +1,4 @@
----
+﻿---
 layout: ../../layouts/CourseLayout.astro
 title: "Streams & Tasks"
 moduleId: "streams-tasks"
@@ -7,7 +7,6 @@ description: "Master Snowflake Streams for change data capture and Tasks for sch
 ---
 
 import KeyTerms from '../../components/KeyTerms';
-import YouTubeEmbed from '../../components/YouTubeEmbed';
 import Diagram from '../../components/Diagram';
 import CalloutBox from '../../components/CalloutBox';
 import CodeBlock from '../../components/CodeBlock';
@@ -49,7 +48,7 @@ This design means streams are lightweight: no data is duplicated, and the cost o
 A stream stores an **offset**, not a copy of data. Querying a stream with a plain SELECT does **not** advance the offset — only a DML statement (INSERT, UPDATE, MERGE, or DELETE) that reads the stream advances it. This is one of the most-tested stream concepts on the COF-C02 exam.
 </CalloutBox>
 
-<YouTubeEmbed client:load videoId="YNz7F9ogvw4" title="Snowflake Streams & Tasks Explained" description="📹 A clear walkthrough of how Snowflake Streams capture change data and how Tasks schedule automated processing — ideal exam preparation." />
+
 
 ---
 
@@ -78,6 +77,7 @@ Reading the stream inside an INSERT...SELECT advances the offset to the current 
   title="Stream Offset Lifecycle"
   description="A stream is created at T0. Changes accumulate. A DML read at T1 consumes the delta and advances the offset. New changes accumulate from T1 onwards."
   altText="Timeline diagram showing stream offset advancing from T0 to T1 after a DML consumption event, with change delta accumulating between offset points."
+  imagePath="/images/diagrams/streams-offset.png"
 />
 
 ---
@@ -155,6 +155,7 @@ When processing a standard stream, never assume that every DELETE means a row wa
   title="Metadata Columns for an UPDATE Operation"
   description="When a single row is updated in the source table, the standard stream produces two rows: a DELETE of the old value (METADATA$ISUPDATE=TRUE) and an INSERT of the new value (METADATA$ISUPDATE=TRUE). Plain INSERTs and DELETEs produce one row each with METADATA$ISUPDATE=FALSE."
   altText="Table showing two stream rows for an UPDATE: first row has METADATA$ACTION=DELETE and METADATA$ISUPDATE=TRUE, second row has METADATA$ACTION=INSERT and METADATA$ISUPDATE=TRUE."
+  imagePath="/images/diagrams/streams-pipeline.png"
 />
 
 ---
@@ -308,6 +309,7 @@ Rules for task DAGs:
   title="Task DAG Structure"
   description="The root task runs every 15 minutes on a WAREHOUSE schedule. On success, child_task_1 runs immediately after. On success of child_task_1, child_task_2 runs. Each task uses the AFTER clause to express the dependency. The DAG terminates if any task fails — subsequent dependents do not run."
   altText="Flow diagram with root_task at top feeding into child_task_1, which feeds into child_task_2. Root task has a clock icon for schedule. Arrows indicate sequential dependency flow downward."
+  imagePath="/images/diagrams/streams-pipeline.png"
 />
 
 ---

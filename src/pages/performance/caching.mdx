@@ -1,4 +1,4 @@
----
+﻿---
 layout: ../../layouts/CourseLayout.astro
 title: "Caching Mechanisms"
 moduleId: "caching"
@@ -7,7 +7,6 @@ description: "Master Snowflake's three-layer caching system — result cache, lo
 ---
 
 import KeyTerms from '../../components/KeyTerms';
-import YouTubeEmbed from '../../components/YouTubeEmbed';
 import Diagram from '../../components/Diagram';
 import CalloutBox from '../../components/CalloutBox';
 import CodeBlock from '../../components/CodeBlock';
@@ -84,13 +83,14 @@ Understanding the answers to these questions requires a thorough grasp of all th
 The COF-C02 exam tests each of the three cache layers separately. You must be able to distinguish between them by: where they live (Cloud Services vs warehouse SSD), how long they persist, what they store, and what invalidates them. Confusing the result cache with the local disk cache is one of the most common candidate errors.
 </CalloutBox>
 
-<YouTubeEmbed client:load videoId="dQw4w9WgXcQ" title="Snowflake Caching Deep Dive — Three Layers Explained" description="Watch a detailed walkthrough of Snowflake's three-layer caching architecture, including live demonstrations of result cache hits in the Query Profile and explanations of cache invalidation scenarios tested on the COF-C02 exam." />
+
 
 ---
 
 ## The Three-Layer Caching Architecture
 
-<Diagram client:load title="Snowflake Three-Layer Caching Architecture" description="A layered architectural diagram showing the three independent caching mechanisms in Snowflake. At the top sits the Cloud Services Layer, which houses two of the three caches: the Result Cache (Query Result Cache) shown as a large repository storing complete result sets from every executed query, retained for up to 24 hours, and the Metadata Cache shown as a database of table statistics including row counts, min/max values, null counts, and distinct value estimates. Below the Cloud Services layer sits the Compute Layer containing multiple independent Virtual Warehouses (depicted as separate server clusters). Each virtual warehouse has its own Local Disk Cache (SSD) shown as a fast storage layer attached to the warehouse. Arrows show the flow: a client query first checks the Result Cache in Cloud Services. On a miss, the Cloud Services layer routes the query to a Virtual Warehouse. The Virtual Warehouse checks its Local Disk Cache (SSD). On a miss at the SSD layer, the warehouse fetches micro-partition files from the Remote Cloud Storage (shown at the bottom as an object store — S3, Azure Blob, or GCS). The fetched data is written into the Local Disk Cache for future reuse. The Metadata Cache feeds into the query optimiser in Cloud Services to enable partition pruning before any data is read. A key annotation indicates that the Result Cache and Metadata Cache are centralised and shared across the account, while Local Disk Cache is strictly per-warehouse and is lost on suspension." altText="Three-layer Snowflake caching architecture: Result Cache and Metadata Cache in Cloud Services layer, Local Disk Cache (SSD) per virtual warehouse, and cloud object storage at the bottom." />
+<Diagram client:load title="Snowflake Three-Layer Caching Architecture" description="A layered architectural diagram showing the three independent caching mechanisms in Snowflake. At the top sits the Cloud Services Layer, which houses two of the three caches: the Result Cache (Query Result Cache) shown as a large repository storing complete result sets from every executed query, retained for up to 24 hours, and the Metadata Cache shown as a database of table statistics including row counts, min/max values, null counts, and distinct value estimates. Below the Cloud Services layer sits the Compute Layer containing multiple independent Virtual Warehouses (depicted as separate server clusters). Each virtual warehouse has its own Local Disk Cache (SSD) shown as a fast storage layer attached to the warehouse. Arrows show the flow: a client query first checks the Result Cache in Cloud Services. On a miss, the Cloud Services layer routes the query to a Virtual Warehouse. The Virtual Warehouse checks its Local Disk Cache (SSD). On a miss at the SSD layer, the warehouse fetches micro-partition files from the Remote Cloud Storage (shown at the bottom as an object store — S3, Azure Blob, or GCS). The fetched data is written into the Local Disk Cache for future reuse. The Metadata Cache feeds into the query optimiser in Cloud Services to enable partition pruning before any data is read. A key annotation indicates that the Result Cache and Metadata Cache are centralised and shared across the account, while Local Disk Cache is strictly per-warehouse and is lost on suspension." altText="Three-layer Snowflake caching architecture: Result Cache and Metadata Cache in Cloud Services layer, Local Disk Cache (SSD) per virtual warehouse, and cloud object storage at the bottom."   imagePath="/images/diagrams/caching-architecture.png"
+/>
 
 The three layers operate independently and serve different stages of query execution:
 

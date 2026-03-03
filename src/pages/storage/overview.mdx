@@ -1,4 +1,4 @@
----
+﻿---
 layout: ../../layouts/CourseLayout.astro
 title: "Data Storage & Clustering"
 description: "Master Snowflake's micro-partition architecture, columnar storage, clustering keys, and Automatic Clustering for the COF-C02 exam."
@@ -8,7 +8,6 @@ domain: "Architecture"
 
 import Flashcard from '../../components/Flashcard.tsx';
 import CodeBlock from '../../components/CodeBlock.tsx';
-import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
 import Diagram from '../../components/Diagram.tsx';
 import CalloutBox from '../../components/CalloutBox.tsx';
 import Quiz from '../../components/Quiz.tsx';
@@ -35,6 +34,7 @@ Every table in Snowflake is divided into **micro-partitions** — the fundamenta
   title="Micro-Partition Architecture"
   description="Each Snowflake table is divided into contiguous micro-partitions. Data within each micro-partition is stored in columnar format, compressed independently, and catalogued with rich metadata in the Cloud Services layer. Queries skip entire micro-partitions when the predicate values fall outside the stored min/max range for a column."
   altText="Diagram showing a Snowflake table split into multiple micro-partitions, each containing columnar data and associated metadata including min, max, NDV, and null count per column."
+  imagePath="/images/diagrams/micro-partitions.png"
 />
 
 ### Key Characteristics of Micro-Partitions
@@ -52,11 +52,7 @@ Every table in Snowflake is divided into **micro-partitions** — the fundamenta
 Once a micro-partition is written, it cannot be modified. Any DML operation (UPDATE, DELETE, MERGE) causes Snowflake to write entirely new micro-partitions and mark the old ones as deleted. This is why Snowflake's Time Travel is possible — old micro-partitions are retained for the duration of the Time Travel period.
 </CalloutBox>
 
-<YouTubeEmbed client:load
-  videoId="dxrEM8xoHME"
-  title="Snowflake Micro-Partitions & Data Clustering Explained"
-  description="An in-depth walkthrough of how Snowflake physically stores data in micro-partitions, how columnar compression works, and how metadata-driven query pruning eliminates unnecessary I/O. Highly recommended before sitting the COF-C02 exam."
-/>
+
 
 ---
 
@@ -68,6 +64,7 @@ Snowflake automatically tracks rich metadata for every micro-partition, stored a
   title="Per-Column Metadata in Every Micro-Partition"
   description="For each column in each micro-partition, Snowflake records four key statistics: minimum value, maximum value, number of distinct values (NDV), and null count. This metadata is stored in the Cloud Services layer, not inside the micro-partition data files themselves, so querying it costs no compute."
   altText="Diagram showing a micro-partition record with four metadata fields per column: min_value, max_value, ndv (number of distinct values), and null_count, all stored outside the data files in the Cloud Services layer."
+  imagePath="/images/diagrams/micro-partitions-clustering.png"
 />
 
 ### The Four Metadata Fields (Per Column, Per Micro-Partition)
@@ -133,6 +130,7 @@ Before you define any explicit clustering key, Snowflake naturally orders data w
   title="Natural Clustering via Insertion Order"
   description="When rows are inserted chronologically (e.g., daily ETL loads appending new records), each new micro-partition naturally contains data from a specific time period. A query filtering on a recent date range will automatically prune older micro-partitions without any clustering key defined."
   altText="Diagram showing four micro-partitions labelled with date ranges: MP1 (Jan), MP2 (Feb), MP3 (Mar), MP4 (Apr). A query filtering WHERE month = 'Apr' prunes MP1, MP2, and MP3 automatically."
+  imagePath="/images/diagrams/micro-partitions-clustering.png"
 />
 
 ### When Natural Clustering is Sufficient
@@ -471,6 +469,7 @@ Snowflake stores data in a **columnar** format. This is one of the most importan
   title="Columnar vs Row-Based Storage Layout"
   description="In row-based storage (left), all columns for a single row are stored contiguously. To read a single column across millions of rows, the database must scan every byte of every row. In columnar storage (right), all values for a single column are stored contiguously. Reading one column across millions of rows requires only a tiny fraction of the total I/O, and values within a column compress far more efficiently because they share the same data type and often similar values."
   altText="Side-by-side diagram. Left: rows stored as ROW1(col1,col2,col3,col4), ROW2(col1,col2,col3,col4)... Right: columns stored as COL1(r1,r2,r3...), COL2(r1,r2,r3...) — highlighting that analytical queries only touch relevant columns."
+  imagePath="/images/diagrams/micro-partitions.png"
 />
 
 <CompareTable client:load

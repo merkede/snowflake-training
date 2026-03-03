@@ -1,4 +1,4 @@
----
+﻿---
 layout: ../../layouts/CourseLayout.astro
 title: "Zero-Copy Cloning"
 description: "Master Snowflake zero-copy cloning — metadata-only copies, cloneable objects, Time Travel with clones, and privilege behaviour for the SnowPro Core exam"
@@ -8,7 +8,6 @@ domain: "Data Protection"
 
 import Flashcard from '../../components/Flashcard.tsx';
 import CodeBlock from '../../components/CodeBlock.tsx';
-import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
 import Diagram from '../../components/Diagram.tsx';
 import CalloutBox from '../../components/CalloutBox.tsx';
 import Quiz from '../../components/Quiz.tsx';
@@ -31,7 +30,8 @@ import CheatSheet from '../../components/CheatSheet.tsx';
 
 Zero-copy cloning creates an **instant, metadata-only copy** of a database, schema, or table. No data is physically duplicated — the clone points to the same underlying micro-partitions as the source.
 
-<Diagram client:load title="Zero-Copy Cloning Mechanics" description="Diagram showing: Source table points to micro-partitions MP1, MP2, MP3, MP4. After CREATE TABLE clone CLONE source, the clone table also points to the same MP1, MP2, MP3, MP4. No data copied — both share the same storage. When the clone later modifies data affecting MP2, a new MP2-prime is created for the clone while the source still points to the original MP2. Only the changed partition uses additional storage." altText="Source and clone sharing micro-partitions, with divergence only on modified partitions" />
+<Diagram client:load title="Zero-Copy Cloning Mechanics" description="Diagram showing: Source table points to micro-partitions MP1, MP2, MP3, MP4. After CREATE TABLE clone CLONE source, the clone table also points to the same MP1, MP2, MP3, MP4. No data copied — both share the same storage. When the clone later modifies data affecting MP2, a new MP2-prime is created for the clone while the source still points to the original MP2. Only the changed partition uses additional storage." altText="Source and clone sharing micro-partitions, with divergence only on modified partitions"   imagePath="/images/diagrams/zero-copy-cloning.png"
+/>
 
 <CalloutBox type="exam" title="Exam Focus: Zero Storage Cost at Creation">
   A clone consumes **zero additional storage** when first created. Storage costs only accrue when data in either the source or clone is modified, because only changed micro-partitions are written independently. This is a favourite exam topic.

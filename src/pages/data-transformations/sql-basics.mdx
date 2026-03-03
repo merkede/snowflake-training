@@ -1,4 +1,4 @@
----
+﻿---
 layout: ../../layouts/CourseLayout.astro
 title: "Snowflake SQL Essentials"
 description: "Master Snowflake-specific SQL features — VARIANT/semi-structured data, FLATTEN, window functions, QUALIFY, PIVOT/UNPIVOT, and unique SQL extensions for the SnowPro Core exam"
@@ -8,7 +8,6 @@ domain: "Transformations"
 
 import Flashcard from '../../components/Flashcard.tsx';
 import CodeBlock from '../../components/CodeBlock.tsx';
-import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
 import Diagram from '../../components/Diagram.tsx';
 import CalloutBox from '../../components/CalloutBox.tsx';
 import Quiz from '../../components/Quiz.tsx';
@@ -49,12 +48,7 @@ Snowflake is built for both structured and semi-structured data. The **VARIANT**
   - VARIANT preserves the original data type internally (string vs number vs boolean)
 </CalloutBox>
 
-<YouTubeEmbed
-  client:load
-  videoId="dIXFnpWKHAg"
-  title="Snowflake Semi-Structured Data and VARIANT"
-  description="📹 Official Snowflake walkthrough of VARIANT, FLATTEN, and querying JSON data in Snowflake"
-/>
+
 
 ### Accessing Data Within a VARIANT Column
 

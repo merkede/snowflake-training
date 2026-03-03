@@ -1,4 +1,4 @@
----
+﻿---
 layout: ../../layouts/CourseLayout.astro
 title: "Stages & File Formats"
 moduleId: "external-stages"
@@ -7,7 +7,6 @@ description: "Master Snowflake's stage types, external cloud storage integration
 ---
 
 import KeyTerms from '../../components/KeyTerms'
-import YouTubeEmbed from '../../components/YouTubeEmbed'
 import Diagram from '../../components/Diagram'
 import CalloutBox from '../../components/CalloutBox'
 import CodeBlock from '../../components/CodeBlock'
@@ -53,6 +52,7 @@ There are two broad categories:
   title="Snowflake Stage Architecture Overview"
   description="Snowflake provides three internal stage types and three external stage targets. Data flows from local files or cloud storage through a stage and into Snowflake tables via COPY INTO. The same pathway works in reverse for unloading."
   altText="Diagram showing local files going to user stage, table stage, or named internal stage, and cloud storage going to named external stages (S3, Azure, GCS), all feeding into Snowflake tables via COPY INTO commands"
+  imagePath="/images/diagrams/stages-overview.png"
 />
 
 <CalloutBox type="exam" title="Exam Focus: Stage Type Characteristics">
@@ -168,6 +168,7 @@ External stages point to cloud storage buckets or containers that you own and ma
   title="External Stage Authentication Methods"
   description="External stages can authenticate using inline credentials (AWS key/secret, SAS token for Azure) or via Storage Integrations. Storage Integrations are the recommended approach as they use IAM trust relationships and avoid storing sensitive credentials in Snowflake metadata."
   altText="Diagram comparing two authentication paths: inline credentials path where AWS keys or Azure SAS tokens are embedded in the stage definition, versus storage integration path where Snowflake assumes an IAM role via a trust policy to access cloud storage without storing credentials"
+  imagePath="/images/diagrams/keypair-authentication.png"
 />
 
 ### External Stage — AWS S3
@@ -444,6 +445,7 @@ ORDER BY LAST_MODIFIED DESC;
   title="Stage URL Reference Patterns"
   description="Snowflake uses consistent URL prefixes to reference different stage types. Understanding the @ prefix syntax is critical for writing COPY INTO, LIST, REMOVE, and GET commands correctly."
   altText="Reference table diagram showing four stage URL patterns: @~ for user stage, @%tablename for table stage, @stagename for named internal stage, and @stagename/path/ for a subdirectory within a named stage. Each pattern is shown with an example command."
+  imagePath="/images/diagrams/stages-overview.png"
 />
 
 ### Stage URL Quick Reference

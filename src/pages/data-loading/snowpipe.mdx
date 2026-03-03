@@ -1,4 +1,4 @@
----
+﻿---
 layout: ../../layouts/CourseLayout.astro
 title: "Snowpipe & Continuous Loading"
 description: "Master Snowflake's Snowpipe serverless continuous data loading — event notifications, REST API, pipe management, and Snowpipe Streaming for the SnowPro Core exam"
@@ -8,7 +8,6 @@ domain: "Data Loading"
 
 import Flashcard from '../../components/Flashcard.tsx';
 import CodeBlock from '../../components/CodeBlock.tsx';
-import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
 import Diagram from '../../components/Diagram.tsx';
 import CalloutBox from '../../components/CalloutBox.tsx';
 import Quiz from '../../components/Quiz.tsx';
@@ -136,7 +135,8 @@ SELECT * FROM TABLE(INFORMATION_SCHEMA.COPY_HISTORY(
 
 ## Snowpipe Streaming
 
-<Diagram client:load title="Snowpipe Streaming Architecture" description="Unlike regular Snowpipe which requires files in a stage, Snowpipe Streaming uses the Snowflake Ingest SDK to write rows directly to Snowflake tables with sub-second latency. No intermediate files needed. Flow: Application → Snowflake Ingest SDK (Java/Python) → Snowflake table directly." altText="Direct row ingestion from application through SDK to Snowflake without staging files" />
+<Diagram client:load title="Snowpipe Streaming Architecture" description="Unlike regular Snowpipe which requires files in a stage, Snowpipe Streaming uses the Snowflake Ingest SDK to write rows directly to Snowflake tables with sub-second latency. No intermediate files needed. Flow: Application → Snowflake Ingest SDK (Java/Python) → Snowflake table directly." altText="Direct row ingestion from application through SDK to Snowflake without staging files"   imagePath="/images/diagrams/snowpipe-architecture.png"
+/>
 
 <CalloutBox type="info" title="Snowpipe Streaming vs Regular Snowpipe">
   Regular Snowpipe: files → stage → load (minutes latency). Snowpipe Streaming: rows → SDK → table directly (sub-second latency). Streaming uses the Snowflake Ingest SDK for Java or Python. Popular for IoT, clickstream, and real-time event data.

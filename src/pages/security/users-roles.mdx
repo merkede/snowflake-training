@@ -1,4 +1,4 @@
----
+﻿---
 layout: ../../layouts/CourseLayout.astro
 title: "User & Role Management"
 description: "Master Snowflake user creation, system roles, role hierarchy, privilege grants, and future grants for the COF-C02 exam."
@@ -8,7 +8,6 @@ domain: "Security"
 
 import Flashcard from '../../components/Flashcard.tsx';
 import CodeBlock from '../../components/CodeBlock.tsx';
-import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
 import Diagram from '../../components/Diagram.tsx';
 import CalloutBox from '../../components/CalloutBox.tsx';
 import Quiz from '../../components/Quiz.tsx';
@@ -109,16 +108,13 @@ By default, only **SECURITYADMIN** and **ACCOUNTADMIN** can create, alter, and d
 
 Snowflake provides five **system-defined roles** that exist in every Snowflake account. These roles form the foundation of the role hierarchy and have specific, non-configurable responsibilities. Memorising each role's purpose is essential for the COF-C02 exam.
 
-<YouTubeEmbed client:load
-  videoId="PWbzL8RDMqI"
-  title="Snowflake System Roles & Role Hierarchy Explained"
-  description="A complete walkthrough of all five Snowflake system roles — ACCOUNTADMIN, SYSADMIN, SECURITYADMIN, USERADMIN, and PUBLIC — their specific responsibilities, the role hierarchy they form, and best practices for enterprise deployments. Essential viewing for the COF-C02 security domain."
-/>
+
 
 <Diagram client:load
   title="Snowflake System Role Hierarchy"
   description="The five system roles form a hierarchy where higher roles inherit all privileges of the roles below them. ACCOUNTADMIN sits at the top and inherits from both SYSADMIN and SECURITYADMIN. SECURITYADMIN inherits from USERADMIN. PUBLIC is granted to every user automatically. Custom roles should be created under SYSADMIN to ensure their objects are manageable by the organisation."
   altText="Tree diagram: ACCOUNTADMIN at top, with arrows showing inheritance from SYSADMIN and SECURITYADMIN. SECURITYADMIN has an arrow from USERADMIN. PUBLIC sits separately as a role granted to all users. A separate branch shows CUSTOM_ROLE granted to SYSADMIN as per best practice."
+  imagePath="/images/diagrams/system-role-hierarchy.png"
 />
 
 ### The Five System Roles in Detail
@@ -195,6 +191,7 @@ Snowflake's RBAC model supports **role hierarchies** — a role can be granted t
   title="Custom Role Hierarchy — Best Practice Pattern"
   description="Custom roles should be created beneath SYSADMIN in the role hierarchy. Each functional team gets a custom role (e.g., analytics_role, data_engineer_role). These custom roles own their respective database objects and are granted to users. All custom roles roll up to SYSADMIN, ensuring SYSADMIN can always manage objects owned by those roles. This prevents orphaned objects that only ACCOUNTADMIN can manage."
   altText="Hierarchy diagram: ACCOUNTADMIN at top → SYSADMIN → analytics_role, data_engineer_role, reporting_role (all as children of SYSADMIN). Users jane, bob, and carol are granted their respective custom roles. Arrows show privilege inheritance flowing upward."
+  imagePath="/images/diagrams/role-hierarchy.png"
 />
 
 <CodeBlock client:load
@@ -368,6 +365,7 @@ ACCOUNTADMIN is the most powerful role in Snowflake. Misusing it is a significan
   title="ACCOUNTADMIN Security Best Practices"
   description="The ACCOUNTADMIN role should be held by a minimum of two users (to avoid account lockout if one user is unavailable), never set as anyone's default role, always protected with multi-factor authentication, and used only for specific administrative tasks — never for day-to-day query work. Operational work should be performed with SYSADMIN, SECURITYADMIN, or a custom role."
   altText="Diagram showing ACCOUNTADMIN with four best-practice annotations: '2+ users assigned', 'Never set as DEFAULT_ROLE', 'Always use MFA', 'Use only for admin tasks — not daily queries'. A crossed-out icon shows a developer running SELECT queries as ACCOUNTADMIN, labelled as bad practice."
+  imagePath="/images/diagrams/system-role-hierarchy.png"
 />
 
 <CalloutBox client:load type="warning" title="ACCOUNTADMIN Best Practices — Exam Critical">

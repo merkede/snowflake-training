@@ -1,4 +1,4 @@
----
+﻿---
 layout: ../../layouts/CourseLayout.astro
 title: "Role-Based Access Control"
 description: "Master Snowflake's RBAC model — privileges, GRANT/REVOKE, object ownership, and discretionary access control for the SnowPro Core exam"
@@ -8,7 +8,6 @@ domain: "Security"
 
 import Flashcard from '../../components/Flashcard.tsx';
 import CodeBlock from '../../components/CodeBlock.tsx';
-import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
 import Diagram from '../../components/Diagram.tsx';
 import CalloutBox from '../../components/CalloutBox.tsx';
 import Quiz from '../../components/Quiz.tsx';
@@ -21,7 +20,7 @@ import CheatSheet from '../../components/CheatSheet.tsx';
 
 Role-Based Access Control is the primary security model in Snowflake. Every action a user performs — reading a table, running a query, creating a schema — is governed by **privileges** granted to **roles**, which are then assigned to **users**. Understanding RBAC thoroughly is essential for the COF-C02 exam.
 
-<YouTubeEmbed client:load videoId="M9IbMBmWgps" title="Snowflake RBAC Explained" description="A comprehensive walkthrough of Snowflake's Role-Based Access Control model, covering roles, privileges, and how they interact with securable objects." />
+
 
 ---
 
@@ -33,7 +32,8 @@ The core formula is simple:
 
 A user activates a role in their session, and that role determines what the user can do. If the role does not have the required privilege on the required object, the action is denied — even if the user is an ACCOUNTADMIN in another context.
 
-<Diagram client:load title="RBAC Hierarchy: Users, Roles, Privileges, and Objects" description="Diagram showing the RBAC chain: Users are assigned Roles. Roles hold Privileges. Privileges are granted ON Securable Objects (account, database, schema, table, warehouse). Role inheritance flows upward — a parent role inherits all privileges of its child roles. The ACCOUNTADMIN role sits at the top, inheriting from SYSADMIN and SECURITYADMIN. SYSADMIN inherits from any custom roles beneath it." altText="Snowflake RBAC hierarchy diagram showing users, roles, privileges, and securable objects" />
+<Diagram client:load title="RBAC Hierarchy: Users, Roles, Privileges, and Objects" description="Diagram showing the RBAC chain: Users are assigned Roles. Roles hold Privileges. Privileges are granted ON Securable Objects (account, database, schema, table, warehouse). Role inheritance flows upward — a parent role inherits all privileges of its child roles. The ACCOUNTADMIN role sits at the top, inheriting from SYSADMIN and SECURITYADMIN. SYSADMIN inherits from any custom roles beneath it." altText="Snowflake RBAC hierarchy diagram showing users, roles, privileges, and securable objects"   imagePath="/images/diagrams/role-hierarchy.png"
+/>
 
 ---
 
@@ -244,7 +244,8 @@ GRANT SELECT ON TABLE my_table TO ROLE other_role;
 
 ...even if that role is not SECURITYADMIN or ACCOUNTADMIN.
 
-<Diagram client:load title="DAC + RBAC Combined Model" description="Diagram showing Snowflake's hybrid access control model. On the left side, a central SECURITYADMIN manages roles and their hierarchy. On the right side, individual object owners (any role with OWNERSHIP privilege) can grant/revoke access on their own objects directly to other roles. Both paths result in privilege grants tracked in the same access control system. This combination allows both centralised governance and delegated object-level access management." altText="Snowflake DAC and RBAC combined security model diagram" />
+<Diagram client:load title="DAC + RBAC Combined Model" description="Diagram showing Snowflake's hybrid access control model. On the left side, a central SECURITYADMIN manages roles and their hierarchy. On the right side, individual object owners (any role with OWNERSHIP privilege) can grant/revoke access on their own objects directly to other roles. Both paths result in privilege grants tracked in the same access control system. This combination allows both centralised governance and delegated object-level access management." altText="Snowflake DAC and RBAC combined security model diagram"   imagePath="/images/diagrams/role-hierarchy.png"
+/>
 
 ---
 

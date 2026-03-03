@@ -1,4 +1,4 @@
----
+﻿---
 layout: ../../layouts/CourseLayout.astro
 title: "Authentication & SSO"
 description: "Master Snowflake authentication methods — key-pair auth, MFA, SAML 2.0 SSO, and OAuth for the SnowPro Core exam"
@@ -7,7 +7,6 @@ domain: "Security"
 ---
 
 import KeyTerms from '../../components/KeyTerms';
-import YouTubeEmbed from '../../components/YouTubeEmbed';
 import Diagram from '../../components/Diagram';
 import CalloutBox from '../../components/CalloutBox';
 import CodeBlock from '../../components/CodeBlock';
@@ -109,6 +108,7 @@ This method is strongly preferred for service accounts, scripts, and CI/CD pipel
   title="Key-Pair Authentication Flow"
   description="A detailed flow diagram showing the key-pair authentication handshake. On the left side, the Client (laptop or CI/CD server) holds a private key file (rsa_key.p8). An arrow labelled 'Sign JWT with private key' points to a JWT token object in the centre. This JWT is sent over HTTPS to Snowflake Cloud Services on the right. Snowflake Cloud Services holds the RSA_PUBLIC_KEY that was registered on the user object via ALTER USER. An arrow labelled 'Verify JWT signature using public key' points from the JWT back into Cloud Services. If valid, a green tick and 'Session granted' label appear. The entire flow is contained within an encrypted TLS channel. A note at the bottom states: The private key is NEVER transmitted. Only the signed JWT travels over the wire."
   altText="Diagram showing RSA key-pair authentication flow between a client, a signed JWT, and Snowflake Cloud Services public key validation"
+  imagePath="/images/diagrams/keypair-authentication.png"
 />
 
 <StepByStep client:load title="Configuring Key-Pair Authentication Step by Step" steps={[
@@ -674,8 +674,4 @@ WHERE second_authentication_factor IS NULL
 8. **LOGIN_HISTORY**: INFORMATION_SCHEMA (7 days, real-time) vs ACCOUNT_USAGE (365 days, ~2hr latency).
 </CalloutBox>
 
-<YouTubeEmbed client:load
-  videoId="dQw4w9WgXcQ"
-  title="Snowflake Authentication Methods Deep Dive"
-  description="📹 A comprehensive walkthrough of all Snowflake authentication options including key-pair setup, SSO configuration, and OAuth flows — covering the concepts most frequently tested in the COF-C02 exam."
-/>
+

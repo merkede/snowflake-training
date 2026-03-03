@@ -1,4 +1,4 @@
----
+﻿---
 layout: ../../layouts/CourseLayout.astro
 title: "Query Performance & Optimisation"
 description: "Understand Snowflake query execution, the Query Profile, micro-partition pruning, spill-to-disk, and optimisation strategies for the SnowPro Core exam"
@@ -8,7 +8,6 @@ domain: "Performance"
 
 import Flashcard from '../../components/Flashcard.tsx';
 import CodeBlock from '../../components/CodeBlock.tsx';
-import YouTubeEmbed from '../../components/YouTubeEmbed.tsx';
 import Diagram from '../../components/Diagram.tsx';
 import CalloutBox from '../../components/CalloutBox.tsx';
 import Quiz from '../../components/Quiz.tsx';
@@ -42,6 +41,7 @@ Every SQL statement in Snowflake follows the same execution path through three l
   title="Query Execution Flow"
   description="Flow diagram: 1) User submits SQL. 2) Cloud Services Layer parses, optimises, and creates execution plan. 3) Virtual Warehouse executes the plan against micro-partitions in cloud storage. 4) Results returned via Cloud Services Layer. Each step labelled with what happens: parse/compile, optimise/prune metadata, distribute to compute nodes, scan/join/aggregate, return result set."
   altText="Flow diagram showing SQL submission through Cloud Services parsing and optimisation, then execution on Virtual Warehouse compute nodes, then results returned"
+  imagePath="/images/diagrams/architecture-overview.png"
 />
 
 1. **Cloud Services** — parses SQL, resolves objects, checks privileges, generates optimised execution plan, determines which micro-partitions to scan
@@ -106,6 +106,7 @@ Pruning is Snowflake's primary query optimisation. Every micro-partition stores 
   title="Micro-Partition Pruning in Action"
   description="Eight micro-partitions labelled MP1-MP8 with date ranges. A WHERE clause for dates in February prunes 6 partitions (greyed out) and scans only 2 partitions (highlighted green). Shows: Partitions scanned 2 of 8 total — 75% pruning efficiency."
   altText="Diagram showing eight micro-partitions with date ranges, WHERE clause pruning six and scanning two"
+  imagePath="/images/diagrams/clustering-depth.png"
 />
 
 <CalloutBox type="warning" title="Pruning Killer: Functions on WHERE Columns">
