@@ -83,6 +83,7 @@ The Search Optimisation Service solves this by building a **persistent search ac
   title="Search Optimisation Service Architecture"
   description="Files arrive in a stage. Snowflake builds a persistent Search Access Path alongside table micro-partitions. When a point lookup query runs, SOS identifies qualifying micro-partitions, short-circuiting the standard full-partition scan. The warehouse then reads only the identified partitions."
   altText="Architecture diagram showing table micro-partitions on the left, a Search Access Path structure in the centre built and maintained by serverless compute, and a query flow that bypasses unnecessary micro-partitions via the access path"
+  imagePath="/images/diagrams/search-optimisation-illustration.png"
 />
 
 The process works as follows:
@@ -106,6 +107,7 @@ SOS does not help every query type. The exam tests whether you know exactly whic
   title="SOS Supported vs Unsupported Predicates"
   description="SOS accelerates: equality predicates (=), IN lists, ILIKE/LIKE substring search, and geospatial predicates (ST_WITHIN, ST_INTERSECTS). SOS does NOT help: range predicates alone (>, <, BETWEEN), full table scans, JOIN performance, aggregations, or queries already pruning well via clustering keys."
   altText="Two-column diagram. Left column labelled Supported shows equality equals, IN lists, ILIKE pattern matching, and geospatial predicates. Right column labelled Not Supported shows range predicates, full scans, JOINs, and aggregate queries."
+  imagePath="/images/diagrams/search-sos-query-profile.png"
 />
 
 ### What SOS Accelerates

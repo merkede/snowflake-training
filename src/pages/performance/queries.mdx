@@ -63,6 +63,7 @@ The Query Profile in Snowsight is your **most important diagnostic tool**. It sh
   title="Query Profile Operator Tree"
   description="Tree diagram of a typical Query Profile: Result node at top, below it an Aggregate node, feeding into a Join node with two branches — left branch shows TableScan on ORDERS with Filter, right branch shows TableScan on CUSTOMERS. Each node shows percentage of total time, rows processed, bytes scanned. The Join node consumes 45% of time. The TableScan shows partitions scanned 120 of 5000 total, indicating good pruning."
   altText="Tree diagram of Query Profile nodes: Result, Aggregate, Join, Filter, TableScan with timing statistics"
+  imagePath="/images/diagrams/query-profile-nodes.jpg"
 />
 
 ### Key Operator Nodes
@@ -139,6 +140,7 @@ When a query's intermediate data exceeds warehouse memory, Snowflake **spills** 
   title="Spilling Hierarchy"
   description="Three-tier pyramid: Top (green) = Memory/RAM (fastest, all processing ideally here). Middle (amber) = Local SSD (slower, data spills when memory exceeded). Bottom (red) = Remote Cloud Storage S3/Blob/GCS (slowest, severe performance degradation). Arrows point downward labelled Overflow."
   altText="Pyramid showing Memory at top, Local SSD in middle, Remote Storage at bottom"
+  imagePath="/images/diagrams/spilling-to-disk.jpg"
 />
 
 <CalloutBox type="important" title="Fixing Spilling: Scale Up the Warehouse">
