@@ -127,7 +127,8 @@ CREATE SCHEMA staging_dev CLONE staging COPY GRANTS;
 
 ## Storage and Billing
 
-<Diagram client:load title="Clone Storage Over Time" description="Timeline diagram: At creation (T0), clone uses 0 additional storage. At T1, source table receives an UPDATE affecting 10% of data — 10% new micro-partitions created for source. At T2, clone table receives a DELETE affecting 5% of data — 5% new micro-partitions created for clone. Total additional storage = only the changed partitions on each side. Shared (unchanged) partitions are counted once in storage billing." altText="Timeline showing zero initial cost then incremental storage as source and clone diverge" />
+<Diagram client:load title="Clone Storage Over Time" description="Timeline diagram: At creation (T0), clone uses 0 additional storage. At T1, source table receives an UPDATE affecting 10% of data — 10% new micro-partitions created for source. At T2, clone table receives a DELETE affecting 5% of data — 5% new micro-partitions created for clone. Total additional storage = only the changed partitions on each side. Shared (unchanged) partitions are counted once in storage billing." altText="Timeline showing zero initial cost then incremental storage as source and clone diverge"   imagePath="/images/diagrams/zero-copy-cloning.png"
+/>
 
 <CalloutBox type="info" title="Storage Billing for Clones">
   Snowflake uses a **copy-on-write** model. Shared micro-partitions are billed once (to the source). When either side modifies data, only the new/changed micro-partitions incur additional storage cost on that side. Time Travel and Fail-safe apply independently to both source and clone.

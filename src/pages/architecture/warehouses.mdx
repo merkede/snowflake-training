@@ -397,6 +397,7 @@ ORDER BY avg_queue_depth DESC;`} />
   title="Resource Monitor Architecture"
   description="A layered diagram showing the resource monitor architecture. At the top is an 'Account Resource Monitor' box labelled 'Account-level — controls all warehouses'. Below it are three 'Warehouse Resource Monitor' boxes, each labelled with a warehouse name: ETL_WAREHOUSE, REPORTING_WH, BI_WAREHOUSE. Each warehouse monitor box has a credit quota dial showing a percentage used. On the right side is an 'Actions' panel showing four possible triggers: 1) NOTIFY — sends an email alert at the specified threshold (e.g., 75% of quota); 2) NOTIFY & SUSPEND — sends alert and suspends the warehouse after current queries finish (at e.g., 90%); 3) NOTIFY & SUSPEND_IMMEDIATE — sends alert and kills all running queries immediately (at e.g., 100%); 4) Multiple thresholds can be set — shown as a graduated scale from 75% to 100%. A callout explains that resource monitors reset at the start of each time window (DAILY, WEEKLY, MONTHLY, YEARLY, or NEVER). Arrows show that account-level monitors affect all warehouses unless overridden by a warehouse-level monitor."
   altText="Architecture diagram of Snowflake resource monitors showing account and warehouse level monitoring with notification and suspension actions"
+  imagePath="/images/diagrams/resource-monitor.png"
 />
 
 <CodeBlock client:load language="sql" title="Creating and Assigning Resource Monitors" showLineNumbers={true} code={`-- Create an account-level resource monitor

@@ -30,7 +30,8 @@ import CheatSheet from '../../components/CheatSheet.tsx';
 
 Snowpipe is a **serverless continuous data ingestion** service. Unlike bulk COPY INTO which you run manually or on a schedule, Snowpipe automatically loads data as files arrive in a stage — with no virtual warehouse needed.
 
-<Diagram client:load title="Snowpipe Architecture" description="Flow diagram: 1) Files arrive in cloud storage (S3/Blob/GCS). 2) Cloud event notification triggers (SQS for AWS, Event Grid for Azure, Pub/Sub for GCP). 3) Snowflake Cloud Services layer receives notification. 4) Serverless compute loads file into target table. 5) Load metadata updated. No virtual warehouse involved — all serverless." altText="Flow from file arrival through cloud notification to serverless loading into Snowflake table" />
+<Diagram client:load title="Snowpipe Architecture" description="Flow diagram: 1) Files arrive in cloud storage (S3/Blob/GCS). 2) Cloud event notification triggers (SQS for AWS, Event Grid for Azure, Pub/Sub for GCP). 3) Snowflake Cloud Services layer receives notification. 4) Serverless compute loads file into target table. 5) Load metadata updated. No virtual warehouse involved — all serverless." altText="Flow from file arrival through cloud notification to serverless loading into Snowflake table"   imagePath="/images/diagrams/snowpipe-architecture.png"
+/>
 
 <CalloutBox type="exam" title="Exam Focus: Snowpipe vs COPY INTO">
   Snowpipe = **continuous, serverless, event-driven, per-file billing**. COPY INTO = **batch, warehouse-based, manual/scheduled**. Snowpipe tracks loaded files for **14 days** vs COPY INTO's **64 days**.

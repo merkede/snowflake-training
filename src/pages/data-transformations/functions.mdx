@@ -191,7 +191,8 @@ $$;`} />
 
 External functions call an **external API** outside Snowflake. Data is sent to an API Gateway (AWS API Gateway, Azure API Management, or GCP API Gateway) which forwards to a Lambda/Cloud Function.
 
-<Diagram client:load title="External Function Architecture" description="Flow: 1) Snowflake sends rows to API Integration endpoint. 2) API Gateway (AWS API Gateway / Azure APIM / GCP API Gateway) receives the request. 3) Gateway forwards to compute service (Lambda / Azure Function / Cloud Function). 4) Compute processes data and returns results. 5) Results flow back through API Gateway to Snowflake. All communication is HTTPS." altText="Flow from Snowflake through API Gateway to cloud function and back" />
+<Diagram client:load title="External Function Architecture" description="Flow: 1) Snowflake sends rows to API Integration endpoint. 2) API Gateway (AWS API Gateway / Azure APIM / GCP API Gateway) receives the request. 3) Gateway forwards to compute service (Lambda / Azure Function / Cloud Function). 4) Compute processes data and returns results. 5) Results flow back through API Gateway to Snowflake. All communication is HTTPS." altText="Flow from Snowflake through API Gateway to cloud function and back"   imagePath="/images/diagrams/external-functions.png"
+/>
 
 <CodeBlock client:load language="sql" title="Creating an External Function" code={`-- Step 1: Create API integration
 CREATE API INTEGRATION my_api_integration

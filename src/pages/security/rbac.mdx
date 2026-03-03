@@ -294,7 +294,8 @@ GRANT ROLE data_team_lead TO USER bob;
 -- Best practice: grant custom roles up to SYSADMIN
 GRANT ROLE data_team_lead TO ROLE sysadmin;`} />
 
-<Diagram client:load title="Role Inheritance Chain Example" description="Visual diagram showing a four-level role hierarchy. At the bottom: junior_analyst role with SELECT on raw tables. Above it: senior_analyst role with SELECT on curated views, which also inherits junior_analyst's SELECT on raw tables. Above that: data_team_lead with CREATE TABLE privilege, inheriting all privileges from both lower roles. At the top: SYSADMIN, which has data_team_lead granted to it, giving SYSADMIN visibility over all objects managed by the hierarchy. Arrows point upward showing the direction of privilege inheritance." altText="Snowflake role hierarchy inheritance diagram" />
+<Diagram client:load title="Role Inheritance Chain Example" description="Visual diagram showing a four-level role hierarchy. At the bottom: junior_analyst role with SELECT on raw tables. Above it: senior_analyst role with SELECT on curated views, which also inherits junior_analyst's SELECT on raw tables. Above that: data_team_lead with CREATE TABLE privilege, inheriting all privileges from both lower roles. At the top: SYSADMIN, which has data_team_lead granted to it, giving SYSADMIN visibility over all objects managed by the hierarchy. Arrows point upward showing the direction of privilege inheritance." altText="Snowflake role hierarchy inheritance diagram"   imagePath="/images/diagrams/role-hierarchy.png"
+/>
 
 ---
 

@@ -235,6 +235,7 @@ Federated authentication via SAML 2.0 allows your organisation's Identity Provid
   title="SAML 2.0 Federated Authentication Flow"
   description="A sequence diagram showing SAML 2.0 SSO between a user's browser, an Identity Provider (IdP), and Snowflake. Step 1: The user navigates to Snowsight login page and clicks 'Sign in with SSO'. Step 2: Snowflake redirects the browser to the IdP (e.g. Okta or Azure AD) with a SAML AuthnRequest. Step 3: The IdP presents a login page; the user enters their corporate credentials (username + password + MFA if configured at IdP level). Step 4: The IdP authenticates the user and generates a signed SAML Assertion XML document containing user attributes (email, name, roles). Step 5: The IdP posts the SAML Response back to Snowflake's Assertion Consumer Service (ACS) URL. Step 6: Snowflake validates the SAML signature using the IdP's X.509 certificate stored in the Security Integration. Step 7: Snowflake maps the SAML subject (usually email) to a Snowflake user account, then grants access and opens a session. Throughout, the user never types a Snowflake password."
   altText="Sequence diagram of SAML 2.0 SSO flow: browser to IdP authentication, SAML assertion issued, Snowflake validates and grants session"
+  imagePath="/images/diagrams/keypair-authentication.png"
 />
 
 ### Supported Identity Providers
@@ -460,6 +461,7 @@ DESCRIBE USER power_user;`} />
   title="Snowflake Authentication Decision Flow"
   description="A detailed flowchart showing the complete authentication decision process when a user or application attempts to connect to Snowflake. The flow starts at the top with a 'Connection Request' box. The first diamond decision node asks: 'Network Policy — Is the source IP address allowed?' If No, the flow goes right to a red 'Connection Rejected' terminal. If Yes, the flow continues downward to a second diamond: 'What authentication method is configured for this user?' Four branches emerge: (1) Password — leads to a 'Validate username + password against Snowflake credential store' box; (2) Key-Pair — leads to 'Validate JWT signed with private key against stored public key'; (3) SAML SSO — leads to 'Validate SAML Assertion from IdP using X.509 cert stored in Security Integration'; (4) OAuth Token — leads to 'Validate JWT access token using IdP public keys from JWS_KEYS_URL'. All four paths converge on a diamond: 'Authentication Successful?' If No, red 'Access Denied — Error returned' terminal. If Yes, another diamond: 'Is MFA required by Session Policy?' If Yes: 'Prompt for Duo push or TOTP code' — success leads forward, failure leads to 'Access Denied'. If No (or MFA cached): proceeds to 'Assign Default Role to Session' box, then 'Session Established — Query execution begins' green terminal at the bottom."
   altText="Flowchart of Snowflake authentication process: network policy check, auth method selection (password, key-pair, SAML, OAuth), MFA requirement, session establishment"
+  imagePath="/images/diagrams/keypair-authentication.png"
 />
 
 ### Key Points from the Flow
@@ -523,6 +525,7 @@ WHERE second_authentication_factor IS NULL
   title="Authentication Monitoring — Information Sources"
   description="A two-column diagram comparing the two main sources for authentication monitoring data. Left column header: INFORMATION_SCHEMA.LOGIN_HISTORY (via table function). Below: retention period = last 7 days; latency = near real-time (seconds); access = any user with privileges on the schema; use case = operational monitoring, incident response, live troubleshooting; query syntax = SELECT ... FROM TABLE(INFORMATION_SCHEMA.LOGIN_HISTORY(start_time, end_time)). Right column header: SNOWFLAKE.ACCOUNT_USAGE.LOGIN_HISTORY (view). Below: retention period = 365 days; latency = approximately 2 hours; access = requires SNOWFLAKE database access (typically ACCOUNTADMIN or granted role); use case = compliance reporting, trend analysis, long-term auditing, security dashboards. A note at the bottom: Both sources include columns for user_name, client_ip, first_authentication_factor (PASSWORD, KEYPAIR, SAML), second_authentication_factor (DUO_MFA, null), is_success (YES/NO), and error_message."
   altText="Comparison diagram of INFORMATION_SCHEMA LOGIN_HISTORY table function versus SNOWFLAKE.ACCOUNT_USAGE.LOGIN_HISTORY view, showing retention, latency, and use cases"
+  imagePath="/images/diagrams/securable-objects.png"
 />
 
 ---

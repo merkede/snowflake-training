@@ -30,7 +30,8 @@ import CheatSheet from '../../components/CheatSheet.tsx';
 
 Micro-partition pruning is Snowflake's most impactful optimisation. When data is **well-clustered** on the columns you filter most often, Snowflake can skip the vast majority of partitions — resulting in faster queries and lower credit consumption.
 
-<Diagram client:load title="Well-Clustered vs Poorly-Clustered Data" description="Two diagrams side by side. Left: Well-clustered table where micro-partitions MP1-MP4 each contain a distinct date range (Jan, Feb, Mar, Apr). A WHERE clause for February scans only MP2 — 75% pruning. Right: Poorly-clustered table where each partition MP1-MP4 contains a mix of all months. The same WHERE clause must scan all 4 partitions — 0% pruning. Both have the same data, but clustering makes the difference." altText="Comparison: well-clustered data with distinct ranges per partition vs poorly-clustered with mixed ranges" />
+<Diagram client:load title="Well-Clustered vs Poorly-Clustered Data" description="Two diagrams side by side. Left: Well-clustered table where micro-partitions MP1-MP4 each contain a distinct date range (Jan, Feb, Mar, Apr). A WHERE clause for February scans only MP2 — 75% pruning. Right: Poorly-clustered table where each partition MP1-MP4 contains a mix of all months. The same WHERE clause must scan all 4 partitions — 0% pruning. Both have the same data, but clustering makes the difference." altText="Comparison: well-clustered data with distinct ranges per partition vs poorly-clustered with mixed ranges"   imagePath="/images/diagrams/micro-partitions-clustering.png"
+/>
 
 <CalloutBox type="exam" title="Exam Focus: When Clustering Helps">
   Clustering keys are most valuable on **large tables (hundreds of GB to multi-TB)** where queries consistently filter on the same column(s). If the Query Profile shows most partitions being scanned despite selective WHERE clauses, clustering is the solution.
@@ -67,7 +68,8 @@ SELECT SYSTEM$CLUSTERING_INFORMATION('sales.orders', '(region, order_date)');
 -- Quick numeric depth check
 SELECT SYSTEM$CLUSTERING_DEPTH('sales.orders', '(order_date)');`} />
 
-<Diagram client:load title="Cluster Depth Visualisation" description="Diagram showing micro-partitions as horizontal bars on a number line representing column values. Well-clustered: bars are non-overlapping or minimally overlapping — cluster depth = 1. Poorly-clustered: bars heavily overlap, requiring scans of 4-5 partitions for any single value range — cluster depth = 4-5. Arrow showing that Automatic Clustering moves from high depth to low depth over time." altText="Horizontal bars representing partition value ranges: non-overlapping (depth 1) vs heavily overlapping (depth 5)" />
+<Diagram client:load title="Cluster Depth Visualisation" description="Diagram showing micro-partitions as horizontal bars on a number line representing column values. Well-clustered: bars are non-overlapping or minimally overlapping — cluster depth = 1. Poorly-clustered: bars heavily overlap, requiring scans of 4-5 partitions for any single value range — cluster depth = 4-5. Arrow showing that Automatic Clustering moves from high depth to low depth over time." altText="Horizontal bars representing partition value ranges: non-overlapping (depth 1) vs heavily overlapping (depth 5)"   imagePath="/images/diagrams/clustering-depth.png"
+/>
 
 ---
 
