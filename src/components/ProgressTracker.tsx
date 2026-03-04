@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle2, Circle } from 'lucide-react';
+import StreakTracker, { recordStudyDay } from './StreakTracker';
 
 interface Module {
   id: string;
@@ -18,6 +19,7 @@ export default function ProgressTracker({ modules, currentModuleId }: ProgressTr
 
   useEffect(() => {
     setIsClient(true);
+    recordStudyDay(); // Record visiting a module as a study day
     // Load progress from localStorage
     const saved = localStorage.getItem('snowflake-training-progress');
     if (saved) {
@@ -55,6 +57,9 @@ export default function ProgressTracker({ modules, currentModuleId }: ProgressTr
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-24">
       <h3 className="text-xl font-bold mb-4 text-slate-900">Your Progress</h3>
+
+      {/* Streak badge */}
+      <StreakTracker compact={true} />
 
       {/* Progress Bar */}
       <div className="mb-6">

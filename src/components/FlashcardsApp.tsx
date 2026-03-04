@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { flashcards, type FlashcardData } from '../data/flashcards';
 import { ErrorBoundary } from './ErrorBoundary';
+import StreakTracker, { recordStudyDay } from './StreakTracker';
 
 // ── SM-2 Spaced Repetition ───────────────────────────────────────────────────
 interface CardSR {
@@ -152,6 +153,7 @@ function FlashcardsAppInner() {
   }
 
   function startSession() {
+    recordStudyDay();
     const overdue = filtered.filter(c => {
       const s = cardStates[c.id];
       return s && s.nextReview <= now;
@@ -253,6 +255,9 @@ function FlashcardsAppInner() {
   if (screen === 'hub') {
     return (
       <div className="max-w-3xl mx-auto">
+        {/* Streak */}
+        <StreakTracker compact={false} />
+
         {/* Search + Domain filter row */}
         <div className="mb-6">
           <div className="relative mb-4">
