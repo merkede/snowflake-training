@@ -616,6 +616,72 @@ a {
   width: min(340px, 80vw);
 }
 
+/* ── Feature Showcase — sticky scroll ───────────────────────────────────── */
+.feature-screen {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.55s ease;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+}
+.feature-screen.fs-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.feature-text-panel {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: translateY(1.25rem);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.feature-text-panel.fs-active {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.feature-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.15);
+  border: none;
+  cursor: pointer;
+  transition: height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s ease;
+  padding: 0;
+  display: block;
+}
+.feature-dot.fs-active {
+  height: 28px;
+  background: #29b5e8;
+}
+
+.feature-tab-btn {
+  padding: 0.375rem 1rem;
+  border-radius: 0.625rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: transparent;
+  color: #64748b;
+  white-space: nowrap;
+}
+.feature-tab-btn.fs-active {
+  background: white;
+  color: #0f172a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
+}
+
 /* ── Pagefind search UI overrides ────────────────────────────────────────── */
 #pagefind-search .pagefind-ui__search-input {
   border-radius: 0.75rem;

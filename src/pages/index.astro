@@ -130,13 +130,13 @@ const domains = [
 
 
   <!-- ═══════════════════════════════════════════════════════════════
-       FEATURE SHOWCASE — 3 alternating rows with phone mockups
+       FEATURE SHOWCASE — sticky scroll with swapping mockups
   ═══════════════════════════════════════════════════════════════ -->
-  <section class="py-24 bg-white overflow-hidden">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+  <section id="section-features" style="background: #f0f9ff; transition: background-color 0.7s ease;">
 
-      <!-- Section header -->
-      <div class="text-center mb-20" data-animate>
+    <!-- Section header (always visible) -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-10" data-animate>
+      <div class="text-center">
         <p class="text-sm font-bold uppercase tracking-widest mb-3" style="color: #29b5e8;">Everything you need to pass</p>
         <h2 class="text-4xl md:text-5xl font-extrabold text-slate-900 mb-4" style="letter-spacing: -0.02em;">
           Built for how you<br/>actually learn.
@@ -145,238 +145,301 @@ const domains = [
           No fluff, no filler. Every feature is designed around the COF-C02 exam blueprint.
         </p>
       </div>
+    </div>
 
-      <!-- ── ROW 1: Modules ── phone left, text right -->
-      <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-20 mb-28" data-animate>
+    <!-- ── DESKTOP: sticky scroll showcase ── -->
+    <div class="hidden lg:block" id="features-outer" style="height: 300vh; position: relative;">
+      <div style="position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; justify-content: center; overflow: hidden;">
 
-        <!-- Phone mockup -->
-        <div class="flex-shrink-0 flex justify-center phone-float">
-          <div style="width: 260px; height: 530px; background: #0f172a; border-radius: 44px; padding: 10px; box-shadow: 0 40px 80px rgba(0,0,0,0.22), 0 0 0 2px #1e293b; position: relative;">
-            <!-- Notch -->
-            <div style="position: absolute; top: 18px; left: 50%; transform: translateX(-50%); width: 80px; height: 6px; background: #1e293b; border-radius: 3px; z-index: 2;"></div>
-            <div style="width: 100%; height: 100%; background: #f8fafc; border-radius: 36px; overflow: hidden; display: flex; flex-direction: column;">
-              <!-- Status bar -->
-              <div style="height: 28px; background: #0f172a; display: flex; align-items: center; padding: 0 16px; justify-content: space-between; flex-shrink: 0;">
-                <span style="color: #64748b; font-size: 9px; font-weight: 600;">9:41</span>
-                <span style="color: #64748b; font-size: 9px;">●●●</span>
-              </div>
-              <!-- App header -->
-              <div style="background: linear-gradient(135deg, #0f172a, #1e3a5f); padding: 14px 16px 16px; flex-shrink: 0;">
-                <div style="font-size: 9px; color: #29b5e8; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 3px;">COF-C02 PREP</div>
-                <div style="font-size: 17px; font-weight: 800; color: white; margin-bottom: 10px;">Your Progress</div>
-                <div style="background: rgba(255,255,255,0.08); border-radius: 10px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between;">
-                  <span style="font-size: 26px; font-weight: 900; color: #29b5e8; line-height: 1;">52%</span>
-                  <span style="font-size: 10px; color: #94a3b8;">12 of 23 modules</span>
+        <!-- Tab switcher -->
+        <div style="position: absolute; top: 1.5rem; left: 50%; transform: translateX(-50%); display: flex; gap: 0.25rem; background: #f1f5f9; border-radius: 0.875rem; padding: 0.25rem; z-index: 10;">
+          <button class="feature-tab-btn fs-active" data-feat-tab="0">Modules</button>
+          <button class="feature-tab-btn" data-feat-tab="1">Flashcards</button>
+          <button class="feature-tab-btn" data-feat-tab="2">Mock Exam</button>
+        </div>
+
+        <!-- Main layout: text | phone | dots -->
+        <div class="max-w-7xl mx-auto px-8 w-full" style="display: grid; grid-template-columns: 1fr 300px 1fr; align-items: center; gap: 3rem;">
+
+          <!-- TEXT PANELS (left) -->
+          <div style="position: relative; height: 360px;">
+
+            <!-- Panel 0: Modules -->
+            <div class="feature-text-panel fs-active" data-feat-panel="0">
+              <span style="display: inline-block; padding: 0.25rem 0.875rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; background: #e0f2fe; color: #0369a1; margin-bottom: 1.25rem; width: fit-content;">23 Modules</span>
+              <h3 style="font-size: 2.25rem; font-weight: 800; color: #0f172a; letter-spacing: -0.02em; line-height: 1.15; margin: 0 0 1rem;">
+                Read through every<br/>exam domain.
+              </h3>
+              <p style="color: #64748b; font-size: 1.0625rem; line-height: 1.7; margin: 0 0 1.5rem;">
+                Structured content covering all 6 COF-C02 domains — with diagrams, code examples, and inline practice questions. Modules auto-complete as you scroll to the end.
+              </p>
+              <ul style="list-style: none; padding: 0; margin: 0 0 2rem; display: flex; flex-direction: column; gap: 0.625rem;">
+                {['Auto-marks complete when you finish reading', 'Progress saved across sessions', 'Estimated read time per module', 'Prev/next navigation with domain context'].map(f => (
+                  <li style="display: flex; align-items: center; gap: 0.75rem; font-size: 0.875rem; color: #475569;">
+                    <span style="width: 18px; height: 18px; background: #dcfce7; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 10px; color: #16a34a; font-weight: 700;">✓</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <a href="/modules" class="btn-primary inline-block no-underline">Explore Modules →</a>
+            </div>
+
+            <!-- Panel 1: Flashcards -->
+            <div class="feature-text-panel" data-feat-panel="1">
+              <span style="display: inline-block; padding: 0.25rem 0.875rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; background: #d1fae5; color: #065f46; margin-bottom: 1.25rem; width: fit-content;">SM-2 Spaced Repetition</span>
+              <h3 style="font-size: 2.25rem; font-weight: 800; color: #0f172a; letter-spacing: -0.02em; line-height: 1.15; margin: 0 0 1rem;">
+                Drill with flashcards<br/>that actually work.
+              </h3>
+              <p style="color: #64748b; font-size: 1.0625rem; line-height: 1.7; margin: 0 0 1.5rem;">
+                The SM-2 algorithm schedules cards based on how well you know them — spacing out easy cards and surfacing difficult ones more often.
+              </p>
+              <ul style="list-style: none; padding: 0; margin: 0 0 2rem; display: flex; flex-direction: column; gap: 0.625rem;">
+                {[`${flashcardCount}+ exam-focused flashcards`, 'Filter by domain — focus where you\'re weakest', 'Daily streak tracker for consistency', 'Search cards by topic or keyword'].map(f => (
+                  <li style="display: flex; align-items: center; gap: 0.75rem; font-size: 0.875rem; color: #475569;">
+                    <span style="width: 18px; height: 18px; background: #dcfce7; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 10px; color: #16a34a; font-weight: 700;">✓</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <a href="/flashcards" class="btn-primary inline-block no-underline">Start Flashcards →</a>
+            </div>
+
+            <!-- Panel 2: Mock Exam -->
+            <div class="feature-text-panel" data-feat-panel="2">
+              <span style="display: inline-block; padding: 0.25rem 0.875rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; background: #ede9fe; color: #5b21b6; margin-bottom: 1.25rem; width: fit-content;">Mock Exam</span>
+              <h3 style="font-size: 2.25rem; font-weight: 800; color: #0f172a; letter-spacing: -0.02em; line-height: 1.15; margin: 0 0 1rem;">
+                Sit the full exam<br/>before the real one.
+              </h3>
+              <p style="color: #64748b; font-size: 1.0625rem; line-height: 1.7; margin: 0 0 1.5rem;">
+                {examQCount} timed questions in the exact COF-C02 format. Full explanations for every answer, with history saved across attempts.
+              </p>
+              <ul style="list-style: none; padding: 0; margin: 0 0 2rem; display: flex; flex-direction: column; gap: 0.625rem;">
+                {[`${examQCount} questions across all 6 domains`, 'Same 115-minute time limit as the real exam', 'Domain-by-domain score breakdown', 'Full explanation for every answer'].map(f => (
+                  <li style="display: flex; align-items: center; gap: 0.75rem; font-size: 0.875rem; color: #475569;">
+                    <span style="width: 18px; height: 18px; background: #dcfce7; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 10px; color: #16a34a; font-weight: 700;">✓</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <a href="/exam-sim" class="btn-primary inline-block no-underline">Take the Mock Exam →</a>
+            </div>
+
+          </div>
+
+          <!-- PHONE FRAME (centre — constant) -->
+          <div style="display: flex; justify-content: center; flex-shrink: 0;">
+            <div class="phone-float" style="width: 260px; height: 530px; background: #0f172a; border-radius: 44px; padding: 10px; box-shadow: 0 40px 80px rgba(0,0,0,0.22), 0 0 0 2px #1e293b; position: relative; flex-shrink: 0;">
+              <!-- Notch -->
+              <div style="position: absolute; top: 18px; left: 50%; transform: translateX(-50%); width: 80px; height: 6px; background: #1e293b; border-radius: 3px; z-index: 2;"></div>
+              <!-- Screen area -->
+              <div style="width: 100%; height: 100%; border-radius: 36px; overflow: hidden; position: relative;">
+
+                <!-- Screen 0: Modules -->
+                <div class="feature-screen fs-active" data-feat-screen="0" style="background: #f8fafc;">
+                  <div style="height: 28px; background: #0f172a; display: flex; align-items: center; padding: 0 16px; justify-content: space-between; flex-shrink: 0;">
+                    <span style="color: #64748b; font-size: 9px; font-weight: 600;">9:41</span>
+                    <span style="color: #64748b; font-size: 9px;">●●●</span>
+                  </div>
+                  <div style="background: linear-gradient(135deg, #0f172a, #1e3a5f); padding: 14px 16px 16px; flex-shrink: 0;">
+                    <div style="font-size: 9px; color: #29b5e8; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 3px;">COF-C02 PREP</div>
+                    <div style="font-size: 17px; font-weight: 800; color: white; margin-bottom: 10px;">Your Progress</div>
+                    <div style="background: rgba(255,255,255,0.08); border-radius: 10px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between;">
+                      <span style="font-size: 26px; font-weight: 900; color: #29b5e8; line-height: 1;">52%</span>
+                      <span style="font-size: 10px; color: #94a3b8;">12 of 23 modules</span>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.1); border-radius: 4px; height: 4px; margin-top: 8px; overflow: hidden;">
+                      <div style="width: 52%; height: 100%; background: linear-gradient(90deg, #29b5e8, #56c4ed); border-radius: 4px;"></div>
+                    </div>
+                  </div>
+                  <div style="flex: 1; padding: 10px 8px; background: #f8fafc; overflow: hidden; display: flex; flex-direction: column; gap: 4px;">
+                    {[
+                      { title: 'Introduction to Snowflake', done: true },
+                      { title: 'Snowflake Architecture', done: true },
+                      { title: 'Databases & Schemas', current: true },
+                      { title: 'Virtual Warehouses', done: false },
+                      { title: 'Data Storage & Clustering', done: false },
+                      { title: 'User & Role Management', done: false },
+                    ].map(m => (
+                      <div style={`display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: ${m.current ? '#f0f9ff' : 'white'}; border-radius: 8px; border: ${m.current ? '2px solid #29b5e8' : '1px solid #e2e8f0'};`}>
+                        <div style={`width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: ${m.done ? '#16a34a' : m.current ? '#29b5e8' : '#e2e8f0'};`}>
+                          {m.done && <span style="color: white; font-size: 9px; font-weight: 700;">✓</span>}
+                          {m.current && <span style="color: white; font-size: 9px; font-weight: 700;">→</span>}
+                        </div>
+                        <span style={`font-size: 10px; font-weight: ${m.current ? '600' : '400'}; color: ${m.done ? '#94a3b8' : m.current ? '#0c4a6e' : '#64748b'}; ${m.done ? 'text-decoration: line-through;' : ''}`}>
+                          {m.title}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div style="background: rgba(255,255,255,0.1); border-radius: 4px; height: 4px; margin-top: 8px; overflow: hidden;">
-                  <div style="width: 52%; height: 100%; background: linear-gradient(90deg, #29b5e8, #56c4ed); border-radius: 4px;"></div>
+
+                <!-- Screen 1: Flashcards -->
+                <div class="feature-screen" data-feat-screen="1" style="background: #f1f5f9;">
+                  <div style="height: 28px; background: #1e293b; display: flex; align-items: center; padding: 0 16px; justify-content: space-between; flex-shrink: 0;">
+                    <span style="color: #64748b; font-size: 9px; font-weight: 600;">9:41</span>
+                    <span style="color: #64748b; font-size: 9px;">●●●</span>
+                  </div>
+                  <div style="background: white; padding: 10px 10px 0; border-bottom: 1px solid #e2e8f0; flex-shrink: 0;">
+                    <div style="display: flex; gap: 4px;">
+                      <div style="padding: 5px 9px; background: #29b5e8; color: white; border-radius: 6px 6px 0 0; font-size: 9px; font-weight: 700; white-space: nowrap;">Architecture</div>
+                      <div style="padding: 5px 9px; color: #94a3b8; font-size: 9px; white-space: nowrap;">Security</div>
+                      <div style="padding: 5px 9px; color: #94a3b8; font-size: 9px; white-space: nowrap;">Performance</div>
+                    </div>
+                  </div>
+                  <div style="text-align: center; padding: 10px 0 6px; font-size: 10px; color: #94a3b8; font-weight: 600; letter-spacing: 1px; flex-shrink: 0;">CARD 5 OF 24</div>
+                  <div style="flex: 1; padding: 0 12px 12px; display: flex; flex-direction: column;">
+                    <div style="background: white; border-radius: 16px; padding: 20px 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); flex: 1; display: flex; flex-direction: column; justify-content: center; border: 1px solid #e2e8f0;">
+                      <div style="font-size: 9px; color: #29b5e8; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; text-align: center; margin-bottom: 10px;">ARCHITECTURE</div>
+                      <div style="font-size: 12px; font-weight: 600; color: #1e293b; line-height: 1.5; text-align: center;">
+                        What are the three layers of Snowflake's multi-cluster shared data architecture?
+                      </div>
+                      <div style="margin-top: 16px; padding: 8px 12px; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1; text-align: center;">
+                        <div style="font-size: 9px; color: #94a3b8; font-weight: 500;">Tap to reveal answer</div>
+                      </div>
+                    </div>
+                    <div style="display: flex; gap: 6px; margin-top: 10px;">
+                      <button style="flex: 1; padding: 7px 0; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; font-size: 9px; font-weight: 700; color: #dc2626;">😓 Hard</button>
+                      <button style="flex: 1; padding: 7px 0; background: #fffbeb; border: 1px solid #fed7aa; border-radius: 8px; font-size: 9px; font-weight: 700; color: #d97706;">🤔 OK</button>
+                      <button style="flex: 1; padding: 7px 0; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; font-size: 9px; font-weight: 700; color: #16a34a;">✓ Easy</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Screen 2: Mock Exam -->
+                <div class="feature-screen" data-feat-screen="2" style="background: #f8fafc;">
+                  <div style="height: 28px; background: #1e293b; display: flex; align-items: center; padding: 0 16px; justify-content: space-between; flex-shrink: 0;">
+                    <span style="color: #64748b; font-size: 9px; font-weight: 600;">9:41</span>
+                    <span style="color: #29b5e8; font-size: 9px; font-weight: 700;">47:23</span>
+                  </div>
+                  <div style="background: white; padding: 10px 14px; border-bottom: 1px solid #e2e8f0; flex-shrink: 0;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                      <span style="font-size: 10px; font-weight: 700; color: #1e293b;">Q12 / {examQCount}</span>
+                      <span style="background: #fef3c7; color: #92400e; font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 10px;">⏱ 47:23</span>
+                    </div>
+                    <div style="background: #e2e8f0; border-radius: 4px; height: 4px; overflow: hidden;">
+                      <div style="width: 12%; height: 100%; background: linear-gradient(90deg, #29b5e8, #56c4ed);"></div>
+                    </div>
+                  </div>
+                  <div style="flex: 1; padding: 12px 14px; overflow: hidden; display: flex; flex-direction: column;">
+                    <div style="font-size: 9px; color: #29b5e8; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px;">DATA PROTECTION</div>
+                    <div style="font-size: 11px; font-weight: 600; color: #1e293b; line-height: 1.55; margin-bottom: 12px;">
+                      Which Snowflake feature allows data sharing between accounts without copying or moving data?
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 5px; flex: 1;">
+                      {[
+                        { text: 'Data Exchange', sel: false },
+                        { text: 'Secure Data Sharing', sel: true },
+                        { text: 'External Tables', sel: false },
+                        { text: 'Data Replication', sel: false },
+                      ].map(opt => (
+                        <div style={`display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: ${opt.sel ? '#f0f9ff' : 'white'}; border: ${opt.sel ? '2px solid #29b5e8' : '1px solid #e2e8f0'}; border-radius: 8px;`}>
+                          <div style={`width: 14px; height: 14px; border: 2px solid ${opt.sel ? '#29b5e8' : '#cbd5e1'}; border-radius: 50%; flex-shrink: 0; background: ${opt.sel ? '#29b5e8' : 'white'}; display: flex; align-items: center; justify-content: center;`}>
+                            {opt.sel && <div style="width: 5px; height: 5px; background: white; border-radius: 50%;"></div>}
+                          </div>
+                          <span style={`font-size: 10px; color: ${opt.sel ? '#0c4a6e' : '#475569'}; font-weight: ${opt.sel ? '600' : '400'};`}>{opt.text}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <button style="width: 100%; margin-top: 10px; padding: 9px; background: linear-gradient(135deg, #29b5e8, #56c4ed); color: white; border: none; border-radius: 10px; font-size: 11px; font-weight: 700; cursor: pointer;">Next Question →</button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- PROGRESS DOTS (right) -->
+          <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 0.625rem; padding-left: 1rem;">
+            <button class="feature-dot fs-active" data-feat-dot="0" aria-label="View Modules"></button>
+            <button class="feature-dot" data-feat-dot="1" aria-label="View Flashcards"></button>
+            <button class="feature-dot" data-feat-dot="2" aria-label="View Mock Exam"></button>
+          </div>
+
+        </div>
+
+        <!-- Scroll hint -->
+        <div id="feat-scroll-hint" style="position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 0.375rem; opacity: 0.5; pointer-events: none;">
+          <span style="font-size: 0.75rem; font-weight: 600; color: #64748b; letter-spacing: 0.05em;">SCROLL</span>
+          <svg width="16" height="20" viewBox="0 0 16 20" fill="none" aria-hidden="true">
+            <path d="M8 1v14M2 9l6 6 6-6" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── MOBILE: simple stacked cards ── -->
+    <div class="lg:hidden max-w-xl mx-auto px-4 pb-16 space-y-10">
+
+      <!-- Card 1: Modules -->
+      <div data-animate>
+        <div style="display: flex; justify-content: center; margin-bottom: 1.5rem;">
+          <div style="width: 220px; height: 440px; background: #0f172a; border-radius: 36px; padding: 8px; box-shadow: 0 30px 60px rgba(0,0,0,0.2), 0 0 0 2px #1e293b; position: relative;">
+            <div style="position: absolute; top: 14px; left: 50%; transform: translateX(-50%); width: 64px; height: 5px; background: #1e293b; border-radius: 3px; z-index: 2;"></div>
+            <div style="width: 100%; height: 100%; background: #f8fafc; border-radius: 28px; overflow: hidden; display: flex; flex-direction: column;">
+              <div style="height: 24px; background: #0f172a; display: flex; align-items: center; padding: 0 14px; justify-content: space-between;">
+                <span style="color: #64748b; font-size: 8px; font-weight: 600;">9:41</span>
+                <span style="color: #64748b; font-size: 8px;">●●●</span>
+              </div>
+              <div style="background: linear-gradient(135deg, #0f172a, #1e3a5f); padding: 12px 14px; flex-shrink: 0;">
+                <div style="font-size: 8px; color: #29b5e8; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 3px;">COF-C02 PREP</div>
+                <div style="font-size: 14px; font-weight: 800; color: white; margin-bottom: 8px;">Your Progress</div>
+                <div style="background: rgba(255,255,255,0.08); border-radius: 8px; padding: 6px 10px; display: flex; align-items: center; justify-content: space-between;">
+                  <span style="font-size: 22px; font-weight: 900; color: #29b5e8; line-height: 1;">52%</span>
+                  <span style="font-size: 9px; color: #94a3b8;">12 of 23</span>
                 </div>
               </div>
-              <!-- Module list -->
-              <div style="flex: 1; padding: 10px 8px; background: #f8fafc; overflow: hidden; display: flex; flex-direction: column; gap: 4px;">
+              <div style="flex: 1; padding: 8px 6px; overflow: hidden; display: flex; flex-direction: column; gap: 3px;">
                 {[
                   { title: 'Introduction to Snowflake', done: true },
                   { title: 'Snowflake Architecture', done: true },
                   { title: 'Databases & Schemas', current: true },
                   { title: 'Virtual Warehouses', done: false },
-                  { title: 'Data Storage & Clustering', done: false },
-                  { title: 'User & Role Management', done: false },
                 ].map(m => (
-                  <div style={`display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: ${m.current ? '#f0f9ff' : 'white'}; border-radius: 8px; border: ${m.current ? '2px solid #29b5e8' : '1px solid #e2e8f0'};`}>
-                    <div style={`width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: ${m.done ? '#16a34a' : m.current ? '#29b5e8' : '#e2e8f0'};`}>
-                      {m.done && <span style="color: white; font-size: 9px; font-weight: 700;">✓</span>}
-                      {m.current && <span style="color: white; font-size: 9px; font-weight: 700;">→</span>}
+                  <div style={`display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: ${m.current ? '#f0f9ff' : 'white'}; border-radius: 7px; border: ${m.current ? '2px solid #29b5e8' : '1px solid #e2e8f0'};`}>
+                    <div style={`width: 15px; height: 15px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: ${m.done ? '#16a34a' : m.current ? '#29b5e8' : '#e2e8f0'};`}>
+                      {m.done && <span style="color: white; font-size: 8px; font-weight: 700;">✓</span>}
+                      {m.current && <span style="color: white; font-size: 8px; font-weight: 700;">→</span>}
                     </div>
-                    <span style={`font-size: 10px; font-weight: ${m.current ? '600' : '400'}; color: ${m.done ? '#94a3b8' : m.current ? '#0c4a6e' : '#64748b'}; ${m.done ? 'text-decoration: line-through;' : ''}`}>
-                      {m.title}
-                    </span>
+                    <span style={`font-size: 9px; font-weight: ${m.current ? '600' : '400'}; color: ${m.done ? '#94a3b8' : m.current ? '#0c4a6e' : '#64748b'}; ${m.done ? 'text-decoration: line-through;' : ''}`}>{m.title}</span>
                   </div>
                 ))}
               </div>
             </div>
           </div>
         </div>
-
-        <!-- Feature text -->
-        <div class="max-w-lg">
-          <span class="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-4" style="background: #e0f2fe; color: #0369a1;">23 Modules</span>
-          <h3 class="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4" style="letter-spacing: -0.02em;">
-            Read through every<br/>exam domain.
-          </h3>
-          <p class="text-slate-500 text-lg mb-6 leading-relaxed">
-            Structured content covering all 6 COF-C02 domains — with diagrams, code examples, and inline practice questions. Modules auto-complete as you scroll to the end.
-          </p>
-          <ul class="space-y-3 mb-8">
-            {[
-              'Auto-marks complete when you finish reading',
-              'Progress saved across sessions via local storage',
-              'Estimated read time shown per module',
-              'Prev/next navigation with domain context',
-            ].map(f => (
-              <li class="flex items-center gap-3">
-                <div style="width: 20px; height: 20px; background: #dcfce7; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                  <span style="color: #16a34a; font-size: 11px; font-weight: 700;">✓</span>
-                </div>
-                <span class="text-slate-600 text-sm">{f}</span>
-              </li>
-            ))}
-          </ul>
+        <div class="text-center">
+          <span style="display: inline-block; padding: 0.25rem 0.875rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; background: #e0f2fe; color: #0369a1; margin-bottom: 0.75rem;">23 Modules</span>
+          <h3 class="text-2xl font-extrabold text-slate-900 mb-3">Read through every exam domain.</h3>
+          <p class="text-slate-500 text-sm leading-relaxed mb-4">Structured content covering all 6 COF-C02 domains. Auto-marks complete as you scroll.</p>
           <a href="/modules" class="btn-primary inline-block no-underline">Explore Modules →</a>
         </div>
       </div>
 
-      <!-- ── ROW 2: Flashcards ── text left, phone right -->
-      <div class="flex flex-col-reverse lg:flex-row items-center gap-12 lg:gap-20 mb-28" data-animate>
-
-        <!-- Feature text -->
-        <div class="max-w-lg">
-          <span class="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-4" style="background: #d1fae5; color: #065f46;">SM-2 Spaced Repetition</span>
-          <h3 class="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4" style="letter-spacing: -0.02em;">
-            Drill with flashcards<br/>that actually work.
-          </h3>
-          <p class="text-slate-500 text-lg mb-6 leading-relaxed">
-            The SM-2 algorithm schedules cards based on how well you know them — spacing out easy cards and surfacing difficult ones more often. Your brain remembers more with less time.
-          </p>
-          <ul class="space-y-3 mb-8">
-            {[
-              `${flashcardCount}+ exam-focused flashcards across all domains`,
-              'Filters by domain — focus where you\'re weakest',
-              'Daily streak tracker keeps you consistent',
-              'Search cards by topic or keyword',
-            ].map(f => (
-              <li class="flex items-center gap-3">
-                <div style="width: 20px; height: 20px; background: #dcfce7; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                  <span style="color: #16a34a; font-size: 11px; font-weight: 700;">✓</span>
-                </div>
-                <span class="text-slate-600 text-sm">{f}</span>
-              </li>
-            ))}
-          </ul>
+      <!-- Card 2: Flashcards -->
+      <div data-animate>
+        <div class="text-center">
+          <span style="display: inline-block; padding: 0.25rem 0.875rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; background: #d1fae5; color: #065f46; margin-bottom: 0.75rem;">SM-2 Flashcards</span>
+          <h3 class="text-2xl font-extrabold text-slate-900 mb-3">Drill with flashcards that actually work.</h3>
+          <p class="text-slate-500 text-sm leading-relaxed mb-4">The SM-2 algorithm surfaces hard cards more often. {flashcardCount}+ cards across all 6 domains.</p>
           <a href="/flashcards" class="btn-primary inline-block no-underline">Start Flashcards →</a>
-        </div>
-
-        <!-- Phone mockup -->
-        <div class="flex-shrink-0 flex justify-center phone-float" style="animation-delay: 0.5s;">
-          <div style="width: 260px; height: 530px; background: #0f172a; border-radius: 44px; padding: 10px; box-shadow: 0 40px 80px rgba(0,0,0,0.22), 0 0 0 2px #1e293b; position: relative;">
-            <div style="position: absolute; top: 18px; left: 50%; transform: translateX(-50%); width: 80px; height: 6px; background: #1e293b; border-radius: 3px; z-index: 2;"></div>
-            <div style="width: 100%; height: 100%; background: #f1f5f9; border-radius: 36px; overflow: hidden; display: flex; flex-direction: column;">
-              <div style="height: 28px; background: #1e293b; display: flex; align-items: center; padding: 0 16px; justify-content: space-between; flex-shrink: 0;">
-                <span style="color: #64748b; font-size: 9px; font-weight: 600;">9:41</span>
-                <span style="color: #64748b; font-size: 9px;">●●●</span>
-              </div>
-              <!-- Domain tabs -->
-              <div style="background: white; padding: 10px 10px 0; border-bottom: 1px solid #e2e8f0; flex-shrink: 0;">
-                <div style="display: flex; gap: 4px;">
-                  <div style="padding: 5px 9px; background: #29b5e8; color: white; border-radius: 6px 6px 0 0; font-size: 9px; font-weight: 700; white-space: nowrap;">Architecture</div>
-                  <div style="padding: 5px 9px; color: #94a3b8; font-size: 9px; white-space: nowrap;">Security</div>
-                  <div style="padding: 5px 9px; color: #94a3b8; font-size: 9px; white-space: nowrap;">Performance</div>
-                </div>
-              </div>
-              <!-- Counter -->
-              <div style="text-align: center; padding: 10px 0 6px; font-size: 10px; color: #94a3b8; font-weight: 600; letter-spacing: 1px; flex-shrink: 0;">CARD 5 OF 24</div>
-              <!-- Card -->
-              <div style="flex: 1; padding: 0 12px 12px; display: flex; flex-direction: column;">
-                <div style="background: white; border-radius: 16px; padding: 20px 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); flex: 1; display: flex; flex-direction: column; justify-content: center; border: 1px solid #e2e8f0;">
-                  <div style="font-size: 9px; color: #29b5e8; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; text-align: center; margin-bottom: 10px;">ARCHITECTURE</div>
-                  <div style="font-size: 12px; font-weight: 600; color: #1e293b; line-height: 1.5; text-align: center;">
-                    What are the three layers of Snowflake's multi-cluster shared data architecture?
-                  </div>
-                  <div style="margin-top: 16px; padding: 8px 12px; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1; text-align: center;">
-                    <div style="font-size: 9px; color: #94a3b8; font-weight: 500;">Tap to reveal answer</div>
-                  </div>
-                </div>
-                <!-- Rating buttons -->
-                <div style="display: flex; gap: 6px; margin-top: 10px;">
-                  <button style="flex: 1; padding: 7px 0; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; font-size: 9px; font-weight: 700; color: #dc2626;">😓 Hard</button>
-                  <button style="flex: 1; padding: 7px 0; background: #fffbeb; border: 1px solid #fed7aa; border-radius: 8px; font-size: 9px; font-weight: 700; color: #d97706;">🤔 OK</button>
-                  <button style="flex: 1; padding: 7px 0; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; font-size: 9px; font-weight: 700; color: #16a34a;">✓ Easy</button>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
-      <!-- ── ROW 3: Mock Exam ── phone left, text right -->
-      <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-20" data-animate>
-
-        <!-- Phone mockup -->
-        <div class="flex-shrink-0 flex justify-center phone-float" style="animation-delay: 1s;">
-          <div style="width: 260px; height: 530px; background: #0f172a; border-radius: 44px; padding: 10px; box-shadow: 0 40px 80px rgba(0,0,0,0.22), 0 0 0 2px #1e293b; position: relative;">
-            <div style="position: absolute; top: 18px; left: 50%; transform: translateX(-50%); width: 80px; height: 6px; background: #1e293b; border-radius: 3px; z-index: 2;"></div>
-            <div style="width: 100%; height: 100%; background: #f8fafc; border-radius: 36px; overflow: hidden; display: flex; flex-direction: column;">
-              <div style="height: 28px; background: #1e293b; display: flex; align-items: center; padding: 0 16px; justify-content: space-between; flex-shrink: 0;">
-                <span style="color: #64748b; font-size: 9px; font-weight: 600;">9:41</span>
-                <span style="color: #29b5e8; font-size: 9px; font-weight: 700;">47:23</span>
-              </div>
-              <!-- Exam header -->
-              <div style="background: white; padding: 10px 14px; border-bottom: 1px solid #e2e8f0; flex-shrink: 0;">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                  <span style="font-size: 10px; font-weight: 700; color: #1e293b;">Q12 / {examQCount}</span>
-                  <span style="background: #fef3c7; color: #92400e; font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 10px;">⏱ 47:23</span>
-                </div>
-                <div style="background: #e2e8f0; border-radius: 4px; height: 4px; overflow: hidden;">
-                  <div style="width: 12%; height: 100%; background: linear-gradient(90deg, #29b5e8, #56c4ed);"></div>
-                </div>
-              </div>
-              <!-- Question -->
-              <div style="flex: 1; padding: 12px 14px; overflow: hidden; display: flex; flex-direction: column;">
-                <div style="font-size: 9px; color: #29b5e8; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px;">DATA PROTECTION</div>
-                <div style="font-size: 11px; font-weight: 600; color: #1e293b; line-height: 1.55; margin-bottom: 12px;">
-                  Which Snowflake feature allows data sharing between accounts without copying or moving data?
-                </div>
-                <!-- Options -->
-                <div style="display: flex; flex-direction: column; gap: 5px; flex: 1;">
-                  {[
-                    { text: 'Data Exchange', selected: false },
-                    { text: 'Secure Data Sharing', selected: true },
-                    { text: 'External Tables', selected: false },
-                    { text: 'Data Replication', selected: false },
-                  ].map(opt => (
-                    <div style={`display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: ${opt.selected ? '#f0f9ff' : 'white'}; border: ${opt.selected ? '2px solid #29b5e8' : '1px solid #e2e8f0'}; border-radius: 8px;`}>
-                      <div style={`width: 14px; height: 14px; border: 2px solid ${opt.selected ? '#29b5e8' : '#cbd5e1'}; border-radius: 50%; flex-shrink: 0; background: ${opt.selected ? '#29b5e8' : 'white'}; display: flex; align-items: center; justify-content: center;`}>
-                        {opt.selected && <div style="width: 5px; height: 5px; background: white; border-radius: 50%;"></div>}
-                      </div>
-                      <span style={`font-size: 10px; color: ${opt.selected ? '#0c4a6e' : '#475569'}; font-weight: ${opt.selected ? '600' : '400'};`}>{opt.text}</span>
-                    </div>
-                  ))}
-                </div>
-                <button style="width: 100%; margin-top: 10px; padding: 9px; background: linear-gradient(135deg, #29b5e8, #56c4ed); color: white; border: none; border-radius: 10px; font-size: 11px; font-weight: 700; cursor: pointer;">Next Question →</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Feature text -->
-        <div class="max-w-lg">
-          <span class="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-4" style="background: #ede9fe; color: #5b21b6;">Mock Exam</span>
-          <h3 class="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4" style="letter-spacing: -0.02em;">
-            Sit the full exam<br/>before the real one.
-          </h3>
-          <p class="text-slate-500 text-lg mb-6 leading-relaxed">
-            {examQCount} timed questions in the exact COF-C02 format. Every answer has a full explanation. Your history is saved so you can track improvement across attempts.
-          </p>
-          <ul class="space-y-3 mb-8">
-            {[
-              `${examQCount} questions across all 6 domains`,
-              'Timed — same 115 minutes as the real exam',
-              'Domain-by-domain score breakdown',
-              'Full explanation for every right and wrong answer',
-            ].map(f => (
-              <li class="flex items-center gap-3">
-                <div style="width: 20px; height: 20px; background: #dcfce7; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                  <span style="color: #16a34a; font-size: 11px; font-weight: 700;">✓</span>
-                </div>
-                <span class="text-slate-600 text-sm">{f}</span>
-              </li>
-            ))}
-          </ul>
+      <!-- Card 3: Mock Exam -->
+      <div data-animate>
+        <div class="text-center">
+          <span style="display: inline-block; padding: 0.25rem 0.875rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; background: #ede9fe; color: #5b21b6; margin-bottom: 0.75rem;">Mock Exam</span>
+          <h3 class="text-2xl font-extrabold text-slate-900 mb-3">Sit the full exam before the real one.</h3>
+          <p class="text-slate-500 text-sm leading-relaxed mb-4">{examQCount} timed questions in the exact COF-C02 format, with full explanations.</p>
           <a href="/exam-sim" class="btn-primary inline-block no-underline">Take the Mock Exam →</a>
         </div>
       </div>
 
     </div>
+
   </section>
+
 
 
   <!-- ═══════════════════════════════════════════════════════════════
@@ -579,6 +642,52 @@ const domains = [
     { threshold: 0.12 }
   );
   document.querySelectorAll('[data-animate]').forEach((el) => io.observe(el));
+
+  // ── Feature Showcase — sticky scroll + background transitions ────────────
+  const featOuter = document.getElementById('features-outer') as HTMLElement | null;
+  const featSection = document.getElementById('section-features') as HTMLElement | null;
+  const scrollHint = document.getElementById('feat-scroll-hint') as HTMLElement | null;
+
+  if (featOuter && featSection) {
+    const screens = document.querySelectorAll<HTMLElement>('[data-feat-screen]');
+    const panels  = document.querySelectorAll<HTMLElement>('[data-feat-panel]');
+    const dots    = document.querySelectorAll<HTMLElement>('[data-feat-dot]');
+    const tabs    = document.querySelectorAll<HTMLElement>('[data-feat-tab]');
+    const bgs     = ['#f0f9ff', '#f0fdf4', '#faf5ff'];
+    let cur = -1;
+
+    function goTo(idx: number) {
+      if (idx === cur) return;
+      cur = idx;
+      screens.forEach((s, i) => s.classList.toggle('fs-active', i === idx));
+      panels.forEach((p, i)  => p.classList.toggle('fs-active', i === idx));
+      dots.forEach((d, i)    => d.classList.toggle('fs-active', i === idx));
+      tabs.forEach((t, i)    => t.classList.toggle('fs-active', i === idx));
+      featSection.style.backgroundColor = bgs[idx];
+    }
+
+    goTo(0);
+
+    window.addEventListener('scroll', () => {
+      const rect       = featOuter.getBoundingClientRect();
+      const scrollable = featOuter.offsetHeight - window.innerHeight;
+      if (scrollable <= 0) return;
+      const progress = Math.max(0, Math.min(1, -rect.top / scrollable));
+      goTo(Math.min(2, Math.floor(progress * 3)));
+      // Hide scroll hint after first movement
+      if (scrollHint && progress > 0.05) scrollHint.style.opacity = '0';
+    }, { passive: true });
+
+    // Dot / tab clicks: smooth-scroll to the right scroll position
+    function jumpTo(idx: number) {
+      const progress = (idx + 0.1) / 3;
+      const target   = featOuter.offsetTop + progress * (featOuter.offsetHeight - window.innerHeight);
+      window.scrollTo({ top: target, behavior: 'smooth' });
+    }
+
+    dots.forEach((d, i) => d.addEventListener('click', () => jumpTo(i)));
+    tabs.forEach((t, i) => t.addEventListener('click', () => jumpTo(i)));
+  }
 
   // ── Testimonials drag-to-scroll ──────────────────────────────────────────
   const track = document.getElementById('testimonials-track');
