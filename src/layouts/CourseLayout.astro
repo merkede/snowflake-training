@@ -4,6 +4,7 @@ import ProgressTracker from '../components/ProgressTracker';
 import ReadingProgress from '../components/ReadingProgress';
 import ModuleFooter from '../components/ModuleFooter';
 import MobileProgressBar from '../components/MobileProgressBar';
+import QuizSummary from '../components/QuizSummary';
 
 interface Props {
   title: string;
@@ -126,6 +127,9 @@ const nextModule  = currentIdx < allModules.length - 1 ? allModules[currentIdx +
     currentModuleId={moduleId}
     totalModules={allModules.length}
   />
+
+  <!-- Floating quiz score badge (appears after first answered question) -->
+  <QuizSummary client:load />
 </Layout>
 
 <script>

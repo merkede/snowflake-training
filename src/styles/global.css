@@ -532,6 +532,13 @@ a {
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+@keyframes quizCelebrate {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.08); }
+  60%  { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .completion-toast { animation: none; }
 }

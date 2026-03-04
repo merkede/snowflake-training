@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { CheckCircle2, XCircle, ChevronRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { CheckCircle2, XCircle, ChevronRight, RotateCcw } from 'lucide-react';
 
 interface QuizOption {
   label: string;
@@ -17,6 +17,7 @@ interface QuizProps {
 export default function Quiz({ question, options, correct, explanation, category }: QuizProps) {
   const [selected, setSelected] = useState<string | null>(null);
   const [revealed, setRevealed] = useState(false);
+  const [firstAttemptCorrect, setFirstAttemptCorrect] = useState<boolean | null>(null);
 
   const handleSelect = (label: string) => {
     if (revealed) return;
@@ -24,13 +25,24 @@ export default function Quiz({ question, options, correct, explanation, category
   };
 
   const handleSubmit = () => {
-    if (selected) setRevealed(true);
+    if (!selected) return;
+    const correct_ = selected === correct;
+    if (firstAttemptCorrect === null) setFirstAttemptCorrect(correct_);
+    setRevealed(true);
+    window.dispatchEvent(new CustomEvent('quiz:answered', { detail: { correct: correct_ } }));
+  };
+
+  const handleRetry = () => {
+    // Dispatch reset before clearing so summary can decrement
+    window.dispatchEvent(new CustomEvent('quiz:reset', {}));
+    setSelected(null);
+    setRevealed(false);
   };
 
   const isCorrect = selected === correct;
 
   return (
-    <div className="my-8 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+    <div className="my-8 rounded-xl overflow-hidden border border-slate-200 shadow-sm" data-quiz="true">
       {/* Header */}
       <div className="px-6 py-4" style={{ background: 'linear-gradient(135deg, var(--color-snowflake-dark), var(--color-snowflake-navy))' }}>
         <div className="flex items-center justify-between">
@@ -112,11 +124,20 @@ export default function Quiz({ question, options, correct, explanation, category
             Check Answer <ChevronRight className="w-4 h-4" />
           </button>
         ) : (
-          <div className={`p-4 rounded-lg text-sm leading-relaxed ${isCorrect ? 'bg-green-50' : 'bg-amber-50'}`}>
-            <p className="font-bold mb-1" style={{ color: isCorrect ? '#15803d' : '#92400e' }}>
-              {isCorrect ? '✓ Well done!' : `✗ The correct answer was ${correct}`}
-            </p>
-            <p style={{ color: isCorrect ? '#166534' : '#78350f' }}>{explanation}</p>
+          <div>
+            <div className={`p-4 rounded-lg text-sm leading-relaxed mb-3 ${isCorrect ? 'bg-green-50' : 'bg-amber-50'}`}>
+              <p className="font-bold mb-1" style={{ color: isCorrect ? '#15803d' : '#92400e' }}>
+                {isCorrect ? '✓ Well done!' : `✗ The correct answer was ${correct}`}
+              </p>
+              <p style={{ color: isCorrect ? '#166534' : '#78350f' }}>{explanation}</p>
+            </div>
+            {/* Try Again — consequence-free retry */}
+            <button
+              onClick={handleRetry}
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors"
+            >
+              <RotateCcw className="w-3 h-3" /> Try Again
+            </button>
           </div>
         )}
       </div>
