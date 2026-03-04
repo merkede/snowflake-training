@@ -1,29 +1,34 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.hamzahjavaid.snowflaketraining',
+  appId: 'com.hastingsdirect.snowflaketraining',
   appName: 'Snowflake Training',
   webDir: 'dist',
   server: {
-    // Allow navigation within the app
-    allowNavigation: ['*'],
+    androidScheme: 'https',
+  },
+  android: {
+    // Release signing is configured via keystore in your CI/CD pipeline.
+    // Run: npx cap sync android   → syncs web assets to the native project
+    // Run: npx cap open android   → opens Android Studio for Play Store build
+    backgroundColor: '#0f172a',
   },
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
       launchAutoHide: true,
-      backgroundColor: '#0f172a', // slate-900 to match your hero
+      backgroundColor: '#0f172a',
+      androidSplashResourceName: 'splash',
+      androidScaleType: 'CENTER_CROP',
       showSpinner: false,
+      iosSpinnerStyle: 'small',
+      spinnerColor: '#29b5e8',
     },
     StatusBar: {
-      backgroundColor: '#0f172a',
-      style: 'LIGHT', // light text on dark background
+      style: 'DARK',
+      backgroundColor: '#29b5e8',
+      overlaysWebView: false,
     },
-  },
-  android: {
-    // Ensures proper back button behaviour
-    allowMixedContent: false,
-    backgroundColor: '#0f172a',
   },
 };
 

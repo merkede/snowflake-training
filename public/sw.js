@@ -1,18 +1,21 @@
-const CACHE_NAME = 'snowflake-training-v1';
+const CACHE_NAME = 'snowflake-training-v2';
 
-// Cache the app shell and all pages on install
+const APP_SHELL = [
+  '/',
+  '/modules',
+  '/flashcards',
+  '/cheatsheets',
+  '/exam-sim',
+  '/practice',
+  '/certificate',
+  '/about',
+  '/manifest.json',
+];
+
+// Cache the app shell on install
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll([
-        '/',
-        '/modules',
-        '/flashcards',
-        '/cheatsheets',
-        '/about',
-        '/manifest.json',
-      ]);
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
   );
   self.skipWaiting();
 });
@@ -29,31 +32,28 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Network-first strategy: try network, fall back to cache
+// Network-first with cache fallback
 self.addEventListener('fetch', (event) => {
-  // Only handle GET requests
   if (event.request.method !== 'GET') return;
+
+  // Don't cache Pagefind (large, search-specific)
+  if (event.request.url.includes('/pagefind/')) return;
 
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Cache successful responses for offline use
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, clone);
-        });
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
         return response;
       })
-      .catch(() => {
-        // Network failed, try cache
-        return caches.match(event.request).then((cached) => {
+      .catch(() =>
+        caches.match(event.request).then((cached) => {
           if (cached) return cached;
-          // If not in cache either, return a basic offline page
-          if (event.request.mode === 'navigate') {
-            return caches.match('/');
-          }
+          if (event.request.mode === 'navigate') return caches.match('/');
           return new Response('Offline', { status: 503 });
-        });
-      })
+        })
+      )
   );
 });

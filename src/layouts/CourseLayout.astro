@@ -11,60 +11,71 @@ interface Props {
 
 const { title, description, moduleId, domain } = Astro.props;
 
-// COF-C02 Exam Domains Structure
+// COF-C02 Exam Domains Structure — single source of truth for ordering
 const allModules = [
   // Domain 1: Snowflake Data Cloud Features & Architecture (25%)
-  { id: 'intro', title: 'Introduction to Snowflake', slug: 'fundamentals/intro', domain: 'Architecture' },
-  { id: 'architecture', title: 'Snowflake Architecture', slug: 'architecture/overview', domain: 'Architecture' },
-  { id: 'databases-schemas', title: 'Databases, Schemas & Tables', slug: 'architecture/databases', domain: 'Architecture' },
-  { id: 'virtual-warehouses', title: 'Virtual Warehouses', slug: 'architecture/warehouses', domain: 'Architecture' },
-  { id: 'data-storage', title: 'Data Storage & Clustering', slug: 'storage/overview', domain: 'Architecture' },
+  { id: 'intro',            title: 'Introduction to Snowflake',       slug: 'fundamentals/intro',                   domain: 'Architecture' },
+  { id: 'architecture',     title: 'Snowflake Architecture',           slug: 'architecture/overview',                domain: 'Architecture' },
+  { id: 'databases-schemas',title: 'Databases, Schemas & Tables',      slug: 'architecture/databases',               domain: 'Architecture' },
+  { id: 'virtual-warehouses',title: 'Virtual Warehouses',              slug: 'architecture/warehouses',              domain: 'Architecture' },
+  { id: 'data-storage',     title: 'Data Storage & Clustering',        slug: 'storage/overview',                     domain: 'Architecture' },
 
   // Domain 2: Account Access & Security (20%)
-  { id: 'user-management', title: 'User & Role Management', slug: 'security/users-roles', domain: 'Security' },
-  { id: 'rbac', title: 'Role-Based Access Control', slug: 'security/rbac', domain: 'Security' },
-  { id: 'network-security', title: 'Network Policies & Security', slug: 'security/network', domain: 'Security' },
-  { id: 'authentication', title: 'Authentication & SSO', slug: 'security/authentication', domain: 'Security' },
+  { id: 'user-management',  title: 'User & Role Management',           slug: 'security/users-roles',                 domain: 'Security' },
+  { id: 'rbac',             title: 'Role-Based Access Control',        slug: 'security/rbac',                        domain: 'Security' },
+  { id: 'network-security', title: 'Network Policies & Security',      slug: 'security/network',                     domain: 'Security' },
+  { id: 'authentication',   title: 'Authentication & SSO',             slug: 'security/authentication',              domain: 'Security' },
 
   // Domain 3: Performance Concepts (15%)
-  { id: 'query-optimization', title: 'Query Performance & Optimization', slug: 'performance/queries', domain: 'Performance' },
-  { id: 'caching', title: 'Caching Mechanisms', slug: 'performance/caching', domain: 'Performance' },
-  { id: 'clustering-keys', title: 'Clustering Keys', slug: 'performance/clustering', domain: 'Performance' },
-  { id: 'search-optimization', title: 'Search Optimization Service', slug: 'performance/search', domain: 'Performance' },
+  { id: 'query-optimization',title: 'Query Performance & Optimisation', slug: 'performance/queries',                 domain: 'Performance' },
+  { id: 'caching',          title: 'Caching Mechanisms',               slug: 'performance/caching',                  domain: 'Performance' },
+  { id: 'clustering-keys',  title: 'Clustering Keys',                  slug: 'performance/clustering',               domain: 'Performance' },
+  { id: 'search-optimization',title:'Search Optimisation Service',     slug: 'performance/search',                   domain: 'Performance' },
 
   // Domain 4: Data Loading & Unloading (15%)
-  { id: 'bulk-loading', title: 'Bulk Data Loading', slug: 'data-loading/bulk', domain: 'Data Loading' },
-  { id: 'snowpipe', title: 'Snowpipe & Continuous Loading', slug: 'data-loading/snowpipe', domain: 'Data Loading' },
-  { id: 'external-stages', title: 'Stages & File Formats', slug: 'data-loading/stages', domain: 'Data Loading' },
-  { id: 'unloading', title: 'Data Unloading', slug: 'data-loading/unloading', domain: 'Data Loading' },
+  { id: 'bulk-loading',     title: 'Bulk Data Loading',                slug: 'data-loading/bulk',                    domain: 'Data Loading' },
+  { id: 'snowpipe',         title: 'Snowpipe & Continuous Loading',    slug: 'data-loading/snowpipe',                domain: 'Data Loading' },
+  { id: 'external-stages',  title: 'Stages & File Formats',            slug: 'data-loading/stages',                  domain: 'Data Loading' },
+  { id: 'unloading',        title: 'Data Unloading',                   slug: 'data-loading/unloading',               domain: 'Data Loading' },
 
   // Domain 5: Data Transformations (15%)
-  { id: 'sql-basics', title: 'Snowflake SQL Essentials', slug: 'data-transformations/sql-basics', domain: 'Transformations' },
-  { id: 'functions', title: 'Functions & Procedures', slug: 'data-transformations/functions', domain: 'Transformations' },
-  { id: 'streams-tasks', title: 'Streams & Tasks', slug: 'data-transformations/streams-tasks', domain: 'Transformations' },
+  { id: 'sql-basics',       title: 'Snowflake SQL Essentials',         slug: 'data-transformations/sql-basics',      domain: 'Transformations' },
+  { id: 'functions',        title: 'Functions & Procedures',           slug: 'data-transformations/functions',       domain: 'Transformations' },
+  { id: 'streams-tasks',    title: 'Streams & Tasks',                  slug: 'data-transformations/streams-tasks',   domain: 'Transformations' },
 
   // Domain 6: Data Protection & Sharing (10%)
-  { id: 'time-travel', title: 'Time Travel & Fail-safe', slug: 'data-protection/time-travel', domain: 'Data Protection' },
-  { id: 'cloning', title: 'Zero-Copy Cloning', slug: 'data-protection/cloning', domain: 'Data Protection' },
-  { id: 'data-sharing', title: 'Secure Data Sharing', slug: 'data-protection/sharing', domain: 'Data Protection' },
+  { id: 'time-travel',      title: 'Time Travel & Fail-safe',          slug: 'data-protection/time-travel',          domain: 'Data Protection' },
+  { id: 'cloning',          title: 'Zero-Copy Cloning',                slug: 'data-protection/cloning',              domain: 'Data Protection' },
+  { id: 'data-sharing',     title: 'Secure Data Sharing',              slug: 'data-protection/sharing',              domain: 'Data Protection' },
 ];
+
+const currentIdx  = allModules.findIndex(m => m.id === moduleId);
+const prevModule  = currentIdx > 0                    ? allModules[currentIdx - 1] : null;
+const nextModule  = currentIdx < allModules.length - 1 ? allModules[currentIdx + 1] : null;
 ---
 
 <Layout title={title} description={description}>
   <div class="bg-gradient-to-b from-slate-50 to-white py-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <!-- Breadcrumb -->
-      <nav class="mb-6 text-sm">
-        <a href="/" class="text-slate-500 hover:text-primary no-underline">Home</a>
-        <span class="mx-2 text-slate-400">/</span>
-        <a href="/modules" class="text-slate-500 hover:text-primary no-underline">Modules</a>
-        <span class="mx-2 text-slate-400">/</span>
-        <span class="text-slate-700 font-medium">{domain}</span>
+      <nav class="mb-6 text-sm" aria-label="Breadcrumb">
+        <ol class="flex items-center gap-0" style="list-style: none; padding: 0; margin: 0;">
+          <li><a href="/" class="text-slate-500 hover:text-primary no-underline">Home</a></li>
+          <li aria-hidden="true"><span class="mx-2 text-slate-400">/</span></li>
+          <li><a href="/modules" class="text-slate-500 hover:text-primary no-underline">Modules</a></li>
+          <li aria-hidden="true"><span class="mx-2 text-slate-400">/</span></li>
+          <li><span class="text-slate-700 font-medium" aria-current="page">{domain}</span></li>
+        </ol>
       </nav>
 
-      <!-- Domain Badge -->
-      <div class="mb-4">
+      <!-- Domain Badge + module counter -->
+      <div class="flex items-center gap-3 mb-4">
         <span class="exam-badge">{domain}</span>
+        {currentIdx >= 0 && (
+          <span class="text-xs text-slate-400 font-medium">
+            Module {currentIdx + 1} of {allModules.length}
+          </span>
+        )}
       </div>
 
       <!-- Page Title -->
@@ -78,13 +89,68 @@ const allModules = [
       <!-- Main Content -->
       <article class="prose prose-slate max-w-none">
         <slot />
+
+        <!-- ── Prev / Next navigation ──────────────────────────────── -->
+        <nav
+          class="not-prose mt-16 pt-8 border-t border-slate-200 grid sm:grid-cols-2 gap-4"
+          aria-label="Module navigation"
+        >
+          {prevModule ? (
+            <a
+              href={`/${prevModule.slug}`}
+              class="group flex items-center gap-3 p-4 rounded-xl border border-slate-200 hover:border-primary hover:bg-slate-50 no-underline transition-all"
+              rel="prev"
+            >
+              <svg class="w-5 h-5 text-slate-400 group-hover:text-primary flex-shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
+              <div class="min-w-0">
+                <div class="text-xs text-slate-400 font-medium mb-0.5">Previous</div>
+                <div class="text-sm font-semibold text-slate-700 group-hover:text-primary transition-colors truncate">{prevModule.title}</div>
+                <div class="text-xs text-slate-400">{prevModule.domain}</div>
+              </div>
+            </a>
+          ) : (
+            <div />
+          )}
+
+          {nextModule ? (
+            <a
+              href={`/${nextModule.slug}`}
+              class="group flex items-center gap-3 p-4 rounded-xl border border-slate-200 hover:border-primary hover:bg-slate-50 no-underline transition-all text-right sm:flex-row-reverse"
+              rel="next"
+            >
+              <svg class="w-5 h-5 text-slate-400 group-hover:text-primary flex-shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+              <div class="min-w-0">
+                <div class="text-xs text-slate-400 font-medium mb-0.5">Next</div>
+                <div class="text-sm font-semibold text-slate-700 group-hover:text-primary transition-colors truncate">{nextModule.title}</div>
+                <div class="text-xs text-slate-400">{nextModule.domain}</div>
+              </div>
+            </a>
+          ) : (
+            <a
+              href="/exam-sim"
+              class="group flex items-center gap-3 p-4 rounded-xl border-2 hover:shadow-md no-underline transition-all text-right sm:flex-row-reverse"
+              style="border-color: #22c55e; background: #f0fdf4;"
+            >
+              <svg class="w-5 h-5 flex-shrink-0" style="color: #22c55e;" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div class="min-w-0">
+                <div class="text-xs font-medium mb-0.5" style="color: #166534;">All modules complete!</div>
+                <div class="text-sm font-semibold" style="color: #166534;">Take the Mock Exam →</div>
+              </div>
+            </a>
+          )}
+        </nav>
       </article>
 
       <!-- Sidebar with Progress Tracker -->
-      <aside class="hidden lg:block">
+      <aside class="hidden lg:block" aria-label="Progress tracker">
         <ProgressTracker client:load modules={allModules} currentModuleId={moduleId} />
       </aside>
     </div>
   </div>
 </Layout>
-

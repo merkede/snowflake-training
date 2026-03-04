@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle2, XCircle, Lightbulb, ChevronRight, RotateCcw } from 'lucide-react';
+import { ErrorBoundary } from './ErrorBoundary';
 
 interface Exercise {
   id: string;
@@ -323,7 +324,7 @@ const TOPICS = ['All', ...Array.from(new Set(exercises.map(e => e.topic)))];
 const DIFFS = ['All', 'easy', 'medium', 'hard'] as const;
 const STORAGE_KEY = 'snowflake-practice-progress';
 
-export default function SQLPractice() {
+function SQLPracticeInner() {
   const [filterTopic, setFilterTopic] = useState('All');
   const [filterDiff, setFilterDiff] = useState<string>('All');
   const [userCode, setUserCode] = useState<Record<string, string>>({});
@@ -569,5 +570,13 @@ export default function SQLPractice() {
         })}
       </div>
     </div>
+  );
+}
+
+export default function SQLPractice() {
+  return (
+    <ErrorBoundary>
+      <SQLPracticeInner />
+    </ErrorBoundary>
   );
 }

@@ -1,0 +1,248 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const domains = [
+  { num: 1, name: 'Architecture & Features',    weight: '25%' },
+  { num: 2, name: 'Account Access & Security',  weight: '20%' },
+  { num: 3, name: 'Performance Concepts',        weight: '15%' },
+  { num: 4, name: 'Data Loading & Unloading',   weight: '15%' },
+  { num: 5, name: 'Data Transformations',        weight: '15%' },
+  { num: 6, name: 'Data Protection & Sharing',  weight: '10%' },
+];
+
+const stats = [
+  { value: '23',  label: 'Modules Completed' },
+  { value: '100', label: 'Questions Answered' },
+  { value: '6',   label: 'Domains Covered' },
+];
+---
+
+<Layout
+  title="Certificate of Completion — Snowflake Training"
+  description="Your SnowPro Core COF-C02 study completion certificate from the Hastings Direct internal training programme."
+>
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 print:py-0 print:px-0 print:max-w-none">
+
+    <!-- Controls — hidden when printing -->
+    <div class="flex items-center justify-between mb-8 print:hidden flex-wrap gap-4">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest mb-1" style="color: var(--color-snowflake-blue);">Completion Certificate</p>
+        <h1 class="mb-0">Your Certificate</h1>
+      </div>
+      <div class="flex gap-3 flex-wrap">
+        <button
+          onclick="window.print()"
+          class="btn-primary px-6 py-3 text-sm font-semibold"
+        >
+          Print / Save PDF
+        </button>
+        <a href="/exam-sim" class="btn-secondary px-6 py-3 text-sm font-semibold no-underline inline-block">
+          Back to Exam
+        </a>
+      </div>
+    </div>
+
+    <!-- Tip banner -->
+    <div class="card mb-8 p-4 print:hidden" style="background: var(--color-snowflake-light); border-color: var(--color-snowflake-blue);">
+      <p class="text-sm" style="color: var(--color-snowflake-dark);">
+        <strong>How to use:</strong> Fill in your name and score below, then click <strong>Print / Save PDF</strong>.
+        Choose <em>Save as PDF</em> in the print dialog to get a digital copy.
+      </p>
+    </div>
+
+    <!-- ── Certificate ──────────────────────────────────────────────────── -->
+    <div
+      id="certificate"
+      class="relative bg-white rounded-2xl overflow-hidden print:rounded-none"
+      style="border: 3px solid var(--color-snowflake-blue); box-shadow: 0 20px 60px rgba(41,181,232,0.15);"
+    >
+      <!-- Top bar -->
+      <div style="height: 8px; background: linear-gradient(90deg, var(--color-snowflake-dark), var(--color-snowflake-blue), var(--color-snowflake-sky));"></div>
+
+      <div class="p-10 sm:p-16">
+
+        <!-- Header row -->
+        <div class="flex items-center justify-between mb-12 flex-wrap gap-4">
+          <div class="flex items-center gap-4">
+            <div class="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
+              <svg class="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
+            </div>
+            <div>
+              <div class="font-bold text-lg" style="color: var(--color-snowflake-dark);">Snowflake Training Hub</div>
+              <div class="text-sm" style="color: var(--color-snowflake-blue);">Hastings Direct · Internal Programme</div>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-xs font-semibold uppercase tracking-widest" style="color: var(--color-snowflake-blue);">SnowPro Core</div>
+            <div class="text-xs text-slate-400">COF-C02 Preparation</div>
+          </div>
+        </div>
+
+        <!-- Main block -->
+        <div class="text-center mb-12">
+          <p class="text-sm font-semibold uppercase tracking-widest mb-4 text-slate-400">This is to certify that</p>
+
+          <!-- Name input -->
+          <div class="mb-6">
+            <input
+              id="cert-name"
+              type="text"
+              placeholder="Your Full Name"
+              autocomplete="name"
+              class="text-4xl sm:text-5xl font-black text-center w-full bg-transparent outline-none"
+              style="color: var(--color-snowflake-dark); border: none; border-bottom: 2px dashed var(--color-snowflake-blue); padding: 0.5rem 1rem; font-family: var(--font-sans);"
+              aria-label="Enter your full name"
+            />
+          </div>
+
+          <p class="text-base mb-6 text-slate-500">has successfully completed the</p>
+
+          <div class="inline-block px-8 py-5 rounded-2xl mb-6" style="background: linear-gradient(135deg, var(--color-snowflake-dark), var(--color-snowflake-navy));">
+            <div class="text-white font-black text-xl sm:text-2xl">Snowflake SnowPro Core Certification</div>
+            <div class="text-sm mt-1" style="color: var(--color-snowflake-sky);">Preparation Programme · COF-C02 Blueprint</div>
+          </div>
+
+          <p class="text-sm text-slate-500 mb-10 max-w-xl mx-auto">
+            covering all six exam domains with interactive modules, spaced repetition flashcards,
+            SQL practice exercises, and a full 100-question timed mock examination.
+          </p>
+
+          <!-- Score + Date inputs -->
+          <div class="flex flex-wrap justify-center gap-6 mb-10">
+            <div class="text-center px-6 py-4 rounded-xl" style="background: var(--color-snowflake-light);">
+              <label class="block text-xs font-bold uppercase tracking-widest mb-2" style="color: var(--color-snowflake-blue);" for="cert-score">
+                Mock Exam Score
+              </label>
+              <input
+                id="cert-score"
+                type="text"
+                placeholder="e.g. 88%"
+                class="text-2xl font-black text-center bg-transparent outline-none w-28"
+                style="color: var(--color-snowflake-dark); border: none; border-bottom: 2px dashed var(--color-snowflake-blue);"
+                aria-label="Enter your exam score"
+              />
+            </div>
+            <div class="text-center px-6 py-4 rounded-xl" style="background: var(--color-snowflake-light);">
+              <label class="block text-xs font-bold uppercase tracking-widest mb-2" style="color: var(--color-snowflake-blue);" for="cert-date">
+                Date Achieved
+              </label>
+              <input
+                id="cert-date"
+                type="text"
+                class="text-2xl font-black text-center bg-transparent outline-none w-44"
+                style="color: var(--color-snowflake-dark); border: none; border-bottom: 2px dashed var(--color-snowflake-blue);"
+                aria-label="Date achieved"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats row -->
+        <div class="grid grid-cols-3 gap-4 mb-12">
+          {stats.map(s => (
+            <div class="text-center p-4 rounded-xl" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+              <div class="text-3xl font-black" style="color: var(--color-snowflake-blue);">{s.value}</div>
+              <div class="text-xs font-medium mt-1 text-slate-500">{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        <!-- Domains covered -->
+        <div class="mb-12 grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {domains.map(d => (
+            <div class="flex items-center gap-2 text-sm text-slate-600 py-1">
+              <span class="w-2 h-2 rounded-full flex-shrink-0" style="background: var(--color-snowflake-blue);"></span>
+              <span class="truncate">{d.name}</span>
+              <span class="text-xs text-slate-400 flex-shrink-0">{d.weight}</span>
+            </div>
+          ))}
+        </div>
+
+        <!-- Signature row -->
+        <div class="flex flex-wrap justify-between items-end gap-8 pt-8" style="border-top: 1px solid #e2e8f0;">
+          <div>
+            <div class="text-lg font-bold mb-1" style="color: var(--color-snowflake-dark); font-family: Georgia, serif; font-style: italic;">Hamzah Javaid</div>
+            <div class="text-xs text-slate-400">Programme Author · Hastings Direct</div>
+          </div>
+          <!-- Gold seal -->
+          <div class="flex items-center gap-3">
+            <div
+              class="w-20 h-20 rounded-full flex items-center justify-center flex-shrink-0"
+              style="background: linear-gradient(135deg, #f59e0b, #fbbf24); border: 3px solid #d97706;"
+              aria-hidden="true"
+            >
+              <div class="text-center leading-none">
+                <div class="text-white font-black text-xs">SNOW</div>
+                <div class="text-white text-2xl my-0.5">❄</div>
+                <div class="text-white font-black text-xs">FLAKE</div>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="font-semibold text-sm text-slate-500">Authorised by</div>
+              <div class="font-bold" style="color: var(--color-snowflake-dark);">Snowflake Training Hub</div>
+              <div class="text-xs text-slate-400">Internal Certification Programme</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom bar -->
+      <div style="height: 6px; background: linear-gradient(90deg, var(--color-snowflake-sky), var(--color-snowflake-blue), var(--color-snowflake-dark));"></div>
+    </div>
+  </div>
+</Layout>
+
+<script is:inline>
+  (function() {
+    // Auto-fill today's date
+    var dateEl = document.getElementById('cert-date');
+    if (dateEl) {
+      dateEl.value = new Date().toLocaleDateString('en-GB', {
+        day: 'numeric', month: 'long', year: 'numeric'
+      });
+    }
+
+    // Auto-fill latest exam score from localStorage history
+    try {
+      var history = JSON.parse(localStorage.getItem('snowflake-exam-history') || '[]');
+      if (history.length > 0) {
+        var scoreEl = document.getElementById('cert-score');
+        if (scoreEl) scoreEl.value = history[0].pct + '%';
+      }
+    } catch(e) {}
+
+    // Persist name across sessions
+    var nameEl = document.getElementById('cert-name');
+    if (nameEl) {
+      var savedName = '';
+      try { savedName = localStorage.getItem('sf-cert-name') || ''; } catch(e) {}
+      if (savedName) nameEl.value = savedName;
+      nameEl.addEventListener('input', function() {
+        try { localStorage.setItem('sf-cert-name', nameEl.value); } catch(e) {}
+      });
+    }
+  })();
+</script>
+
+<style>
+  @media print {
+    #certificate {
+      border: 2px solid #29b5e8 !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    input {
+      border-style: solid !important;
+      border-width: 0 0 1px 0 !important;
+    }
+
+    input::placeholder {
+      color: #cbd5e1 !important;
+    }
+  }
+</style>

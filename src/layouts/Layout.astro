@@ -42,17 +42,36 @@ const { title, description = 'Master Snowflake with comprehensive training for t
     <!-- Pagefind search UI (available after npm run build) -->
     <link href="/pagefind/pagefind-ui.css" rel="stylesheet" />
 
+    <!-- Apply saved theme before render to prevent flash -->
+    <script is:inline>
+      (function() {
+        try {
+          var t = localStorage.getItem('sf-theme');
+          if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        } catch(e) {}
+      })();
+    </script>
+
     <title>{title}</title>
   </head>
   <body>
+    <!-- Skip to main content (accessibility) -->
+    <a
+      href="#main-content"
+      class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[300] focus:px-4 focus:py-2 focus:rounded-lg focus:font-semibold focus:text-white"
+      style="background: var(--color-snowflake-blue);"
+    >
+      Skip to main content
+    </a>
+
     <!-- Header -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-      <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm" role="banner">
+      <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Main navigation">
         <div class="flex justify-between items-center h-16">
           <!-- Logo -->
-          <a href="/" class="flex items-center gap-3 hover:opacity-80 transition-opacity no-underline">
-            <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
-              <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <a href="/" class="flex items-center gap-3 hover:opacity-80 transition-opacity no-underline" aria-label="Snowflake Training — Home">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
+              <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
               </svg>
             </div>
@@ -70,12 +89,32 @@ const { title, description = 'Master Snowflake with comprehensive training for t
             <a href="/cheatsheets" class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">Cheat Sheets</a>
             <a href="/exam-sim" class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">Mock Exam</a>
             <a href="/practice" class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">SQL Practice</a>
+
+            <!-- Dark mode toggle -->
+            <button
+              id="theme-toggle"
+              class="ml-1 p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-all"
+              aria-label="Toggle dark mode"
+              title="Toggle dark mode"
+            >
+              <!-- Sun icon (shown in dark mode) -->
+              <svg id="theme-sun" class="w-5 h-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m8.66-9h-1M4.34 12h-1m15.07-6.07l-.71.71M6.34 17.66l-.71.71m12.73 0l-.71-.71M6.34 6.34l-.71-.71M12 5a7 7 0 100 14A7 7 0 0012 5z" />
+              </svg>
+              <!-- Moon icon (shown in light mode) -->
+              <svg id="theme-moon" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+              </svg>
+            </button>
+
+            <!-- Search -->
             <button
               id="search-button"
-              class="ml-2 flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-slate-500 hover:border-primary hover:text-primary transition-all text-sm"
-              aria-label="Search"
+              class="ml-1 flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-slate-500 hover:border-primary hover:text-primary transition-all text-sm"
+              aria-label="Search (Ctrl+K)"
+              aria-haspopup="dialog"
             >
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <span class="hidden lg:inline">Search</span>
@@ -83,18 +122,32 @@ const { title, description = 'Master Snowflake with comprehensive training for t
             </button>
           </div>
 
-          <!-- Mobile: search icon + hamburger -->
+          <!-- Mobile: theme + search + hamburger -->
           <div class="flex md:hidden items-center gap-1">
+            <button id="mobile-theme-toggle" class="p-2 rounded-lg text-slate-600 hover:bg-slate-100" aria-label="Toggle dark mode">
+              <svg id="mobile-theme-sun" class="w-5 h-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m8.66-9h-1M4.34 12h-1m15.07-6.07l-.71.71M6.34 17.66l-.71.71m12.73 0l-.71-.71M6.34 6.34l-.71-.71M12 5a7 7 0 100 14A7 7 0 0012 5z" />
+              </svg>
+              <svg id="mobile-theme-moon" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+              </svg>
+            </button>
             <button id="mobile-search-btn" class="p-2 rounded-lg text-slate-600 hover:bg-slate-100" aria-label="Search">
-              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </button>
-            <button id="mobile-menu-btn" class="p-2 rounded-lg text-slate-600 hover:bg-slate-100" aria-label="Open menu">
-              <svg id="hamburger-icon" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <button
+              id="mobile-menu-btn"
+              class="p-2 rounded-lg text-slate-600 hover:bg-slate-100"
+              aria-label="Open menu"
+              aria-expanded="false"
+              aria-controls="mobile-menu"
+            >
+              <svg id="hamburger-icon" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
-              <svg id="close-icon" class="w-6 h-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg id="close-icon" class="w-6 h-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -103,7 +156,7 @@ const { title, description = 'Master Snowflake with comprehensive training for t
       </nav>
 
       <!-- Mobile menu dropdown -->
-      <div id="mobile-menu" class="hidden md:hidden border-t border-slate-100 bg-white shadow-lg">
+      <div id="mobile-menu" class="hidden md:hidden border-t border-slate-100 bg-white shadow-lg" role="navigation" aria-label="Mobile navigation">
         <nav class="max-w-7xl mx-auto px-4 py-3 space-y-1">
           <a href="/" class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">Home</a>
           <a href="/about" class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">About</a>
@@ -112,18 +165,25 @@ const { title, description = 'Master Snowflake with comprehensive training for t
           <a href="/cheatsheets" class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">Cheat Sheets</a>
           <a href="/exam-sim" class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">Mock Exam</a>
           <a href="/practice" class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">SQL Practice</a>
+          <a href="/certificate" class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">🏆 Certificate</a>
         </nav>
       </div>
     </header>
 
     <!-- Search Modal Overlay -->
-    <div id="search-modal" class="hidden fixed inset-0 z-[200] flex items-start justify-center pt-16 px-4">
+    <div
+      id="search-modal"
+      class="hidden fixed inset-0 z-[200] flex items-start justify-center pt-16 px-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Search"
+    >
       <div id="search-backdrop" class="absolute inset-0" style="background: rgba(15,23,42,0.6); backdrop-filter: blur(4px);"></div>
       <div class="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden" style="max-height: 80vh; display: flex; flex-direction: column;">
         <div class="p-4 overflow-y-auto flex-1">
-          <div id="pagefind-search"></div>
+          <div id="pagefind-search" role="search"></div>
           <div id="search-fallback" class="hidden py-10 text-center">
-            <svg class="w-10 h-10 mx-auto mb-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg class="w-10 h-10 mx-auto mb-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <p class="text-sm text-slate-500">Search is available in the production build.</p>
@@ -142,18 +202,18 @@ const { title, description = 'Master Snowflake with comprehensive training for t
     </div>
 
     <!-- Main Content -->
-    <main>
+    <main id="main-content" tabindex="-1">
       <slot />
     </main>
 
     <!-- Footer -->
-    <footer class="bg-slate-900 text-slate-300 mt-24">
+    <footer class="bg-slate-900 text-slate-300 mt-24" role="contentinfo">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div class="grid md:grid-cols-4 gap-8">
           <div class="md:col-span-2">
             <div class="flex items-center gap-3 mb-4">
-              <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
-                <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
+                <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                 </svg>
               </div>
@@ -169,25 +229,26 @@ const { title, description = 'Master Snowflake with comprehensive training for t
 
           <div>
             <h4 class="font-semibold text-white mb-4">Resources</h4>
-            <ul class="space-y-2 text-sm">
+            <ul class="space-y-2 text-sm" role="list">
               <li><a href="/modules" class="hover:text-primary transition-colors">All Modules</a></li>
               <li><a href="/flashcards" class="hover:text-primary transition-colors">Flashcards</a></li>
               <li><a href="/cheatsheets" class="hover:text-primary transition-colors">Cheat Sheets</a></li>
               <li><a href="/exam-sim" class="hover:text-primary transition-colors">Mock Exam</a></li>
               <li><a href="/practice" class="hover:text-primary transition-colors">SQL Practice</a></li>
+              <li><a href="/certificate" class="hover:text-primary transition-colors">Certificate</a></li>
               <li><a href="/about" class="hover:text-primary transition-colors">About</a></li>
             </ul>
           </div>
 
           <div>
             <h4 class="font-semibold text-white mb-4">Exam Domains</h4>
-            <ul class="space-y-2 text-sm">
-              <li><a href="/architecture" class="hover:text-primary transition-colors">Architecture</a></li>
-              <li><a href="/security" class="hover:text-primary transition-colors">Security</a></li>
-              <li><a href="/performance" class="hover:text-primary transition-colors">Performance</a></li>
-              <li><a href="/data-loading" class="hover:text-primary transition-colors">Data Loading</a></li>
-              <li><a href="/data-transformations" class="hover:text-primary transition-colors">Transformations</a></li>
-              <li><a href="/data-protection" class="hover:text-primary transition-colors">Data Protection</a></li>
+            <ul class="space-y-2 text-sm" role="list">
+              <li><a href="/architecture/overview" class="hover:text-primary transition-colors">Architecture</a></li>
+              <li><a href="/security/users-roles" class="hover:text-primary transition-colors">Security</a></li>
+              <li><a href="/performance/queries" class="hover:text-primary transition-colors">Performance</a></li>
+              <li><a href="/data-loading/bulk" class="hover:text-primary transition-colors">Data Loading</a></li>
+              <li><a href="/data-transformations/sql-basics" class="hover:text-primary transition-colors">Transformations</a></li>
+              <li><a href="/data-protection/time-travel" class="hover:text-primary transition-colors">Data Protection</a></li>
             </ul>
           </div>
         </div>
@@ -207,6 +268,43 @@ const { title, description = 'Master Snowflake with comprehensive training for t
       }
     </script>
 
+    <!-- Dark mode toggle -->
+    <script is:inline>
+      (function() {
+        function isDark() {
+          return document.documentElement.getAttribute('data-theme') === 'dark';
+        }
+
+        function setTheme(dark) {
+          if (dark) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            localStorage.setItem('sf-theme', 'dark');
+          } else {
+            document.documentElement.removeAttribute('data-theme');
+            localStorage.setItem('sf-theme', 'light');
+          }
+          // Update all toggle icons
+          ['theme-sun','mobile-theme-sun'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.classList.toggle('hidden', !dark);
+          });
+          ['theme-moon','mobile-theme-moon'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.classList.toggle('hidden', dark);
+          });
+        }
+
+        // Set initial icon state
+        setTheme(isDark());
+
+        // Wire buttons
+        ['theme-toggle','mobile-theme-toggle'].forEach(function(id) {
+          var btn = document.getElementById(id);
+          if (btn) btn.addEventListener('click', function() { setTheme(!isDark()); });
+        });
+      })();
+    </script>
+
     <!-- Mobile menu -->
     <script is:inline>
       (function() {
@@ -214,11 +312,35 @@ const { title, description = 'Master Snowflake with comprehensive training for t
         var menu = document.getElementById('mobile-menu');
         var ham = document.getElementById('hamburger-icon');
         var cls = document.getElementById('close-icon');
-        if (!btn) return;
+        if (!btn || !menu) return;
+
         btn.addEventListener('click', function() {
-          var open = menu.classList.toggle('hidden');
-          ham.classList.toggle('hidden', !open);
-          cls.classList.toggle('hidden', open);
+          var isOpen = !menu.classList.contains('hidden');
+          menu.classList.toggle('hidden', isOpen);
+          ham.classList.toggle('hidden', !isOpen);
+          cls.classList.toggle('hidden', isOpen);
+          btn.setAttribute('aria-expanded', String(!isOpen));
+        });
+
+        // Close on Escape
+        document.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape' && !menu.classList.contains('hidden')) {
+            menu.classList.add('hidden');
+            ham.classList.remove('hidden');
+            cls.classList.add('hidden');
+            btn.setAttribute('aria-expanded', 'false');
+            btn.focus();
+          }
+        });
+
+        // Close when a nav link is tapped (important on mobile SPA-style navigation)
+        menu.querySelectorAll('a').forEach(function(link) {
+          link.addEventListener('click', function() {
+            menu.classList.add('hidden');
+            ham.classList.remove('hidden');
+            cls.classList.add('hidden');
+            btn.setAttribute('aria-expanded', 'false');
+          });
         });
       })();
     </script>
@@ -236,9 +358,10 @@ const { title, description = 'Master Snowflake with comprehensive training for t
         var fallback = document.getElementById('search-fallback');
         var initialized = false;
 
-        function open() {
+        function openSearch() {
           modal.classList.remove('hidden');
           document.body.style.overflow = 'hidden';
+          modal.setAttribute('aria-hidden', 'false');
           if (!initialized) {
             initialized = true;
             if (typeof window.PagefindUI !== 'undefined') {
@@ -254,22 +377,24 @@ const { title, description = 'Master Snowflake with comprehensive training for t
           }, 80);
         }
 
-        function close() {
+        function closeSearch() {
           modal.classList.add('hidden');
           document.body.style.overflow = '';
+          modal.setAttribute('aria-hidden', 'true');
         }
 
-        if (searchBtn) searchBtn.addEventListener('click', open);
+        modal.setAttribute('aria-hidden', 'true');
+        if (searchBtn) searchBtn.addEventListener('click', openSearch);
         if (mobileSearchBtn) mobileSearchBtn.addEventListener('click', function() {
           if (mobileMenu) mobileMenu.classList.add('hidden');
-          open();
+          openSearch();
         });
-        if (backdrop) backdrop.addEventListener('click', close);
-        if (closeBtn) closeBtn.addEventListener('click', close);
+        if (backdrop) backdrop.addEventListener('click', closeSearch);
+        if (closeBtn) closeBtn.addEventListener('click', closeSearch);
 
         document.addEventListener('keydown', function(e) {
-          if (e.key === 'Escape') close();
-          if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); open(); }
+          if (e.key === 'Escape') closeSearch();
+          if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openSearch(); }
         });
       })();
     </script>
