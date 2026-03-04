@@ -1,5 +1,7 @@
 ---
 import '../styles/global.css';
+import OnboardingModal from '../components/OnboardingModal';
+import ExamCountdown from '../components/ExamCountdown';
 
 interface Props {
   title: string;
@@ -169,6 +171,9 @@ const { title, description = 'Master Snowflake with comprehensive training for t
         </nav>
       </div>
     </header>
+
+    <!-- Exam countdown banner (shows if user set exam date during onboarding) -->
+    <ExamCountdown client:load />
 
     <!-- Search Modal Overlay -->
     <div
@@ -408,5 +413,8 @@ const { title, description = 'Master Snowflake with comprehensive training for t
         document.head.appendChild(s);
       })();
     </script>
+
+    <!-- First-visit onboarding modal -->
+    <OnboardingModal client:load />
   </body>
 </html>
