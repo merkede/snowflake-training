@@ -270,6 +270,25 @@ function ExamSimulatorInner() {
   const weakCount = Object.values(weakMap).filter(v => v.w > v.c).length;
   const bookmarkCount = bookmarks.size;
 
+  // ── Loading skeleton ───────────────────────────────────────────────────────
+  if (!isClient) {
+    return (
+      <div className="max-w-2xl mx-auto" aria-busy="true" aria-label="Loading exam simulator">
+        {/* Tab bar */}
+        <div className="flex gap-2 mb-6">
+          <div className="skeleton h-10 w-28 rounded-lg" />
+          <div className="skeleton h-10 w-24 rounded-lg" />
+        </div>
+        {/* Mode cards */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          {[0,1,2,3].map(i => <div key={i} className="skeleton h-28 rounded-xl" />)}
+        </div>
+        {/* Start button */}
+        <div className="skeleton h-14 w-full rounded-xl" />
+      </div>
+    );
+  }
+
   // ── SETUP ─────────────────────────────────────────────────────────────────
   if (mode === 'setup') {
     const savedInfo = hasSaved ? ls<AutoSave | null>(KEYS.autosave, null) : null;

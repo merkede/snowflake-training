@@ -198,8 +198,30 @@ function FlashcardsAppInner() {
 
   if (!isClient) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-slate-400 text-sm">Loading your progress…</div>
+      <div className="max-w-3xl mx-auto" aria-busy="true" aria-label="Loading flashcards">
+        {/* Domain filter pills */}
+        <div className="flex flex-wrap gap-2 mb-8">
+          {[80, 64, 72, 88, 96, 64, 80].map((w, i) => (
+            <div key={i} className="skeleton h-9 rounded-full" style={{ width: `${w}px` }} />
+          ))}
+        </div>
+        {/* Stat cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {[0,1,2,3].map(i => (
+            <div key={i} className="card p-4 text-center">
+              <div className="skeleton h-8 w-10 mx-auto mb-2 rounded" />
+              <div className="skeleton h-3 w-14 mx-auto rounded" />
+            </div>
+          ))}
+        </div>
+        {/* Card list */}
+        <div className="space-y-2 mb-6">
+          {[0,1,2,3,4].map(i => (
+            <div key={i} className="skeleton h-11 w-full" />
+          ))}
+        </div>
+        {/* Start button */}
+        <div className="skeleton h-14 w-full rounded-xl mb-6" />
       </div>
     );
   }
