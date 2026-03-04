@@ -54,6 +54,7 @@ function initCard(id: string): CardSR {
 function FlashcardsAppInner() {
   const [cardStates, setCardStates] = useState<Record<string, CardSR>>({});
   const [domain, setDomain] = useState<string>('All');
+  const [search, setSearch] = useState('');
   const [screen, setScreen] = useState<'hub' | 'study' | 'done'>('hub');
   const [queue, setQueue] = useState<FlashcardData[]>([]);
   const [queueIdx, setQueueIdx] = useState(0);
@@ -121,12 +122,34 @@ function FlashcardsAppInner() {
   }, [screen, flipped, flipCard, handleRating]);
 
   // ── Derived data ───────────────────────────────────────────────────────────
-  const filtered = domain === 'All' ? flashcards : flashcards.filter(c => c.domain === domain);
   const now = Date.now();
+  const domainFiltered = domain === 'All' ? flashcards : flashcards.filter(c => c.domain === domain);
+  const filtered = search.trim()
+    ? domainFiltered.filter(c =>
+        c.question.toLowerCase().includes(search.trim().toLowerCase()) ||
+        c.answer.toLowerCase().includes(search.trim().toLowerCase())
+      )
+    : domainFiltered;
+
   const dueCards    = filtered.filter(c => { const s = cardStates[c.id]; return !s || s.nextReview <= now; });
   const newCards    = filtered.filter(c => !cardStates[c.id]);
   const studiedCards = filtered.filter(c => cardStates[c.id]?.totalReviews > 0);
   const masteredCards = filtered.filter(c => (cardStates[c.id]?.interval ?? 0) >= 21);
+
+  // Next scheduled review (earliest future nextReview across all studied cards)
+  const nextReviewMs = domainFiltered.reduce<number | null>((min, c) => {
+    const s = cardStates[c.id];
+    if (!s || s.nextReview <= now) return min;
+    return min === null ? s.nextReview : Math.min(min, s.nextReview);
+  }, null);
+  function formatNextReview(ms: number): string {
+    const diff = ms - now;
+    const hrs = Math.floor(diff / 3600000);
+    const mins = Math.floor((diff % 3600000) / 60000);
+    if (hrs >= 24) return `in ${Math.floor(hrs / 24)}d`;
+    if (hrs > 0) return `in ${hrs}h ${mins}m`;
+    return `in ${Math.max(1, mins)}m`;
+  }
 
   function startSession() {
     const overdue = filtered.filter(c => {
@@ -230,8 +253,42 @@ function FlashcardsAppInner() {
   if (screen === 'hub') {
     return (
       <div className="max-w-3xl mx-auto">
-        {/* Domain filter */}
-        <div className="flex flex-wrap gap-2 mb-8" role="group" aria-label="Filter by domain">
+        {/* Search + Domain filter row */}
+        <div className="mb-6">
+          <div className="relative mb-4">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="search"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search cards by keyword…"
+              aria-label="Search flashcards"
+              style={{
+                width: '100%', padding: '0.625rem 1rem 0.625rem 2.25rem',
+                borderRadius: '0.625rem', border: '1px solid var(--surface-border)',
+                background: 'var(--surface-card)', color: 'var(--text-primary)',
+                fontSize: '0.875rem', outline: 'none',
+              }}
+              onFocus={e => (e.currentTarget.style.borderColor = 'var(--color-snowflake-blue)')}
+              onBlur={e => (e.currentTarget.style.borderColor = 'var(--surface-border)')}
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                aria-label="Clear search"
+                style={{
+                  position: 'absolute', right: '0.625rem', top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)',
+                  fontSize: '1rem', lineHeight: 1,
+                }}
+              >×</button>
+            )}
+          </div>
+
+          {/* Domain filter pills */}
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by domain">
           {DOMAINS.map(d => (
             <button
               key={d}
@@ -247,6 +304,7 @@ function FlashcardsAppInner() {
               {d}
             </button>
           ))}
+          </div>
         </div>
 
         {/* Stats row */}
@@ -268,7 +326,8 @@ function FlashcardsAppInner() {
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>
-              {filtered.length} cards in &ldquo;{domain}&rdquo;
+              {filtered.length} {search ? `result${filtered.length !== 1 ? 's' : ''}` : `card${filtered.length !== 1 ? 's' : ''}`}
+              {search ? ` for "${search}"` : ` in "${domain}"`}
             </h3>
             <button onClick={resetAll} className="text-xs hover:text-red-500 transition-colors" style={{ color: 'var(--text-muted)' }}>
               Reset progress
@@ -305,7 +364,9 @@ function FlashcardsAppInner() {
           }}
         >
           {dueCards.length === 0 && newCards.length === 0
-            ? '🎉 All caught up! Come back tomorrow.'
+            ? nextReviewMs
+              ? `🎉 All caught up! Next review ${formatNextReview(nextReviewMs)}`
+              : '🎉 All cards mastered!'
             : `Study ${Math.min(dueCards.length + newCards.length, 30)} Cards →`}
         </button>
 
