@@ -1,0 +1,117 @@
+<svg width="820" height="440" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,-apple-system,'Segoe UI',sans-serif">
+  <rect width="820" height="440" fill="#f8fafc" rx="12"/>
+
+  <text x="410" y="28" text-anchor="middle" font-size="15" font-weight="700" fill="#0f172a">Snowflake Data Type Categories</text>
+  <text x="410" y="46" text-anchor="middle" font-size="11" fill="#64748b">All supported data types organised by category — exam frequently tests VARIANT, TIMESTAMP variants, and NUMBER precision</text>
+
+  <!-- ── Numeric ── -->
+  <rect x="20"  y="60" width="190" height="230" fill="#fff" rx="8" stroke="#29b5e8" stroke-width="2"/>
+  <rect x="20"  y="60" width="190" height="28"  fill="#164365" rx="8"/>
+  <rect x="20"  y="79" width="190" height="9"   fill="#164365"/>
+  <text x="115" y="79" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">🔢 Numeric</text>
+
+  <text x="30"  y="101" font-size="10" font-weight="700" fill="#164365">Exact (fixed-point):</text>
+  <text x="30"  y="116" font-size="10" fill="#334155">NUMBER(p,s) / DECIMAL(p,s)</text>
+  <text x="30"  y="130" font-size="10" fill="#475569">  Alias: NUMERIC</text>
+  <text x="30"  y="144" font-size="10" fill="#334155">INTEGER / INT / BIGINT</text>
+  <text x="30"  y="158" font-size="10" fill="#475569">  Stored as NUMBER(38,0)</text>
+  <text x="30"  y="172" font-size="10" fill="#334155">SMALLINT / TINYINT</text>
+
+  <line x1="28" y1="180" x2="202" y2="180" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="30"  y="194" font-size="10" font-weight="700" fill="#164365">Approximate (floating):</text>
+  <text x="30"  y="208" font-size="10" fill="#334155">FLOAT / FLOAT4 / FLOAT8</text>
+  <text x="30"  y="222" font-size="10" fill="#334155">DOUBLE / DOUBLE PRECISION</text>
+  <text x="30"  y="236" font-size="10" fill="#334155">REAL</text>
+
+  <rect x="28" y="248" width="174" height="36" fill="#dbeafe" rx="4"/>
+  <text x="115" y="262" text-anchor="middle" font-size="9" fill="#1e40af">NUMBER(38,0) = default INT</text>
+  <text x="115" y="275" text-anchor="middle" font-size="9" fill="#1e40af">Max precision: 38 digits</text>
+
+  <!-- ── String / Text ── -->
+  <rect x="220" y="60" width="185" height="230" fill="#fff" rx="8" stroke="#22c55e" stroke-width="2"/>
+  <rect x="220" y="60" width="185" height="28"  fill="#166534" rx="8"/>
+  <rect x="220" y="79" width="185" height="9"   fill="#166534"/>
+  <text x="312" y="79" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">📝 String / Text</text>
+
+  <text x="230" y="101" font-size="10" fill="#334155">VARCHAR(n) — up to 16 MB</text>
+  <text x="230" y="115" font-size="10" fill="#475569">  Default: VARCHAR(16777216)</text>
+  <text x="230" y="129" font-size="10" fill="#334155">TEXT — alias for VARCHAR</text>
+  <text x="230" y="143" font-size="10" fill="#334155">STRING — alias for VARCHAR</text>
+  <text x="230" y="157" font-size="10" fill="#334155">CHAR(n) / CHARACTER(n)</text>
+  <text x="230" y="171" font-size="10" fill="#475569">  Fixed width, padded</text>
+  <text x="230" y="185" font-size="10" fill="#334155">NCHAR / NVARCHAR</text>
+  <text x="230" y="199" font-size="10" fill="#334155">BINARY / VARBINARY</text>
+  <text x="230" y="213" font-size="10" fill="#334155">BOOLEAN</text>
+
+  <rect x="228" y="232" width="168" height="52" fill="#dcfce7" rx="4"/>
+  <text x="312" y="248" text-anchor="middle" font-size="9" fill="#166534">All strings are Unicode (UTF-8)</text>
+  <text x="312" y="262" text-anchor="middle" font-size="9" fill="#166534">VARCHAR is case-sensitive</text>
+  <text x="312" y="276" text-anchor="middle" font-size="9" fill="#166534">Max VARCHAR length: 16,777,216</text>
+
+  <!-- ── Date / Time ── -->
+  <rect x="415" y="60" width="185" height="230" fill="#fff" rx="8" stroke="#f59e0b" stroke-width="2"/>
+  <rect x="415" y="60" width="185" height="28"  fill="#92400e" rx="8"/>
+  <rect x="415" y="79" width="185" height="9"   fill="#92400e"/>
+  <text x="507" y="79" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">📅 Date / Time</text>
+
+  <text x="425" y="101" font-size="10" fill="#334155">DATE</text>
+  <text x="425" y="115" font-size="10" fill="#475569">  YYYY-MM-DD, no timezone</text>
+  <text x="425" y="129" font-size="10" fill="#334155">TIME(n)</text>
+  <text x="425" y="143" font-size="10" fill="#475569">  HH24:MI:SS.n, no timezone</text>
+
+  <line x1="423" y1="152" x2="592" y2="152" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="425" y="166" font-size="10" font-weight="700" fill="#92400e">TIMESTAMP variants:</text>
+  <text x="425" y="180" font-size="10" fill="#334155">TIMESTAMP_NTZ</text>
+  <text x="425" y="194" font-size="10" fill="#475569">  No timezone (stored as-is)</text>
+  <text x="425" y="208" font-size="10" fill="#334155">TIMESTAMP_LTZ</text>
+  <text x="425" y="222" font-size="10" fill="#475569">  Local timezone (stored UTC)</text>
+  <text x="425" y="236" font-size="10" fill="#334155">TIMESTAMP_TZ</text>
+  <text x="425" y="250" font-size="10" fill="#475569">  Includes offset (+HH:MI)</text>
+
+  <rect x="423" y="260" width="168" height="24" fill="#fef3c7" rx="4"/>
+  <text x="507" y="276" text-anchor="middle" font-size="9" fill="#92400e">TIMESTAMP_NTZ = most common for analytics</text>
+
+  <!-- ── Semi-Structured ── -->
+  <rect x="610" y="60" width="190" height="230" fill="#fff" rx="8" stroke="#a855f7" stroke-width="2"/>
+  <rect x="610" y="60" width="190" height="28"  fill="#6b21a8" rx="8"/>
+  <rect x="610" y="79" width="190" height="9"   fill="#6b21a8"/>
+  <text x="705" y="79" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">{ } Semi-Structured</text>
+
+  <text x="620" y="101" font-size="10" font-weight="700" fill="#6b21a8">VARIANT</text>
+  <text x="620" y="115" font-size="10" fill="#334155">  Stores any JSON, Avro,</text>
+  <text x="620" y="129" font-size="10" fill="#334155">  Parquet, ORC, or XML</text>
+  <text x="620" y="143" font-size="10" fill="#475569">  Max 16 MB per value</text>
+  <text x="620" y="157" font-size="10" fill="#475569">  col:key.path access</text>
+
+  <line x1="618" y1="166" x2="792" y2="166" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="620" y="180" font-size="10" font-weight="700" fill="#6b21a8">ARRAY</text>
+  <text x="620" y="194" font-size="10" fill="#334155">  Ordered list of VARIANT</text>
+  <text x="620" y="208" font-size="10" fill="#475569">  col[0], col[1] access</text>
+
+  <line x1="618" y1="216" x2="792" y2="216" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="620" y="230" font-size="10" font-weight="700" fill="#6b21a8">OBJECT</text>
+  <text x="620" y="244" font-size="10" fill="#334155">  Key-value map of VARIANT</text>
+  <text x="620" y="258" font-size="10" fill="#475569">  col['key'] or col:key</text>
+
+  <rect x="618" y="268" width="174" height="16" fill="#f3e8ff" rx="4"/>
+  <text x="705" y="281" text-anchor="middle" font-size="9" fill="#6b21a8">FLATTEN() for lateral array explode</text>
+
+  <!-- Row 2: Geo + Vector -->
+  <rect x="20"  y="302" width="300" height="108" fill="#fff" rx="8" stroke="#0ea5e9" stroke-width="1.5"/>
+  <rect x="20"  y="302" width="300" height="26"  fill="#0369a1" rx="8"/>
+  <rect x="20"  y="319" width="300" height="9"   fill="#0369a1"/>
+  <text x="170" y="319" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">🌍 Geospatial</text>
+  <text x="30"  y="342" font-size="10" fill="#334155">GEOGRAPHY — WGS84 spherical model (lat/long on Earth)</text>
+  <text x="30"  y="358" font-size="10" fill="#334155">GEOMETRY — flat Euclidean plane model (2D projections)</text>
+  <text x="30"  y="374" font-size="10" fill="#475569">Both use ST_ functions: ST_AREA, ST_DISTANCE, ST_CONTAINS, ST_INTERSECTS</text>
+  <text x="30"  y="390" font-size="10" fill="#475569">Input/output: GeoJSON, WKT, WKB, EWKT formats</text>
+
+  <rect x="330" y="302" width="470" height="108" fill="#fff" rx="8" stroke="#ec4899" stroke-width="1.5"/>
+  <rect x="330" y="302" width="470" height="26"  fill="#9d174d" rx="8"/>
+  <rect x="330" y="319" width="470" height="9"   fill="#9d174d"/>
+  <text x="565" y="319" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">🤖 VECTOR (Snowflake Cortex)</text>
+  <text x="340" y="342" font-size="10" fill="#334155">VECTOR(FLOAT, n) — stores embedding vectors for ML/AI similarity search</text>
+  <text x="340" y="358" font-size="10" fill="#334155">Supports inner-product, cosine, and L2 distance functions</text>
+  <text x="340" y="374" font-size="10" fill="#475569">Used with Cortex AI functions (EMBED_TEXT_768, etc.) for vector search</text>
+  <text x="340" y="390" font-size="10" fill="#475569">Example: col VECTOR(FLOAT, 768) for sentence-transformer embeddings</text>
+</svg>

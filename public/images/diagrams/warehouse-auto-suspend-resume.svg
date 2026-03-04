@@ -1,0 +1,86 @@
+<svg width="820" height="420" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,-apple-system,'Segoe UI',sans-serif">
+  <rect width="820" height="420" fill="#f8fafc" rx="12"/>
+
+  <text x="410" y="30" text-anchor="middle" font-size="15" font-weight="700" fill="#0f172a">Auto-Suspend and Auto-Resume: State Lifecycle</text>
+  <text x="410" y="48" text-anchor="middle" font-size="11" fill="#64748b">Warehouses move between STARTED, SUSPENDED, and STARTING — credits only consumed in STARTED state</text>
+
+  <!-- Timeline arrow -->
+  <line x1="30" y1="200" x2="790" y2="200" stroke="#e2e8f0" stroke-width="2"/>
+  <polygon points="790,196 800,200 790,204" fill="#94a3b8"/>
+  <text x="400" y="218" text-anchor="middle" font-size="10" fill="#94a3b8">Time →</text>
+
+  <!-- ── STATE 1: STARTED ── -->
+  <rect x="30" y="100" width="170" height="90" fill="#dcfce7" rx="10" stroke="#22c55e" stroke-width="2"/>
+  <text x="115" y="125" text-anchor="middle" font-size="13" font-weight="700" fill="#166534">● STARTED</text>
+  <text x="115" y="142" text-anchor="middle" font-size="10" fill="#166534">Running, warm cache</text>
+  <text x="115" y="158" text-anchor="middle" font-size="10" fill="#166534">Credits: billing active</text>
+  <text x="115" y="174" text-anchor="middle" font-size="10" fill="#15803d">Per-second after 60s</text>
+
+  <!-- Credit consumption bar -->
+  <rect x="30" y="235" width="170" height="12" fill="#22c55e" rx="3" opacity="0.8"/>
+  <text x="115" y="262" text-anchor="middle" font-size="9" fill="#166534">💳 credits billing</text>
+
+  <!-- Inactivity timer arrow -->
+  <line x1="200" y1="150" x2="305" y2="150" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arrO)"/>
+  <rect x="200" y="115" width="108" height="32" fill="#fef3c7" rx="6" stroke="#fbbf24" stroke-width="1"/>
+  <text x="254" y="130" text-anchor="middle" font-size="10" font-weight="600" fill="#92400e">⏱ Idle timer</text>
+  <text x="254" y="143" text-anchor="middle" font-size="9" fill="#78350f">600s (default)</text>
+
+  <!-- ── STATE 2: SUSPENDED ── -->
+  <rect x="305" y="100" width="170" height="90" fill="#f1f5f9" rx="10" stroke="#94a3b8" stroke-width="2"/>
+  <text x="390" y="125" text-anchor="middle" font-size="13" font-weight="700" fill="#475569">○ SUSPENDED</text>
+  <text x="390" y="142" text-anchor="middle" font-size="10" fill="#475569">No compute allocated</text>
+  <text x="390" y="158" text-anchor="middle" font-size="10" fill="#475569">Cache: LOST on suspend</text>
+  <text x="390" y="174" text-anchor="middle" font-size="10" fill="#64748b">Credits: £0.00 / hr</text>
+
+  <!-- No credit bar -->
+  <rect x="305" y="235" width="170" height="12" fill="#e2e8f0" rx="3"/>
+  <text x="390" y="262" text-anchor="middle" font-size="9" fill="#94a3b8">no credits consumed</text>
+
+  <!-- Query arrives arrow -->
+  <line x1="475" y1="150" x2="568" y2="150" stroke="#29b5e8" stroke-width="2" marker-end="url(#arrB)"/>
+  <rect x="475" y="115" width="96" height="32" fill="#e0f2fe" rx="6" stroke="#7dd3fc" stroke-width="1"/>
+  <text x="523" y="130" text-anchor="middle" font-size="10" font-weight="600" fill="#0369a1">⚡ Query</text>
+  <text x="523" y="143" text-anchor="middle" font-size="9" fill="#0369a1">arrives → resume</text>
+
+  <!-- ── STATE 3: STARTING ── -->
+  <rect x="568" y="100" width="120" height="90" fill="#fef9c3" rx="10" stroke="#fbbf24" stroke-width="2"/>
+  <text x="628" y="122" text-anchor="middle" font-size="11" font-weight="700" fill="#713f12">◑ STARTING</text>
+  <text x="628" y="138" text-anchor="middle" font-size="9" fill="#713f12">Nodes provisioning</text>
+  <text x="628" y="152" text-anchor="middle" font-size="9" fill="#713f12">Typically &lt; 5 seconds</text>
+  <text x="628" y="166" text-anchor="middle" font-size="9" fill="#713f12">No credits yet</text>
+  <text x="628" y="180" text-anchor="middle" font-size="9" fill="#92400e">Cache: cold (empty)</text>
+
+  <line x1="688" y1="150" x2="718" y2="150" stroke="#22c55e" stroke-width="2" marker-end="url(#arrG)"/>
+
+  <!-- ── STATE 4: STARTED (resumed) ── -->
+  <rect x="718" y="100" width="80" height="90" fill="#dcfce7" rx="10" stroke="#22c55e" stroke-width="2"/>
+  <text x="758" y="125" text-anchor="middle" font-size="11" font-weight="700" fill="#166534">● STARTED</text>
+  <text x="758" y="142" text-anchor="middle" font-size="10" fill="#166534">Running</text>
+  <text x="758" y="158" text-anchor="middle" font-size="10" fill="#166534">Billing</text>
+  <text x="758" y="174" text-anchor="middle" font-size="10" fill="#15803d">active</text>
+
+  <!-- ── 60-SECOND MINIMUM BILLING ── -->
+  <rect x="718" y="235" width="80" height="12" fill="#22c55e" rx="3"/>
+  <rect x="568" y="235" width="150" height="12" fill="#e2e8f0" rx="3"/>
+
+  <!-- Bracket for 60s billing -->
+  <line x1="718" y1="276" x2="798" y2="276" stroke="#ef4444" stroke-width="2"/>
+  <line x1="718" y1="271" x2="718" y2="281" stroke="#ef4444" stroke-width="2"/>
+  <line x1="798" y1="271" x2="798" y2="281" stroke="#ef4444" stroke-width="2"/>
+  <text x="758" y="294" text-anchor="middle" font-size="10" font-weight="700" fill="#ef4444">Min 60s billing</text>
+  <text x="758" y="306" text-anchor="middle" font-size="9" fill="#ef4444">on every resume</text>
+
+  <!-- ── KEY CALLOUT ── -->
+  <rect x="30" y="320" width="760" height="82" fill="#fff" rx="8" stroke="#29b5e8" stroke-width="1.5"/>
+  <text x="410" y="340" text-anchor="middle" font-size="12" font-weight="700" fill="#164365">⚠ Exam-Critical: The 60-Second Minimum Billing Rule</text>
+  <text x="50" y="358" font-size="11" fill="#334155">Every time a suspended warehouse RESUMES — even if the triggering query runs for only 2 seconds — Snowflake bills a</text>
+  <text x="50" y="373" font-size="11" fill="#334155">minimum of 60 seconds of credit consumption at that warehouse size. After the first 60 seconds, billing is per-second.</text>
+  <text x="50" y="391" font-size="11" font-weight="600" fill="#166534">Best practice: Set AUTO_SUSPEND to ≥ 60s. For BI, use 60s. For ETL, 300–600s. Disable for always-on warehouses.</text>
+
+  <defs>
+    <marker id="arrO" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 Z" fill="#f59e0b"/></marker>
+    <marker id="arrB" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 Z" fill="#29b5e8"/></marker>
+    <marker id="arrG" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 Z" fill="#22c55e"/></marker>
+  </defs>
+</svg>

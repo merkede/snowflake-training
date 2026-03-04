@@ -1,0 +1,85 @@
+<svg width="820" height="450" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,-apple-system,'Segoe UI',sans-serif">
+  <rect width="820" height="450" fill="#f8fafc" rx="12"/>
+
+  <text x="410" y="28" text-anchor="middle" font-size="15" font-weight="700" fill="#0f172a">Task DAG Structure: Directed Acyclic Graph</text>
+  <text x="410" y="46" text-anchor="middle" font-size="11" fill="#64748b">Tasks form DAGs where parent tasks trigger children — only the root task has a schedule; children run when parents succeed</text>
+
+  <!-- ROOT TASK -->
+  <rect x="310" y="66" width="200" height="80" fill="#164365" rx="10" stroke="#29b5e8" stroke-width="2"/>
+  <text x="410" y="89" text-anchor="middle" font-size="12" font-weight="700" fill="#29b5e8">ROOT TASK</text>
+  <text x="410" y="106" text-anchor="middle" font-size="10" fill="#cbd5e1">ingest_raw_task</text>
+  <text x="410" y="120" text-anchor="middle" font-size="10" fill="#94a3b8">SCHEDULE = 'USING CRON</text>
+  <text x="410" y="133" text-anchor="middle" font-size="10" fill="#94a3b8">  0 * * * * UTC'</text>
+
+  <!-- Badge: schedule -->
+  <rect x="316" y="135" width="188" height="6" fill="#29b5e8" rx="0 0 8 8" opacity="0.5"/>
+
+  <!-- Connecting lines ROOT → children -->
+  <line x1="360" y1="152" x2="165" y2="196" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#aS)"/>
+  <line x1="410" y1="152" x2="410" y2="196" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#aS)"/>
+  <line x1="460" y1="152" x2="655" y2="196" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#aS)"/>
+
+  <!-- CHILD TASK A -->
+  <rect x="60"  y="196" width="210" height="80" fill="#1e293b" rx="10" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="165" y="218" text-anchor="middle" font-size="11" font-weight="700" fill="#22c55e">CHILD TASK A</text>
+  <text x="165" y="234" text-anchor="middle" font-size="10" fill="#cbd5e1">transform_bronze_task</text>
+  <text x="165" y="249" text-anchor="middle" font-size="10" fill="#94a3b8">AFTER ingest_raw_task</text>
+  <text x="165" y="263" text-anchor="middle" font-size="10" fill="#94a3b8">Warehouse: TRANSFORM_WH</text>
+
+  <!-- CHILD TASK B -->
+  <rect x="305" y="196" width="210" height="80" fill="#1e293b" rx="10" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="410" y="218" text-anchor="middle" font-size="11" font-weight="700" fill="#22c55e">CHILD TASK B</text>
+  <text x="410" y="234" text-anchor="middle" font-size="10" fill="#cbd5e1">transform_silver_task</text>
+  <text x="410" y="249" text-anchor="middle" font-size="10" fill="#94a3b8">AFTER ingest_raw_task</text>
+  <text x="410" y="263" text-anchor="middle" font-size="10" fill="#94a3b8">Serverless compute</text>
+
+  <!-- CHILD TASK C -->
+  <rect x="550" y="196" width="210" height="80" fill="#1e293b" rx="10" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="655" y="218" text-anchor="middle" font-size="11" font-weight="700" fill="#22c55e">CHILD TASK C</text>
+  <text x="655" y="234" text-anchor="middle" font-size="10" fill="#cbd5e1">load_dimensions_task</text>
+  <text x="655" y="249" text-anchor="middle" font-size="10" fill="#94a3b8">AFTER ingest_raw_task</text>
+  <text x="655" y="263" text-anchor="middle" font-size="10" fill="#94a3b8">Serverless compute</text>
+
+  <!-- Lines A→final, B→final, C→final -->
+  <line x1="165" y1="282" x2="280" y2="320" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#aS)"/>
+  <line x1="410" y1="282" x2="410" y2="320" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#aS)"/>
+  <line x1="655" y1="282" x2="540" y2="320" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#aS)"/>
+
+  <!-- FINALIZER TASK -->
+  <rect x="255" y="320" width="310" height="80" fill="#1e293b" rx="10" stroke="#f59e0b" stroke-width="2"/>
+  <text x="410" y="344" text-anchor="middle" font-size="12" font-weight="700" fill="#f59e0b">FINALIZER TASK</text>
+  <text x="410" y="360" text-anchor="middle" font-size="10" fill="#cbd5e1">notify_and_report_task</text>
+  <text x="410" y="376" text-anchor="middle" font-size="10" fill="#94a3b8">FINALIZE = ingest_raw_task</text>
+  <text x="410" y="391" text-anchor="middle" font-size="10" fill="#94a3b8">Runs after ALL tasks complete (pass or fail)</text>
+
+  <!-- Right side: Key properties panel -->
+  <rect x="20" y="398" width="780" height="46" fill="#fff" rx="8" stroke="#e2e8f0" stroke-width="1.5"/>
+  <text x="410" y="415" text-anchor="middle" font-size="11" font-weight="700" fill="#0f172a">Key Task Properties</text>
+  <text x="30"  y="432" font-size="9" fill="#334155">SUSPEND_TASK_AFTER_NUM_FAILURES = 5  ·  ERROR_INTEGRATION  ·  USER_TASK_TIMEOUT_MS  ·  ALLOW_OVERLAPPING_EXECUTION = FALSE</text>
+
+  <!-- Left side labels -->
+  <rect x="20" y="66" width="120" height="24" fill="#0f172a" rx="6"/>
+  <text x="80" y="82" text-anchor="middle" font-size="10" font-weight="600" fill="#29b5e8">Has SCHEDULE</text>
+
+  <rect x="20" y="196" width="120" height="24" fill="#0f172a" rx="6"/>
+  <text x="80" y="212" text-anchor="middle" font-size="10" font-weight="600" fill="#22c55e">AFTER parent</text>
+
+  <rect x="20" y="326" width="120" height="24" fill="#0f172a" rx="6"/>
+  <text x="80" y="342" text-anchor="middle" font-size="10" font-weight="600" fill="#f59e0b">FINALIZE clause</text>
+
+  <!-- SQL code snippet -->
+  <rect x="560" y="60" width="248" height="126" fill="#0f172a" rx="8"/>
+  <text x="572" y="78" font-size="9" font-family="'JetBrains Mono','Fira Code',monospace" fill="#94a3b8">-- Root task (only one with schedule)</text>
+  <text x="572" y="92" font-size="9" font-family="'JetBrains Mono','Fira Code',monospace" fill="#29b5e8">CREATE TASK ingest_raw_task</text>
+  <text x="572" y="106" font-size="9" font-family="'JetBrains Mono','Fira Code',monospace" fill="#e2e8f0">  SCHEDULE = 'USING CRON 0 * * * * UTC'</text>
+  <text x="572" y="120" font-size="9" font-family="'JetBrains Mono','Fira Code',monospace" fill="#e2e8f0">  USER_TASK_MANAGED_INITIAL_WAREHOUSE_SIZE='XS'</text>
+  <text x="572" y="134" font-size="9" font-family="'JetBrains Mono','Fira Code',monospace" fill="#94a3b8">AS CALL ingest_raw_proc();</text>
+  <text x="572" y="150" font-size="9" font-family="'JetBrains Mono','Fira Code',monospace" fill="#94a3b8">-- Child task</text>
+  <text x="572" y="164" font-size="9" font-family="'JetBrains Mono','Fira Code',monospace" fill="#29b5e8">CREATE TASK transform_bronze_task</text>
+  <text x="572" y="178" font-size="9" font-family="'JetBrains Mono','Fira Code',monospace" fill="#e2e8f0">  AFTER ingest_raw_task</text>
+  <text x="572" y="192" font-size="9" font-family="'JetBrains Mono','Fira Code',monospace" fill="#94a3b8">AS MERGE INTO bronze FROM raw…;</text>
+
+  <defs>
+    <marker id="aS" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 Z" fill="#64748b"/></marker>
+  </defs>
+</svg>

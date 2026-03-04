@@ -99,7 +99,7 @@ SELECT ARRAY_CONSTRUCT(10, 20, 30, 'text', NULL) AS arr;`}
   title="VARIANT Data Model — Path Access"
   description="How Snowflake stores a VARIANT column as a self-describing columnar structure internally (ELT storage), and how the colon operator traverses nested keys at query time. Each leaf value is stored with its native type tag, enabling efficient casting without full JSON parsing at runtime."
   altText="Diagram showing a JSON document stored as a VARIANT column, with colon path operators traversing nested user and tags keys, and double-colon cast operators converting leaf values to SQL types"
-  imagePath="/images/diagrams/micro-partitions.png"
+  imagePath="/images/diagrams/variant-path-access.svg"
 />
 
 <CalloutBox type="info" title="VARIANT Storage: Columnar Under the Hood">
@@ -428,7 +428,7 @@ SELECT * FROM orders SAMPLE (10) SEED (42);`}
   title="GENERATOR vs TABLESAMPLE"
   description="GENERATOR creates new rows from scratch using Snowflake's virtual table function — no source table needed, output is controlled by ROWCOUNT or TIMELIMIT. TABLESAMPLE reads from an existing table and returns a statistical subset, either at the block (micro-partition) level for speed or at the Bernoulli (row) level for better randomness. Both operations happen within a single virtual warehouse."
   altText="Side-by-side diagram: left side shows GENERATOR producing rows ex nihilo with SEQ4 and RANDOM functions; right side shows TABLESAMPLE taking a percentage slice of micro-partitions or individual rows from an existing large_table"
-  imagePath="/images/diagrams/micro-partitions-clustering.png"
+  imagePath="/images/diagrams/generator-vs-tablesample.svg"
 />
 
 ---

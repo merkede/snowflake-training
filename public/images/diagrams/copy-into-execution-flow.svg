@@ -1,0 +1,97 @@
+<svg width="820" height="400" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,-apple-system,'Segoe UI',sans-serif">
+  <rect width="820" height="400" fill="#f8fafc" rx="12"/>
+
+  <text x="410" y="28" text-anchor="middle" font-size="15" font-weight="700" fill="#0f172a">COPY INTO Command: Execution Flow</text>
+  <text x="410" y="46" text-anchor="middle" font-size="11" fill="#64748b">Snowflake processes COPY INTO in parallel across all files in the stage — with deduplication built in</text>
+
+  <!-- Step boxes in a horizontal flow -->
+  <!-- ① Cloud Services -->
+  <rect x="20"  y="70" width="130" height="150" fill="#eff6ff" rx="8" stroke="#93c5fd" stroke-width="1.5"/>
+  <rect x="20"  y="70" width="130" height="24"  fill="#3b82f6" rx="8"/>
+  <rect x="20"  y="84" width="130" height="10"  fill="#3b82f6"/>
+  <text x="85"  y="86" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">① Receive &amp; Plan</text>
+  <text x="85"  y="108" text-anchor="middle" font-size="10" fill="#334155">Cloud Services</text>
+  <text x="85"  y="122" text-anchor="middle" font-size="10" fill="#334155">parses COPY INTO</text>
+  <text x="85"  y="140" text-anchor="middle" font-size="10" fill="#334155">Checks load history</text>
+  <text x="85"  y="154" text-anchor="middle" font-size="10" fill="#334155">(LOAD_HISTORY)</text>
+  <text x="85"  y="172" text-anchor="middle" font-size="10" fill="#1d4ed8">Skips already-</text>
+  <text x="85"  y="184" text-anchor="middle" font-size="10" fill="#1d4ed8">loaded files</text>
+  <text x="85"  y="198" text-anchor="middle" font-size="9" font-weight="600" fill="#64748b">FORCE=FALSE default</text>
+
+  <line x1="150" y1="145" x2="175" y2="145" stroke="#94a3b8" stroke-width="2" marker-end="url(#aG)"/>
+
+  <!-- ② File Discovery -->
+  <rect x="175" y="70" width="130" height="150" fill="#f0fdf4" rx="8" stroke="#86efac" stroke-width="1.5"/>
+  <rect x="175" y="70" width="130" height="24"  fill="#22c55e" rx="8"/>
+  <rect x="175" y="84" width="130" height="10"  fill="#22c55e"/>
+  <text x="240" y="86" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">② File Discovery</text>
+  <text x="240" y="108" text-anchor="middle" font-size="10" fill="#334155">Lists files in stage</text>
+  <text x="240" y="122" text-anchor="middle" font-size="10" fill="#334155">matching PATTERN</text>
+  <text x="240" y="140" text-anchor="middle" font-size="10" fill="#166534">e.g. '.*\.csv\.gz'</text>
+  <text x="240" y="158" text-anchor="middle" font-size="10" fill="#334155">Excludes already-</text>
+  <text x="240" y="172" text-anchor="middle" font-size="10" fill="#334155">loaded file IDs</text>
+  <text x="240" y="192" text-anchor="middle" font-size="9" font-weight="600" fill="#64748b">External: reads cloud</text>
+  <text x="240" y="204" text-anchor="middle" font-size="9" font-weight="600" fill="#64748b">object listing</text>
+
+  <line x1="305" y1="145" x2="330" y2="145" stroke="#94a3b8" stroke-width="2" marker-end="url(#aG)"/>
+
+  <!-- ③ Parallel Parse -->
+  <rect x="330" y="70" width="130" height="150" fill="#fdf4ff" rx="8" stroke="#d8b4fe" stroke-width="1.5"/>
+  <rect x="330" y="70" width="130" height="24"  fill="#a855f7" rx="8"/>
+  <rect x="330" y="84" width="130" height="10"  fill="#a855f7"/>
+  <text x="395" y="86" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">③ Parallel Parse</text>
+  <text x="395" y="108" text-anchor="middle" font-size="10" fill="#334155">Warehouse nodes each</text>
+  <text x="395" y="122" text-anchor="middle" font-size="10" fill="#334155">claim file segments</text>
+  <text x="395" y="140" text-anchor="middle" font-size="10" fill="#6b21a8">Multiple files load</text>
+  <text x="395" y="154" text-anchor="middle" font-size="10" fill="#6b21a8">simultaneously</text>
+  <text x="395" y="172" text-anchor="middle" font-size="10" fill="#334155">Applies File Format</text>
+  <text x="395" y="186" text-anchor="middle" font-size="10" fill="#334155">rules: delimiters,</text>
+  <text x="395" y="200" text-anchor="middle" font-size="10" fill="#334155">encoding, nulls</text>
+
+  <line x1="460" y1="145" x2="485" y2="145" stroke="#94a3b8" stroke-width="2" marker-end="url(#aG)"/>
+
+  <!-- ④ Error Handling -->
+  <rect x="485" y="70" width="130" height="150" fill="#fff7ed" rx="8" stroke="#fdba74" stroke-width="1.5"/>
+  <rect x="485" y="70" width="130" height="24"  fill="#f97316" rx="8"/>
+  <rect x="485" y="84" width="130" height="10"  fill="#f97316"/>
+  <text x="550" y="86" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">④ Error Handling</text>
+  <text x="550" y="108" text-anchor="middle" font-size="10" fill="#334155">ON_ERROR decides:</text>
+  <text x="550" y="126" text-anchor="middle" font-size="10" fill="#c2410c">ABORT_STATEMENT</text>
+  <text x="550" y="140" text-anchor="middle" font-size="9" fill="#64748b">(roll back all — default)</text>
+  <text x="550" y="158" text-anchor="middle" font-size="10" fill="#d97706">CONTINUE</text>
+  <text x="550" y="172" text-anchor="middle" font-size="9" fill="#64748b">(skip bad rows)</text>
+  <text x="550" y="188" text-anchor="middle" font-size="10" fill="#1d4ed8">SKIP_FILE</text>
+  <text x="550" y="202" text-anchor="middle" font-size="9" fill="#64748b">(skip whole file)</text>
+
+  <line x1="615" y1="145" x2="640" y2="145" stroke="#94a3b8" stroke-width="2" marker-end="url(#aG)"/>
+
+  <!-- ⑤ Write + Metadata -->
+  <rect x="640" y="70" width="160" height="150" fill="#fff" rx="8" stroke="#29b5e8" stroke-width="2"/>
+  <rect x="640" y="70" width="160" height="24"  fill="#164365" rx="8"/>
+  <rect x="640" y="84" width="160" height="10"  fill="#164365"/>
+  <text x="720" y="86" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">⑤ Write &amp; Record</text>
+  <text x="720" y="108" text-anchor="middle" font-size="10" fill="#334155">Rows written to</text>
+  <text x="720" y="122" text-anchor="middle" font-size="10" fill="#334155">micro-partitions</text>
+  <text x="720" y="140" text-anchor="middle" font-size="10" fill="#0f172a">LOAD_HISTORY updated:</text>
+  <text x="720" y="154" text-anchor="middle" font-size="9" fill="#64748b">• File name</text>
+  <text x="720" y="166" text-anchor="middle" font-size="9" fill="#64748b">• Rows loaded / errors</text>
+  <text x="720" y="178" text-anchor="middle" font-size="9" fill="#64748b">• LOADED status</text>
+  <text x="720" y="194" text-anchor="middle" font-size="9" fill="#166534">PURGE=TRUE → deletes</text>
+  <text x="720" y="206" text-anchor="middle" font-size="9" fill="#166534">staged files after load</text>
+
+  <!-- Bottom monitoring section -->
+  <rect x="20" y="238" width="780" height="72" fill="#fff" rx="8" stroke="#e2e8f0" stroke-width="1.5"/>
+  <text x="410" y="256" text-anchor="middle" font-size="11" font-weight="700" fill="#0f172a">Monitoring a Load — Post-Execution</text>
+  <text x="30"  y="275" font-size="10" fill="#334155">SELECT * FROM TABLE(INFORMATION_SCHEMA.COPY_HISTORY(TABLE_NAME=&gt;'orders', START_TIME=&gt;DATEADD('hour',-1,CURRENT_TIMESTAMP())));</text>
+  <text x="30"  y="291" font-size="10" fill="#64748b">Returns: FILE_NAME · STATUS (LOADED/LOAD_FAILED) · ROWS_LOADED · ERRORS_SEEN · FIRST_ERROR_MESSAGE · LAST_LOAD_TIME</text>
+
+  <!-- Exam tip -->
+  <rect x="20" y="318" width="780" height="66" fill="#fff" rx="8" stroke="#e2e8f0" stroke-width="1.5"/>
+  <text x="410" y="336" text-anchor="middle" font-size="11" font-weight="700" fill="#0f172a">Parallelism tip</text>
+  <text x="30"  y="354" font-size="10" fill="#334155">For fastest loads: split source files to 100–250 MB compressed each. More files = more parallelism across warehouse nodes.</text>
+  <text x="30"  y="372" font-size="10" fill="#334155">A LARGE warehouse loading 1 ×10 GB file is slower than loading 100 × 100 MB files — Snowflake parallelises per file.</text>
+
+  <defs>
+    <marker id="aG" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 Z" fill="#94a3b8"/></marker>
+  </defs>
+</svg>

@@ -1,0 +1,75 @@
+<svg width="820" height="400" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,-apple-system,'Segoe UI',sans-serif">
+  <rect width="820" height="400" fill="#f8fafc" rx="12"/>
+
+  <text x="410" y="28" text-anchor="middle" font-size="15" font-weight="700" fill="#0f172a">GENERATOR vs TABLESAMPLE: Synthetic vs Sampled Data</text>
+  <text x="410" y="46" text-anchor="middle" font-size="11" fill="#64748b">Two distinct SQL features — GENERATOR creates rows from nothing; TABLESAMPLE takes a random subset of existing rows</text>
+
+  <!-- GENERATOR (left) -->
+  <rect x="20" y="60" width="380" height="300" fill="#fff" rx="10" stroke="#29b5e8" stroke-width="2"/>
+  <rect x="20" y="60" width="380" height="32" fill="#164365" rx="10"/>
+  <rect x="20" y="82" width="380" height="10" fill="#164365"/>
+  <text x="210" y="82" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">GENERATOR — Synthetic Row Factory</text>
+
+  <text x="30" y="108" font-size="11" font-weight="700" fill="#164365">What it does:</text>
+  <text x="30" y="123" font-size="10" fill="#334155">Creates rows from nothing — no source table needed. Generates</text>
+  <text x="30" y="137" font-size="10" fill="#334155">a virtual table with N rows containing sequential integers.</text>
+
+  <text x="30" y="158" font-size="11" font-weight="700" fill="#164365">Syntax:</text>
+  <rect x="30" y="164" width="358" height="72" fill="#0f172a" rx="6"/>
+  <text x="42" y="180" font-size="10" font-family="'JetBrains Mono','Fira Code',monospace" fill="#94a3b8">-- Generate a 365-row date spine for 2024</text>
+  <text x="42" y="194" font-size="10" font-family="'JetBrains Mono','Fira Code',monospace" fill="#29b5e8">SELECT</text>
+  <text x="42" y="208" font-size="10" font-family="'JetBrains Mono','Fira Code',monospace" fill="#e2e8f0">  DATEADD('day', seq4(), '2024-01-01') AS dt,</text>
+  <text x="42" y="222" font-size="10" font-family="'JetBrains Mono','Fira Code',monospace" fill="#e2e8f0">  seq4() + 1 AS row_num</text>
+  <text x="42" y="236" font-size="10" font-family="'JetBrains Mono','Fira Code',monospace" fill="#29b5e8">FROM TABLE(GENERATOR(ROWCOUNT =&gt; 365));</text>
+
+  <text x="30" y="254" font-size="11" font-weight="700" fill="#164365">Key functions with GENERATOR:</text>
+  <text x="30" y="268" font-size="10" fill="#334155">seq1() / seq2() / seq4() / seq8() — sequential integers per row</text>
+  <text x="30" y="282" font-size="10" fill="#334155">uniform(lo, hi, rand()) — uniform random float in range</text>
+  <text x="30" y="296" font-size="10" fill="#334155">normal(mean, stddev, rand()) — normally distributed float</text>
+  <text x="30" y="310" font-size="11" font-weight="700" fill="#164365">Use cases:</text>
+  <text x="30" y="325" font-size="10" fill="#334155">Date spines · Mock test data · Row-count generation</text>
+  <text x="30" y="339" font-size="10" fill="#334155">Filling calendar gaps · Cross-join expansion</text>
+  <rect x="30" y="348" width="358" height="6" fill="#29b5e8" rx="3" opacity="0.4"/>
+
+  <!-- VS divider -->
+  <rect x="392" y="190" width="36" height="36" fill="#164365" rx="18"/>
+  <text x="410" y="213" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">VS</text>
+
+  <!-- TABLESAMPLE (right) -->
+  <rect x="420" y="60" width="380" height="300" fill="#fff" rx="10" stroke="#f97316" stroke-width="2"/>
+  <rect x="420" y="60" width="380" height="32" fill="#c2410c" rx="10"/>
+  <rect x="420" y="82" width="380" height="10" fill="#c2410c"/>
+  <text x="610" y="82" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">TABLESAMPLE — Random Data Subset</text>
+
+  <text x="430" y="108" font-size="11" font-weight="700" fill="#c2410c">What it does:</text>
+  <text x="430" y="123" font-size="10" fill="#334155">Returns a random subset of an existing table. The table must</text>
+  <text x="430" y="137" font-size="10" fill="#334155">already exist. Does NOT generate synthetic data.</text>
+
+  <text x="430" y="158" font-size="11" font-weight="700" fill="#c2410c">Syntax — two methods:</text>
+  <rect x="430" y="164" width="358" height="72" fill="#0f172a" rx="6"/>
+  <text x="442" y="180" font-size="10" font-family="'JetBrains Mono','Fira Code',monospace" fill="#94a3b8">-- BERNOULLI: random rows (each row ~10% chance)</text>
+  <text x="442" y="194" font-size="10" font-family="'JetBrains Mono','Fira Code',monospace" fill="#e2e8f0">SELECT * FROM customers TABLESAMPLE BERNOULLI(10);</text>
+  <text x="442" y="210" font-size="10" font-family="'JetBrains Mono','Fira Code',monospace" fill="#94a3b8">-- SYSTEM: random micro-partitions (faster, block-level)</text>
+  <text x="442" y="226" font-size="10" font-family="'JetBrains Mono','Fira Code',monospace" fill="#e2e8f0">SELECT * FROM customers TABLESAMPLE SYSTEM(10);</text>
+  <text x="442" y="240" font-size="10" font-family="'JetBrains Mono','Fira Code',monospace" fill="#94a3b8">--                    ^ percentage (0–100)</text>
+
+  <text x="430" y="254" font-size="11" font-weight="700" fill="#c2410c">BERNOULLI vs SYSTEM:</text>
+  <rect x="430" y="260" width="170" height="48" fill="#fff7ed" rx="4"/>
+  <text x="440" y="274" font-size="9" font-weight="600" fill="#c2410c">BERNOULLI</text>
+  <text x="440" y="287" font-size="9" fill="#334155">Row-level probability</text>
+  <text x="440" y="300" font-size="9" fill="#334155">More random, slower</text>
+
+  <rect x="610" y="260" width="170" height="48" fill="#fff7ed" rx="4"/>
+  <text x="620" y="274" font-size="9" font-weight="600" fill="#c2410c">SYSTEM</text>
+  <text x="620" y="287" font-size="9" fill="#334155">Block-level partition scan</text>
+  <text x="620" y="300" font-size="9" fill="#334155">Faster, less uniform</text>
+
+  <text x="430" y="325" font-size="11" font-weight="700" fill="#c2410c">Use cases:</text>
+  <text x="430" y="339" font-size="10" fill="#334155">Query development on large tables · ML train/test split</text>
+  <text x="430" y="353" font-size="10" fill="#334155">Data profiling · Exploration without full scan cost</text>
+  <rect x="430" y="348" width="358" height="6" fill="#f97316" rx="3" opacity="0.4"/>
+
+  <!-- Bottom exam tip -->
+  <rect x="20" y="370" width="780" height="24" fill="#164365" rx="6"/>
+  <text x="410" y="386" text-anchor="middle" font-size="10" fill="#fff">⚠ GENERATOR requires no table · TABLESAMPLE requires an existing table · Both are exam-tested Snowflake SQL extensions</text>
+</svg>

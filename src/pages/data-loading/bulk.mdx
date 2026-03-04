@@ -25,7 +25,7 @@ Bulk loading is the process of efficiently loading large volumes of data into Sn
   title="Data Loading Architecture"
   description="End-to-end flow showing external data sources → stages → COPY INTO → Snowflake tables"
   altText="Data loading architecture showing cloud storage, stages, file formats, and target tables"
-  imagePath="/images/diagrams/stages-overview.png"
+  imagePath="/images/diagrams/bulk-loading-architecture.svg"
 />
 
 The typical bulk loading workflow:
@@ -124,7 +124,7 @@ CREATE STAGE my_gcs_stage
   title="Stage Types Comparison"
   description="Visual comparison of User, Table, and Named stages with their scope and use cases"
   altText="Diagram comparing the three types of Snowflake stages"
-  imagePath="/images/diagrams/stages-overview.png"
+  imagePath="/images/diagrams/stage-types-comparison.svg"
 />
 
 <Flashcard
@@ -284,7 +284,7 @@ SELECT COUNT(*) FROM customer_orders;`}
   title="COPY INTO Execution Flow"
   description="Step-by-step visualisation of how COPY INTO processes files: validation → parallelisation → loading → error handling"
   altText="COPY INTO command execution flow diagram"
-  imagePath="/images/diagrams/stages-overview.png"
+  imagePath="/images/diagrams/copy-into-execution-flow.svg"
 />
 
 ### Error Handling Options
@@ -473,7 +473,7 @@ VALIDATION_MODE = 'RETURN_5_ROWS';     -- Return first 5 error rows`}
   title="Load Monitoring Dashboard"
   description="Example monitoring view showing load status, error rates, throughput, and file processing metrics"
   altText="Data loading monitoring dashboard with key metrics"
-  imagePath="/images/diagrams/stages-overview.png"
+  imagePath="/images/diagrams/load-history-monitoring.svg"
 />
 
 ---

@@ -1,0 +1,113 @@
+<svg width="820" height="420" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,-apple-system,'Segoe UI',sans-serif">
+  <rect width="820" height="420" fill="#f8fafc" rx="12"/>
+
+  <text x="410" y="28" text-anchor="middle" font-size="15" font-weight="700" fill="#0f172a">Snowflake Table Types: Full Comparison</text>
+  <text x="410" y="46" text-anchor="middle" font-size="11" fill="#64748b">Four table types — choose based on persistence, data protection, and billing requirements</text>
+
+  <!-- Column headers -->
+  <rect x="20"  y="60" width="185" height="36" fill="#f1f5f9" rx="6"/>
+  <text x="112" y="84" text-anchor="middle" font-size="12" font-weight="700" fill="#0f172a">Feature</text>
+
+  <rect x="215" y="60" width="140" height="36" fill="#164365" rx="6"/>
+  <text x="285" y="84" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Permanent</text>
+
+  <rect x="365" y="60" width="140" height="36" fill="#1e40af" rx="6"/>
+  <text x="435" y="84" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Transient</text>
+
+  <rect x="515" y="60" width="140" height="36" fill="#7c3aed" rx="6"/>
+  <text x="585" y="84" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Temporary</text>
+
+  <rect x="665" y="60" width="135" height="36" fill="#92400e" rx="6"/>
+  <text x="732" y="84" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">External</text>
+
+  <!-- Rows -->
+  <!-- Row 1: Persistence -->
+  <rect x="20"  y="104" width="185" height="36" fill="#f8fafc" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="30"  y="127" font-size="11" font-weight="600" fill="#334155">Persistence</text>
+  <rect x="215" y="104" width="140" height="36" fill="#dcfce7" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="285" y="127" text-anchor="middle" font-size="11" fill="#166534">✓ Permanent</text>
+  <rect x="365" y="104" width="140" height="36" fill="#dbeafe" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="435" y="127" text-anchor="middle" font-size="11" fill="#1e40af">✓ Permanent</text>
+  <rect x="515" y="104" width="140" height="36" fill="#fef9c3" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="585" y="120" text-anchor="middle" font-size="11" fill="#92400e">Session only</text>
+  <text x="585" y="133" text-anchor="middle" font-size="9" fill="#92400e">(auto-dropped on close)</text>
+  <rect x="665" y="104" width="135" height="36" fill="#fce7f3" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="732" y="120" text-anchor="middle" font-size="11" fill="#831843">Defined by</text>
+  <text x="732" y="133" text-anchor="middle" font-size="9" fill="#831843">external location</text>
+
+  <!-- Row 2: Time Travel -->
+  <rect x="20"  y="148" width="185" height="36" fill="#f8fafc" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="30"  y="171" font-size="11" font-weight="600" fill="#334155">Time Travel</text>
+  <rect x="215" y="148" width="140" height="36" fill="#dcfce7" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="285" y="164" text-anchor="middle" font-size="11" fill="#166534">0–90 days</text>
+  <text x="285" y="178" text-anchor="middle" font-size="9" fill="#166534">(Enterprise: 90d max)</text>
+  <rect x="365" y="148" width="140" height="36" fill="#fef9c3" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="435" y="164" text-anchor="middle" font-size="11" fill="#92400e">0–1 day max</text>
+  <text x="435" y="178" text-anchor="middle" font-size="9" fill="#92400e">(default 0)</text>
+  <rect x="515" y="148" width="140" height="36" fill="#fef9c3" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="585" y="164" text-anchor="middle" font-size="11" fill="#92400e">0–1 day max</text>
+  <text x="585" y="178" text-anchor="middle" font-size="9" fill="#92400e">(default 0)</text>
+  <rect x="665" y="148" width="135" height="36" fill="#fee2e2" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="732" y="171" text-anchor="middle" font-size="11" fill="#b91c1c">✗ None</text>
+
+  <!-- Row 3: Fail-safe -->
+  <rect x="20"  y="192" width="185" height="36" fill="#f8fafc" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="30"  y="215" font-size="11" font-weight="600" fill="#334155">Fail-safe period</text>
+  <rect x="215" y="192" width="140" height="36" fill="#dcfce7" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="285" y="215" text-anchor="middle" font-size="11" fill="#166534">7 days (Snowflake)</text>
+  <rect x="365" y="192" width="140" height="36" fill="#fee2e2" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="435" y="215" text-anchor="middle" font-size="11" fill="#b91c1c">✗ None</text>
+  <rect x="515" y="192" width="140" height="36" fill="#fee2e2" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="585" y="215" text-anchor="middle" font-size="11" fill="#b91c1c">✗ None</text>
+  <rect x="665" y="192" width="135" height="36" fill="#fee2e2" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="732" y="215" text-anchor="middle" font-size="11" fill="#b91c1c">✗ None</text>
+
+  <!-- Row 4: Storage billing -->
+  <rect x="20"  y="236" width="185" height="36" fill="#f8fafc" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="30"  y="259" font-size="11" font-weight="600" fill="#334155">Storage billing</text>
+  <rect x="215" y="236" width="140" height="36" fill="#fef9c3" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="285" y="252" text-anchor="middle" font-size="10" fill="#92400e">Active + Time Travel</text>
+  <text x="285" y="265" text-anchor="middle" font-size="9" fill="#92400e">+ Fail-safe</text>
+  <rect x="365" y="236" width="140" height="36" fill="#dcfce7" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="435" y="252" text-anchor="middle" font-size="10" fill="#166534">Active + Time Travel</text>
+  <text x="435" y="265" text-anchor="middle" font-size="9" fill="#166534">(no fail-safe cost)</text>
+  <rect x="515" y="236" width="140" height="36" fill="#dcfce7" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="585" y="252" text-anchor="middle" font-size="10" fill="#166534">Active only</text>
+  <text x="585" y="265" text-anchor="middle" font-size="9" fill="#166534">(no TT, no fail-safe)</text>
+  <rect x="665" y="236" width="135" height="36" fill="#dcfce7" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="732" y="252" text-anchor="middle" font-size="10" fill="#166534">No Snowflake</text>
+  <text x="732" y="265" text-anchor="middle" font-size="9" fill="#166534">storage cost</text>
+
+  <!-- Row 5: Cloning -->
+  <rect x="20"  y="280" width="185" height="36" fill="#f8fafc" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="30"  y="303" font-size="11" font-weight="600" fill="#334155">Zero-copy cloning</text>
+  <rect x="215" y="280" width="140" height="36" fill="#dcfce7" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="285" y="303" text-anchor="middle" font-size="11" fill="#166534">✓ Supported</text>
+  <rect x="365" y="280" width="140" height="36" fill="#dcfce7" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="435" y="303" text-anchor="middle" font-size="11" fill="#166534">✓ Supported</text>
+  <rect x="515" y="280" width="140" height="36" fill="#fee2e2" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="585" y="303" text-anchor="middle" font-size="11" fill="#b91c1c">✗ Not supported</text>
+  <rect x="665" y="280" width="135" height="36" fill="#fee2e2" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="732" y="303" text-anchor="middle" font-size="11" fill="#b91c1c">✗ Not supported</text>
+
+  <!-- Row 6: Best for -->
+  <rect x="20"  y="324" width="185" height="44" fill="#f8fafc" stroke="#e2e8f0" stroke-width="0.5" rx="0 0 0 6"/>
+  <text x="30"  y="344" font-size="11" font-weight="600" fill="#334155">Best for</text>
+  <rect x="215" y="324" width="140" height="44" fill="#f8fafc" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="285" y="340" text-anchor="middle" font-size="9" fill="#334155">Production tables,</text>
+  <text x="285" y="354" text-anchor="middle" font-size="9" fill="#334155">audit-required data</text>
+  <text x="285" y="363" text-anchor="middle" font-size="9" fill="#334155"></text>
+  <rect x="365" y="324" width="140" height="44" fill="#f8fafc" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="435" y="340" text-anchor="middle" font-size="9" fill="#334155">Staging / scratch tables,</text>
+  <text x="435" y="354" text-anchor="middle" font-size="9" fill="#334155">lower storage cost</text>
+  <rect x="515" y="324" width="140" height="44" fill="#f8fafc" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="585" y="340" text-anchor="middle" font-size="9" fill="#334155">Session-scoped ETL,</text>
+  <text x="585" y="354" text-anchor="middle" font-size="9" fill="#334155">interim transforms</text>
+  <rect x="665" y="324" width="135" height="44" fill="#f8fafc" stroke="#e2e8f0" stroke-width="0.5" rx="0 0 6 0"/>
+  <text x="732" y="340" text-anchor="middle" font-size="9" fill="#334155">Data lake query,</text>
+  <text x="732" y="354" text-anchor="middle" font-size="9" fill="#334155">read-only external data</text>
+
+  <!-- Exam note -->
+  <rect x="20" y="376" width="780" height="34" fill="#164365" rx="6"/>
+  <text x="410" y="397" text-anchor="middle" font-size="11" fill="#fff">⚠ Exam tip: Transient and Temporary tables have max 1-day Time Travel and NO fail-safe. Temporary tables are session-scoped and invisible to other sessions.</text>
+</svg>

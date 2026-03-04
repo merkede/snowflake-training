@@ -51,7 +51,7 @@ A **Virtual Warehouse** is an MPP (Massively Parallel Processing) cluster of com
   title="Snowflake Three-Layer Architecture: Warehouse Position"
   description="A three-tier architecture diagram showing Snowflake's separation of storage, compute, and services. The top layer is labelled 'Cloud Services Layer' and contains boxes for: Query Parser, Query Optimiser, Metadata Manager, Access Control, Transaction Manager, and Security. A two-headed arrow points downward to the middle layer labelled 'Compute Layer (Virtual Warehouses)'. This layer shows three separate warehouse icons — Warehouse A (X-Large, for ETL), Warehouse B (Small, for BI), and Warehouse C (Medium, for Data Science). Each warehouse is completely isolated from the others, indicated by thick borders. A second two-headed arrow points down to the bottom layer labelled 'Storage Layer', which shows columnar data files in compressed micro-partitions stored in cloud object storage (S3, Azure Blob, or GCS). Critically, there are no arrows between the three warehouse boxes — they share storage but do not share compute. A callout bubble reads: 'Warehouses can be started, stopped, and resized independently without affecting stored data.'"
   altText="Snowflake three-layer architecture showing virtual warehouse independence from storage"
-  imagePath="/images/diagrams/architecture-overview.png"
+  imagePath="/images/diagrams/warehouse-architecture-position.svg"
 />
 
 ### Core Properties of Virtual Warehouses
@@ -92,7 +92,7 @@ Snowflake offers a range of warehouse sizes, each doubling compute resources (an
   title="Warehouse Sizes and Credit Consumption"
   description="A bar chart showing all Snowflake warehouse sizes on the X-axis from left to right: X-Small, Small, Medium, Large, X-Large, 2X-Large, 3X-Large, 4X-Large. The Y-axis shows credits per hour. Each bar doubles the previous: X-Small=1, Small=2, Medium=4, Large=8, X-Large=16, 2X-Large=32, 3X-Large=64, 4X-Large=128. A second overlaid line shows approximate query performance scaling — labelled 'relative performance' — which rises steeply at first and then flattens, illustrating diminishing returns from very large warehouses for most workloads. A callout box notes that per-second billing applies after the first 60 seconds. A shaded region on the right side of the chart is labelled 'Typically used for batch ETL, ML training, or very large data transformations' covering 2X-Large through 4X-Large. The region covering X-Small through Medium is labelled 'Typical for BI dashboards and ad-hoc analysis'."
   altText="Bar chart of Snowflake warehouse sizes and their credit consumption rates per hour"
-  imagePath="/images/diagrams/warehouse-overview.png"
+  imagePath="/images/diagrams/warehouse-sizes-credits.svg"
 />
 
 | Warehouse Size | Credits / Hour | Typical Use Case |
@@ -141,7 +141,7 @@ The `AUTO_RESUME` parameter (boolean) determines whether the warehouse automatic
   title="Auto-Suspend and Auto-Resume Timeline"
   description="A horizontal timeline diagram illustrating warehouse state transitions. At the far left, a warehouse is shown in the STARTED state (green). A clock icon shows the AUTO_SUSPEND timer counting down from 600 seconds during a period of no query activity. When the timer reaches zero, the warehouse transitions to SUSPENDED state (grey icon, zero credits label). Time continues on the timeline. Then, a new query arrives (represented by a lightning bolt icon), triggering AUTO_RESUME. The warehouse transitions through STARTING state (yellow, brief) to STARTED state (green) again. A red rectangle underneath the STARTED state segment beginning at the resume point is labelled '60-second minimum billing window'. A callout explains: even if the query finishes in 10 seconds, the full 60-second minimum is billed. After the 60-second window, billing becomes per-second. A second scenario shows a short query (5 seconds) versus a long query (300 seconds), both billed at least 60 seconds on resume."
   altText="Timeline showing warehouse auto-suspend, auto-resume, and the 60-second minimum billing window"
-  imagePath="/images/diagrams/warehouse-overview.png"
+  imagePath="/images/diagrams/warehouse-auto-suspend-resume.svg"
 />
 
 ---
@@ -218,7 +218,7 @@ A single warehouse cluster has a limited number of concurrent query slots. When 
   title="Multi-Cluster Warehouse: Auto-Scale Mode"
   description="A dynamic diagram showing a multi-cluster warehouse operating in auto-scale mode. At the top is a label showing 'Warehouse: BI_WAREHOUSE — MIN_CLUSTER_COUNT=1, MAX_CLUSTER_COUNT=4, SCALING_POLICY=STANDARD'. Three time periods are shown left to right. Period 1 (Low load, 9am): A single cluster (Cluster 1) processes 8 queries shown as small arrows. No queue. Period 2 (Peak load, 12pm): Cluster 1 is at capacity with 8 queries. A queue of 12 additional queries forms to the right, shown as stacked icons. Snowflake's cloud services layer detects the queue and provisions Cluster 2 (shown appearing below Cluster 1) and Cluster 3. The queue drains as queries are distributed across all three clusters. Period 3 (Load decreasing, 2pm): Query volume drops. Cluster 3 finishes its current queries and idles for the consecutive-successful-queries threshold, then is shut down. Cluster 2 also shuts down. Only Cluster 1 remains active. The transition arrows between periods are labelled 'Scale Out' and 'Scale In'. A credit counter in the corner shows increasing credit consumption during peak and decreasing during scale-in."
   altText="Diagram of multi-cluster warehouse scaling out during peak load and scaling in as load decreases"
-  imagePath="/images/diagrams/warehouse-overview.png"
+  imagePath="/images/diagrams/warehouse-multi-cluster-autoscale.svg"
 />
 
 ### Key Multi-Cluster Parameters

@@ -31,7 +31,7 @@ import CheatSheet from '../../components/CheatSheet.tsx';
 
 Data unloading is the process of **exporting data from Snowflake tables into files** in a stage. This is the reverse of data loading — instead of COPY INTO a table, you COPY INTO a location.
 
-<Diagram client:load title="Unloading Flow" description="Flow diagram: 1) Snowflake table contains the source data. 2) COPY INTO location command executes on a virtual warehouse. 3) Data is written as files (CSV, JSON, Parquet) to internal stage (@~, @%, @named) or external stage (S3/Blob/GCS). 4) Optionally, GET command downloads from internal stage to local filesystem." altText="Flow from Snowflake table through COPY INTO to stage files, then optionally GET to local"   imagePath="/images/diagrams/stages-overview.png"
+<Diagram client:load title="Unloading Flow" description="Flow diagram: 1) Snowflake table contains the source data. 2) COPY INTO location command executes on a virtual warehouse. 3) Data is written as files (CSV, JSON, Parquet) to internal stage (@~, @%, @named) or external stage (S3/Blob/GCS). 4) Optionally, GET command downloads from internal stage to local filesystem." altText="Flow from Snowflake table through COPY INTO to stage files, then optionally GET to local"   imagePath="/images/diagrams/data-unloading-flow.svg"
 />
 
 <CalloutBox type="exam" title="Exam Focus: Loading vs Unloading">

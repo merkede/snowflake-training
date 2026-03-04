@@ -1,0 +1,117 @@
+<svg width="820" height="490" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,-apple-system,'Segoe UI',sans-serif">
+  <rect width="820" height="490" fill="#f8fafc" rx="12"/>
+
+  <!-- Header -->
+  <text x="410" y="30" text-anchor="middle" font-size="15" font-weight="700" fill="#0f172a">Snowflake Three-Layer Architecture: Where Virtual Warehouses Sit</text>
+
+  <!-- ── CLOUD SERVICES LAYER ── -->
+  <rect x="30" y="48" width="760" height="100" fill="#eff6ff" rx="8" stroke="#93c5fd" stroke-width="1.5"/>
+  <text x="50" y="68" font-size="11" font-weight="700" fill="#1e40af">CLOUD SERVICES LAYER</text>
+  <text x="50" y="82" font-size="10" fill="#475569">Metadata · Query Planning · Auth · Transactions · Optimisation · Infrastructure Management</text>
+
+  <!-- Service chips -->
+  <rect x="50"  y="90" width="110" height="44" fill="#bfdbfe" rx="6" stroke="#93c5fd" stroke-width="1"/>
+  <text x="105" y="107" text-anchor="middle" font-size="10" font-weight="600" fill="#1e40af">Query Optimizer</text>
+  <text x="105" y="122" text-anchor="middle" font-size="10" fill="#334155">Plans & rewrites SQL</text>
+
+  <rect x="172" y="90" width="110" height="44" fill="#bfdbfe" rx="6" stroke="#93c5fd" stroke-width="1"/>
+  <text x="227" y="107" text-anchor="middle" font-size="10" font-weight="600" fill="#1e40af">Access Control</text>
+  <text x="227" y="122" text-anchor="middle" font-size="10" fill="#334155">Auth, RBAC</text>
+
+  <rect x="294" y="90" width="110" height="44" fill="#bfdbfe" rx="6" stroke="#93c5fd" stroke-width="1"/>
+  <text x="349" y="107" text-anchor="middle" font-size="10" font-weight="600" fill="#1e40af">Metadata Mgr</text>
+  <text x="349" y="122" text-anchor="middle" font-size="10" fill="#334155">Schema, file lists</text>
+
+  <rect x="416" y="90" width="110" height="44" fill="#bfdbfe" rx="6" stroke="#93c5fd" stroke-width="1"/>
+  <text x="471" y="107" text-anchor="middle" font-size="10" font-weight="600" fill="#1e40af">Transactions</text>
+  <text x="471" y="122" text-anchor="middle" font-size="10" fill="#334155">Serialisable ACID</text>
+
+  <rect x="538" y="90" width="110" height="44" fill="#bfdbfe" rx="6" stroke="#93c5fd" stroke-width="1"/>
+  <text x="593" y="107" text-anchor="middle" font-size="10" font-weight="600" fill="#1e40af">Security</text>
+  <text x="593" y="122" text-anchor="middle" font-size="10" fill="#334155">Encryption, keys</text>
+
+  <rect x="660" y="90" width="110" height="44" fill="#bfdbfe" rx="6" stroke="#93c5fd" stroke-width="1"/>
+  <text x="715" y="107" text-anchor="middle" font-size="10" font-weight="600" fill="#1e40af">Load Balancer</text>
+  <text x="715" y="122" text-anchor="middle" font-size="10" fill="#334155">Routes queries</text>
+
+  <!-- Arrow down from Cloud Services to Compute -->
+  <line x1="410" y1="148" x2="410" y2="170" stroke="#64748b" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="410" y1="170" x2="410" y2="148" stroke="#64748b" stroke-width="2" marker-start="url(#arrl)"/>
+
+  <!-- ── COMPUTE LAYER (HIGHLIGHTED) ── -->
+  <rect x="20" y="172" width="780" height="160" fill="#fff" rx="10" stroke="#29b5e8" stroke-width="3"/>
+  <rect x="20" y="172" width="780" height="30" fill="#29b5e8" rx="10"/>
+  <rect x="20" y="192" width="780" height="10" fill="#29b5e8"/>
+  <text x="410" y="191" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">⚡ COMPUTE LAYER — Virtual Warehouses (You control these)</text>
+
+  <!-- VW boxes -->
+  <!-- VW1: ETL -->
+  <rect x="45" y="212" width="215" height="108" fill="#f0fdf4" rx="8" stroke="#22c55e" stroke-width="2"/>
+  <text x="152" y="232" text-anchor="middle" font-size="11" font-weight="700" fill="#166534">Warehouse A</text>
+  <text x="152" y="246" text-anchor="middle" font-size="10" fill="#166534">ETL_WH · X-Large · 16 cr/hr</text>
+  <rect x="60" y="255" width="185" height="24" fill="#dcfce7" rx="4"/>
+  <text x="152" y="270" text-anchor="middle" font-size="10" fill="#334155">16 nodes · parallel transforms</text>
+  <rect x="60" y="285" width="185" height="24" fill="#dcfce7" rx="4"/>
+  <text x="152" y="300" text-anchor="middle" font-size="10" fill="#334155">Local SSD cache: warm</text>
+
+  <!-- VW2: BI -->
+  <rect x="300" y="212" width="215" height="108" fill="#eff6ff" rx="8" stroke="#29b5e8" stroke-width="2"/>
+  <text x="407" y="232" text-anchor="middle" font-size="11" font-weight="700" fill="#164365">Warehouse B</text>
+  <text x="407" y="246" text-anchor="middle" font-size="10" fill="#164365">BI_WH · Small · 2 cr/hr</text>
+  <rect x="315" y="255" width="185" height="24" fill="#dbeafe" rx="4"/>
+  <text x="407" y="270" text-anchor="middle" font-size="10" fill="#334155">2 nodes · dashboards</text>
+  <rect x="315" y="285" width="185" height="24" fill="#dbeafe" rx="4"/>
+  <text x="407" y="300" text-anchor="middle" font-size="10" fill="#334155">Local SSD cache: isolated</text>
+
+  <!-- VW3: Data Science -->
+  <rect x="555" y="212" width="215" height="108" fill="#fdf4ff" rx="8" stroke="#a855f7" stroke-width="2"/>
+  <text x="662" y="232" text-anchor="middle" font-size="11" font-weight="700" fill="#6b21a8">Warehouse C</text>
+  <text x="662" y="246" text-anchor="middle" font-size="10" fill="#6b21a8">DS_WH · Medium · 4 cr/hr</text>
+  <rect x="570" y="255" width="185" height="24" fill="#f3e8ff" rx="4"/>
+  <text x="662" y="270" text-anchor="middle" font-size="10" fill="#334155">4 nodes · ML training</text>
+  <rect x="570" y="285" width="185" height="24" fill="#f3e8ff" rx="4"/>
+  <text x="662" y="300" text-anchor="middle" font-size="10" fill="#334155">Local SSD cache: isolated</text>
+
+  <!-- No sharing arrows between VWs -->
+  <text x="271" y="268" text-anchor="middle" font-size="18" fill="#e2e8f0">✕</text>
+  <text x="527" y="268" text-anchor="middle" font-size="18" fill="#e2e8f0">✕</text>
+
+  <!-- Arrow down from Compute to Storage -->
+  <line x1="410" y1="332" x2="410" y2="355" stroke="#64748b" stroke-width="2"/>
+  <line x1="410" y1="355" x2="410" y2="332" stroke="#64748b" stroke-width="2"/>
+
+  <!-- ── STORAGE LAYER ── -->
+  <rect x="30" y="356" width="760" height="100" fill="#fefce8" rx="8" stroke="#fde047" stroke-width="1.5"/>
+  <text x="50" y="376" font-size="11" font-weight="700" fill="#713f12">STORAGE LAYER — Shared, Persistent, Independent of Compute</text>
+  <text x="50" y="390" font-size="10" fill="#475569">Columnar micro-partitions · Compressed (up to 10×) · Encrypted at rest · S3 / Azure Blob / GCS</text>
+
+  <rect x="50"  y="398" width="155" height="44" fill="#fef9c3" rx="6" stroke="#fde047" stroke-width="1"/>
+  <text x="127" y="415" text-anchor="middle" font-size="10" font-weight="600" fill="#713f12">Micro-partitions</text>
+  <text x="127" y="429" text-anchor="middle" font-size="10" fill="#334155">16 MB · columnar · immutable</text>
+
+  <rect x="220" y="398" width="155" height="44" fill="#fef9c3" rx="6" stroke="#fde047" stroke-width="1"/>
+  <text x="297" y="415" text-anchor="middle" font-size="10" font-weight="600" fill="#713f12">Column Metadata</text>
+  <text x="297" y="429" text-anchor="middle" font-size="10" fill="#334155">min/max for pruning</text>
+
+  <rect x="390" y="398" width="155" height="44" fill="#fef9c3" rx="6" stroke="#fde047" stroke-width="1"/>
+  <text x="467" y="415" text-anchor="middle" font-size="10" font-weight="600" fill="#713f12">Compressed Files</text>
+  <text x="467" y="429" text-anchor="middle" font-size="10" fill="#334155">ZSTD or LZO encoding</text>
+
+  <rect x="560" y="398" width="210" height="44" fill="#fef9c3" rx="6" stroke="#fde047" stroke-width="1"/>
+  <text x="665" y="415" text-anchor="middle" font-size="10" font-weight="600" fill="#713f12">Cloud Object Store</text>
+  <text x="665" y="429" text-anchor="middle" font-size="10" fill="#334155">AWS S3 · Azure Blob · GCS</text>
+
+  <!-- Key insight callout -->
+  <rect x="30" y="462" width="760" height="22" fill="#164365" rx="6"/>
+  <text x="410" y="477" text-anchor="middle" font-size="11" fill="#ffffff">💡 Key insight: Start/stop/resize any warehouse without affecting stored data. All three warehouses read the same storage simultaneously.</text>
+
+  <!-- Arrowhead markers -->
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L6,3 Z" fill="#64748b"/>
+    </marker>
+    <marker id="arrl" markerWidth="8" markerHeight="8" refX="0" refY="3" orient="auto">
+      <path d="M6,0 L6,6 L0,3 Z" fill="#64748b"/>
+    </marker>
+  </defs>
+</svg>

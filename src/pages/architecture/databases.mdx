@@ -176,7 +176,7 @@ Snowflake has four distinct table types, each with different persistence, Time T
   title="Snowflake Table Types Comparison"
   description="A side-by-side comparison matrix of Snowflake's four table types. Columns represent: Permanent Table, Transient Table, Temporary Table, External Table. Rows show: Persistence (Permanent: until dropped; Transient: until dropped; Temporary: session only; External: read-only reference), Time Travel (Permanent: 0-90 days; Transient: 0-1 day; Temporary: 0-1 day; External: none), Fail-safe (Permanent: 7 days; Transient: none; Temporary: none; External: none), Cross-session visibility (Permanent: yes; Transient: yes; Temporary: no, private to session; External: yes), Storage cost (Permanent: highest; Transient: lower, no fail-safe overhead; Temporary: lowest; External: metadata only). The Temporary column is highlighted in yellow with a note 'Session-scoped only'. The External column shows a cloud icon representing data residing in S3/Azure/GCS."
   altText="Comparison matrix of Permanent, Transient, Temporary, and External table types"
-  imagePath="/images/diagrams/micro-partitions.png"
+  imagePath="/images/diagrams/table-types-comparison.svg"
 />
 
 ### 1. Permanent Tables
@@ -324,7 +324,7 @@ SHOW COLUMNS IN TABLE analytics.customers;`} />
   title="Snowflake Data Type Categories"
   description="A categorised diagram of Snowflake data types organised into five groups. Group 1 (Numeric): NUMBER/DECIMAL/NUMERIC (fixed-point), INT/INTEGER/BIGINT/SMALLINT/TINYINT (integer aliases mapped to NUMBER), FLOAT/FLOAT4/FLOAT8/DOUBLE (64-bit floating point), REAL (alias for FLOAT). Group 2 (String): VARCHAR/STRING/TEXT/CHAR/CHARACTER (all map to VARCHAR, max 16MB), BINARY/VARBINARY (raw bytes). Group 3 (Date and Time): DATE (no time component), TIME (no date component), TIMESTAMP_NTZ (no timezone, stored as-is), TIMESTAMP_LTZ (local timezone, stored in UTC), TIMESTAMP_TZ (with timezone offset stored). Group 4 (Boolean): BOOLEAN (TRUE/FALSE/NULL). Group 5 (Semi-Structured): VARIANT (up to 16MB, stores JSON/XML/Avro/Parquet), ARRAY (ordered list of VARIANT values), OBJECT (key-value map of VARIANT values). Group 6 (Geospatial): GEOGRAPHY (earth-curvature-aware), GEOMETRY (flat-plane calculations). Each group has a distinct colour and icon in the diagram."
   altText="Categorised diagram of all Snowflake data types"
-  imagePath="/images/diagrams/securable-objects.png"
+  imagePath="/images/diagrams/data-type-categories.svg"
 />
 
 ### Key Data Types for the Exam

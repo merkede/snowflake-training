@@ -1,0 +1,101 @@
+<svg width="820" height="400" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,-apple-system,'Segoe UI',sans-serif">
+  <rect width="820" height="400" fill="#f8fafc" rx="12"/>
+
+  <text x="410" y="28" text-anchor="middle" font-size="15" font-weight="700" fill="#0f172a">Snowflake Stage Types: Full Comparison</text>
+  <text x="410" y="46" text-anchor="middle" font-size="11" fill="#64748b">Four stage types — choose based on scope, sharing needs, and data location</text>
+
+  <!-- ── User Stage ── -->
+  <rect x="20"  y="60" width="183" height="290" fill="#f0fdf4" rx="10" stroke="#86efac" stroke-width="2"/>
+  <rect x="20"  y="60" width="183" height="36"  fill="#22c55e" rx="10"/>
+  <rect x="20"  y="86" width="183" height="10"  fill="#22c55e"/>
+  <text x="112" y="83" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">@~ User Stage</text>
+
+  <text x="112" y="116" text-anchor="middle" font-size="22">👤</text>
+  <text x="112" y="143" text-anchor="middle" font-size="11" font-weight="700" fill="#166534">Personal stage</text>
+
+  <line x1="35"  y1="152" x2="188" y2="152" stroke="#86efac" stroke-width="1"/>
+  <text x="30"  y="168" font-size="10" fill="#334155">📌 Scope:</text>
+  <text x="30"  y="182" font-size="10" fill="#475569">Per user — not shareable</text>
+  <text x="30"  y="200" font-size="10" fill="#334155">📌 Created:</text>
+  <text x="30"  y="214" font-size="10" fill="#475569">Auto (every user has one)</text>
+  <text x="30"  y="232" font-size="10" fill="#334155">📌 Storage:</text>
+  <text x="30"  y="246" font-size="10" fill="#475569">Snowflake-managed internal</text>
+  <text x="30"  y="264" font-size="10" fill="#334155">📌 Best for:</text>
+  <text x="30"  y="278" font-size="10" fill="#475569">Ad-hoc dev / test loads</text>
+  <text x="30"  y="296" font-size="10" fill="#475569">by a single user</text>
+  <rect x="30"  y="312" width="158" height="28" fill="#dcfce7" rx="6"/>
+  <text x="109" y="329" text-anchor="middle" font-size="10" font-weight="600" fill="#166534">PUT → @~  /  LIST @~</text>
+
+  <!-- ── Table Stage ── -->
+  <rect x="218" y="60" width="183" height="290" fill="#eff6ff" rx="10" stroke="#93c5fd" stroke-width="2"/>
+  <rect x="218" y="60" width="183" height="36"  fill="#3b82f6" rx="10"/>
+  <rect x="218" y="86" width="183" height="10"  fill="#3b82f6"/>
+  <text x="310" y="83" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">@%table_name Stage</text>
+
+  <text x="310" y="116" text-anchor="middle" font-size="22">🗄</text>
+  <text x="310" y="143" text-anchor="middle" font-size="11" font-weight="700" fill="#1e40af">Per-table stage</text>
+
+  <line x1="233" y1="152" x2="386" y2="152" stroke="#93c5fd" stroke-width="1"/>
+  <text x="228" y="168" font-size="10" fill="#334155">📌 Scope:</text>
+  <text x="228" y="182" font-size="10" fill="#475569">Per table — not shareable</text>
+  <text x="228" y="200" font-size="10" fill="#334155">📌 Created:</text>
+  <text x="228" y="214" font-size="10" fill="#475569">Auto (every table has one)</text>
+  <text x="228" y="232" font-size="10" fill="#334155">📌 Storage:</text>
+  <text x="228" y="246" font-size="10" fill="#475569">Snowflake-managed internal</text>
+  <text x="228" y="264" font-size="10" fill="#334155">📌 Best for:</text>
+  <text x="228" y="278" font-size="10" fill="#475569">One-time table loads,</text>
+  <text x="228" y="292" font-size="10" fill="#475569">tightly coupled to table</text>
+  <rect x="228" y="312" width="158" height="28" fill="#dbeafe" rx="6"/>
+  <text x="307" y="325" text-anchor="middle" font-size="10" font-weight="600" fill="#1e40af">PUT → @%orders</text>
+  <text x="307" y="336" text-anchor="middle" font-size="10" font-weight="600" fill="#1e40af">LIST @%orders</text>
+
+  <!-- ── Named Internal Stage ── -->
+  <rect x="416" y="60" width="183" height="290" fill="#fdf4ff" rx="10" stroke="#d8b4fe" stroke-width="2"/>
+  <rect x="416" y="60" width="183" height="36"  fill="#a855f7" rx="10"/>
+  <rect x="416" y="86" width="183" height="10"  fill="#a855f7"/>
+  <text x="508" y="83" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">@my_stage (Internal)</text>
+
+  <text x="508" y="116" text-anchor="middle" font-size="22">🏠</text>
+  <text x="508" y="143" text-anchor="middle" font-size="11" font-weight="700" fill="#6b21a8">Named internal</text>
+
+  <line x1="431" y1="152" x2="584" y2="152" stroke="#d8b4fe" stroke-width="1"/>
+  <text x="426" y="168" font-size="10" fill="#334155">📌 Scope:</text>
+  <text x="426" y="182" font-size="10" fill="#475569">Shareable across account</text>
+  <text x="426" y="200" font-size="10" fill="#334155">📌 Created:</text>
+  <text x="426" y="214" font-size="10" fill="#475569">Manually: CREATE STAGE</text>
+  <text x="426" y="232" font-size="10" fill="#334155">📌 Storage:</text>
+  <text x="426" y="246" font-size="10" fill="#475569">Snowflake-managed cloud</text>
+  <text x="426" y="264" font-size="10" fill="#334155">📌 Best for:</text>
+  <text x="426" y="278" font-size="10" fill="#475569">Shared ETL pipelines,</text>
+  <text x="426" y="292" font-size="10" fill="#475569">team data loads</text>
+  <rect x="426" y="312" width="158" height="28" fill="#f3e8ff" rx="6"/>
+  <text x="505" y="325" text-anchor="middle" font-size="10" font-weight="600" fill="#6b21a8">PUT → @my_stage</text>
+  <text x="505" y="336" text-anchor="middle" font-size="10" font-weight="600" fill="#6b21a8">LIST @my_stage</text>
+
+  <!-- ── Named External Stage ── -->
+  <rect x="614" y="60" width="186" height="290" fill="#fff7ed" rx="10" stroke="#fdba74" stroke-width="2"/>
+  <rect x="614" y="60" width="186" height="36"  fill="#f97316" rx="10"/>
+  <rect x="614" y="86" width="186" height="10"  fill="#f97316"/>
+  <text x="707" y="83" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">@ext_stage (External)</text>
+
+  <text x="707" y="116" text-anchor="middle" font-size="22">☁</text>
+  <text x="707" y="143" text-anchor="middle" font-size="11" font-weight="700" fill="#c2410c">Named external</text>
+
+  <line x1="629" y1="152" x2="785" y2="152" stroke="#fdba74" stroke-width="1"/>
+  <text x="624" y="168" font-size="10" fill="#334155">📌 Scope:</text>
+  <text x="624" y="182" font-size="10" fill="#475569">Shareable — your cloud</text>
+  <text x="624" y="200" font-size="10" fill="#334155">📌 Created:</text>
+  <text x="624" y="214" font-size="10" fill="#475569">CREATE STAGE + URL=</text>
+  <text x="624" y="232" font-size="10" fill="#334155">📌 Storage:</text>
+  <text x="624" y="246" font-size="10" fill="#475569">S3 / Azure Blob / GCS</text>
+  <text x="624" y="264" font-size="10" fill="#334155">📌 Auth:</text>
+  <text x="624" y="278" font-size="10" fill="#475569">Storage integration or</text>
+  <text x="624" y="292" font-size="10" fill="#475569">credentials / SAS token</text>
+  <rect x="624" y="312" width="162" height="28" fill="#ffedd5" rx="6"/>
+  <text x="705" y="325" text-anchor="middle" font-size="10" font-weight="600" fill="#c2410c">No PUT needed — data</text>
+  <text x="705" y="336" text-anchor="middle" font-size="10" font-weight="600" fill="#c2410c">already in cloud bucket</text>
+
+  <!-- Exam tip -->
+  <rect x="20" y="360" width="780" height="28" fill="#164365" rx="6"/>
+  <text x="410" y="379" text-anchor="middle" font-size="11" fill="#fff">⚠ Exam tip: Only named stages (internal &amp; external) can be created explicitly with CREATE STAGE and shared across roles/users.</text>
+</svg>

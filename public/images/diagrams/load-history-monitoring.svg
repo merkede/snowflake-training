@@ -1,0 +1,110 @@
+<svg width="820" height="400" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,-apple-system,'Segoe UI',sans-serif">
+  <rect width="820" height="400" fill="#f8fafc" rx="12"/>
+
+  <text x="410" y="28" text-anchor="middle" font-size="15" font-weight="700" fill="#0f172a">Load Monitoring: COPY_HISTORY and LOAD_HISTORY</text>
+  <text x="410" y="46" text-anchor="middle" font-size="11" fill="#64748b">Two mechanisms to inspect completed and in-progress data loads — both available after COPY INTO executes</text>
+
+  <!-- Left: COPY_HISTORY (table function) -->
+  <rect x="20" y="62" width="380" height="310" fill="#fff" rx="10" stroke="#29b5e8" stroke-width="2"/>
+  <rect x="20" y="62" width="380" height="32" fill="#164365" rx="10"/>
+  <rect x="20" y="84" width="380" height="10" fill="#164365"/>
+  <text x="210" y="84" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">INFORMATION_SCHEMA.COPY_HISTORY()</text>
+  <text x="210" y="96" text-anchor="middle" font-size="10" fill="#fff">Table function — query per table</text>
+
+  <!-- SQL block -->
+  <rect x="32" y="104" width="356" height="52" fill="#0f172a" rx="6"/>
+  <text x="42" y="120" font-size="9" fill="#94a3b8">SELECT * FROM TABLE(</text>
+  <text x="42" y="133" font-size="9" fill="#29b5e8">  INFORMATION_SCHEMA.COPY_HISTORY(</text>
+  <text x="42" y="146" font-size="9" fill="#94a3b8">    TABLE_NAME=&gt;'orders',</text>
+  <text x="42" y="159" font-size="9" fill="#94a3b8">    START_TIME=&gt;DATEADD('day',-7,CURRENT_TIMESTAMP())));</text>
+
+  <!-- Columns -->
+  <text x="32" y="174" font-size="10" font-weight="700" fill="#0f172a">Key columns returned:</text>
+  <rect x="32" y="180" width="356" height="170" fill="#f8fafc" rx="4"/>
+
+  <text x="42" y="196" font-size="10" fill="#164365">FILE_NAME</text>
+  <text x="180" y="196" font-size="10" fill="#475569">Full staged file path (e.g. s3://bucket/data.csv)</text>
+
+  <line x1="32" y1="202" x2="388" y2="202" stroke="#e2e8f0" stroke-width="0.8"/>
+  <text x="42" y="216" font-size="10" fill="#164365">STATUS</text>
+  <text x="180" y="216" font-size="10" fill="#475569">LOADED · LOAD_FAILED · PARTIALLY_LOADED</text>
+
+  <line x1="32" y1="222" x2="388" y2="222" stroke="#e2e8f0" stroke-width="0.8"/>
+  <text x="42" y="236" font-size="10" fill="#164365">ROWS_LOADED</text>
+  <text x="180" y="236" font-size="10" fill="#475569">Count of rows successfully loaded</text>
+
+  <line x1="32" y1="242" x2="388" y2="242" stroke="#e2e8f0" stroke-width="0.8"/>
+  <text x="42" y="256" font-size="10" fill="#164365">ERRORS_SEEN</text>
+  <text x="180" y="256" font-size="10" fill="#475569">Row-level error count</text>
+
+  <line x1="32" y1="262" x2="388" y2="262" stroke="#e2e8f0" stroke-width="0.8"/>
+  <text x="42" y="276" font-size="10" fill="#164365">FIRST_ERROR_MESSAGE</text>
+  <text x="180" y="276" font-size="10" fill="#475569">First error text from failed rows</text>
+
+  <line x1="32" y1="282" x2="388" y2="282" stroke="#e2e8f0" stroke-width="0.8"/>
+  <text x="42" y="296" font-size="10" fill="#164365">LAST_LOAD_TIME</text>
+  <text x="180" y="296" font-size="10" fill="#475569">Timestamp of file completion</text>
+
+  <line x1="32" y1="302" x2="388" y2="302" stroke="#e2e8f0" stroke-width="0.8"/>
+  <text x="42" y="316" font-size="10" fill="#164365">PIPE_NAME</text>
+  <text x="180" y="316" font-size="10" fill="#475569">Populated if loaded via Snowpipe</text>
+
+  <line x1="32" y1="322" x2="388" y2="322" stroke="#e2e8f0" stroke-width="0.8"/>
+  <text x="42" y="336" font-size="10" fill="#164365">FILE_SIZE</text>
+  <text x="180" y="336" font-size="10" fill="#475569">Compressed file size in bytes</text>
+
+  <rect x="32" y="348" width="356" height="18" fill="#dbeafe" rx="4"/>
+  <text x="210" y="361" text-anchor="middle" font-size="9" fill="#1e40af">Scope: 64 days history · per target table · schema-level permission</text>
+
+  <!-- Right: ACCOUNT_USAGE -->
+  <rect x="420" y="62" width="380" height="310" fill="#fff" rx="10" stroke="#a855f7" stroke-width="2"/>
+  <rect x="420" y="62" width="380" height="32" fill="#6b21a8" rx="10"/>
+  <rect x="420" y="84" width="380" height="10" fill="#6b21a8"/>
+  <text x="610" y="84" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">ACCOUNT_USAGE.LOAD_HISTORY</text>
+  <text x="610" y="96" text-anchor="middle" font-size="10" fill="#e9d5ff">View — account-wide history</text>
+
+  <!-- SQL block -->
+  <rect x="432" y="104" width="356" height="52" fill="#0f172a" rx="6"/>
+  <text x="442" y="120" font-size="9" fill="#94a3b8">SELECT table_name, file_name, status, rows_loaded</text>
+  <text x="442" y="133" font-size="9" fill="#94a3b8">FROM SNOWFLAKE.ACCOUNT_USAGE.LOAD_HISTORY</text>
+  <text x="442" y="146" font-size="9" fill="#94a3b8">WHERE last_load_time &gt; DATEADD('day', -7, CURRENT_DATE)</text>
+  <text x="442" y="159" font-size="9" fill="#a855f7">ORDER BY last_load_time DESC;</text>
+
+  <!-- Columns -->
+  <text x="432" y="174" font-size="10" font-weight="700" fill="#0f172a">Key columns:</text>
+  <rect x="432" y="180" width="356" height="170" fill="#f8fafc" rx="4"/>
+
+  <text x="442" y="196" font-size="10" fill="#6b21a8">TABLE_NAME / TABLE_ID</text>
+  <text x="590" y="196" font-size="10" fill="#475569">Target table identifier</text>
+
+  <line x1="432" y1="202" x2="788" y2="202" stroke="#e2e8f0" stroke-width="0.8"/>
+  <text x="442" y="216" font-size="10" fill="#6b21a8">SCHEMA_NAME / DATABASE</text>
+  <text x="590" y="216" font-size="10" fill="#475569">Full object namespace</text>
+
+  <line x1="432" y1="222" x2="788" y2="222" stroke="#e2e8f0" stroke-width="0.8"/>
+  <text x="442" y="236" font-size="10" fill="#6b21a8">FILE_NAME</text>
+  <text x="590" y="236" font-size="10" fill="#475569">Source file path</text>
+
+  <line x1="432" y1="242" x2="788" y2="242" stroke="#e2e8f0" stroke-width="0.8"/>
+  <text x="442" y="256" font-size="10" fill="#6b21a8">STATUS</text>
+  <text x="590" y="256" font-size="10" fill="#475569">LOADED · LOAD_FAILED</text>
+
+  <line x1="432" y1="262" x2="788" y2="262" stroke="#e2e8f0" stroke-width="0.8"/>
+  <text x="442" y="276" font-size="10" fill="#6b21a8">ROWS_LOADED / ERRORS_SEEN</text>
+  <text x="590" y="276" font-size="10" fill="#475569">Load outcome metrics</text>
+
+  <line x1="432" y1="282" x2="788" y2="282" stroke="#e2e8f0" stroke-width="0.8"/>
+  <text x="442" y="296" font-size="10" fill="#6b21a8">LAST_LOAD_TIME</text>
+  <text x="590" y="296" font-size="10" fill="#475569">Timestamp of load completion</text>
+
+  <line x1="432" y1="302" x2="788" y2="302" stroke="#e2e8f0" stroke-width="0.8"/>
+  <text x="442" y="316" font-size="10" fill="#6b21a8">PIPE_NAME</text>
+  <text x="590" y="316" font-size="10" fill="#475569">Snowpipe name if applicable</text>
+
+  <line x1="432" y1="322" x2="788" y2="322" stroke="#e2e8f0" stroke-width="0.8"/>
+  <text x="442" y="336" font-size="10" fill="#6b21a8">FIRST_ERROR_MESSAGE</text>
+  <text x="590" y="336" font-size="10" fill="#475569">Detailed error text</text>
+
+  <rect x="432" y="348" width="356" height="18" fill="#f3e8ff" rx="4"/>
+  <text x="610" y="361" text-anchor="middle" font-size="9" fill="#6b21a8">Scope: 365 days · all tables in account · ACCOUNTADMIN or SNOWFLAKE db grant</text>
+</svg>

@@ -1,0 +1,123 @@
+<svg width="820" height="380" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,-apple-system,'Segoe UI',sans-serif">
+  <rect width="820" height="380" fill="#f8fafc" rx="12"/>
+
+  <text x="410" y="28" text-anchor="middle" font-size="15" font-weight="700" fill="#0f172a">Bulk Data Loading Architecture</text>
+  <text x="410" y="46" text-anchor="middle" font-size="11" fill="#64748b">End-to-end flow from source files to Snowflake tables via staging</text>
+
+  <!-- ── STEP 1: Data Sources ── -->
+  <rect x="20" y="70" width="140" height="200" fill="#f0fdf4" rx="8" stroke="#86efac" stroke-width="1.5"/>
+  <text x="90" y="90" text-anchor="middle" font-size="11" font-weight="700" fill="#166534">Data Sources</text>
+
+  <rect x="32" y="100" width="116" height="24" fill="#dcfce7" rx="4" stroke="#86efac" stroke-width="1"/>
+  <text x="90" y="116" text-anchor="middle" font-size="10" fill="#166534">📄 CSV / TSV</text>
+
+  <rect x="32" y="130" width="116" height="24" fill="#dcfce7" rx="4" stroke="#86efac" stroke-width="1"/>
+  <text x="90" y="146" text-anchor="middle" font-size="10" fill="#166534">🗃 Parquet / ORC</text>
+
+  <rect x="32" y="160" width="116" height="24" fill="#dcfce7" rx="4" stroke="#86efac" stroke-width="1"/>
+  <text x="90" y="176" text-anchor="middle" font-size="10" fill="#166534">{ } JSON / Avro</text>
+
+  <rect x="32" y="190" width="116" height="24" fill="#dcfce7" rx="4" stroke="#86efac" stroke-width="1"/>
+  <text x="90" y="206" text-anchor="middle" font-size="10" fill="#166534">☁ S3 / Blob / GCS</text>
+
+  <rect x="32" y="220" width="116" height="24" fill="#dcfce7" rx="4" stroke="#86efac" stroke-width="1"/>
+  <text x="90" y="236" text-anchor="middle" font-size="10" fill="#166534">💻 Local (via PUT)</text>
+
+  <!-- Arrow 1 -->
+  <line x1="160" y1="170" x2="195" y2="170" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrGr)"/>
+  <text x="177" y="163" text-anchor="middle" font-size="9" fill="#64748b">PUT</text>
+
+  <!-- ── STEP 2: Stage ── -->
+  <rect x="195" y="70" width="170" height="200" fill="#eff6ff" rx="8" stroke="#93c5fd" stroke-width="1.5"/>
+  <text x="280" y="90" text-anchor="middle" font-size="11" font-weight="700" fill="#1e40af">Stage</text>
+  <text x="280" y="104" text-anchor="middle" font-size="9" fill="#64748b">Temporary file holding area</text>
+
+  <rect x="208" y="112" width="144" height="36" fill="#dbeafe" rx="6" stroke="#93c5fd" stroke-width="1"/>
+  <text x="280" y="127" text-anchor="middle" font-size="10" font-weight="600" fill="#1e40af">@~ User Stage</text>
+  <text x="280" y="141" text-anchor="middle" font-size="9" fill="#334155">Personal, no sharing</text>
+
+  <rect x="208" y="154" width="144" height="36" fill="#dbeafe" rx="6" stroke="#93c5fd" stroke-width="1"/>
+  <text x="280" y="169" text-anchor="middle" font-size="10" font-weight="600" fill="#1e40af">@%table Stage</text>
+  <text x="280" y="183" text-anchor="middle" font-size="9" fill="#334155">Per-table, auto-created</text>
+
+  <rect x="208" y="196" width="144" height="36" fill="#bfdbfe" rx="6" stroke="#60a5fa" stroke-width="1"/>
+  <text x="280" y="211" text-anchor="middle" font-size="10" font-weight="600" fill="#1e40af">@named Stage</text>
+  <text x="280" y="225" text-anchor="middle" font-size="9" fill="#334155">Shared, internal or external</text>
+
+  <rect x="208" y="238" width="144" height="22" fill="#eff6ff" rx="4" stroke="#93c5fd" stroke-width="1"/>
+  <text x="280" y="253" text-anchor="middle" font-size="9" fill="#1e40af">LIST @stage · REMOVE @stage</text>
+
+  <!-- Arrow 2 -->
+  <line x1="365" y1="170" x2="400" y2="170" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrGr)"/>
+  <text x="382" y="163" text-anchor="middle" font-size="9" fill="#64748b">COPY</text>
+
+  <!-- ── STEP 3: File Format ── -->
+  <rect x="400" y="70" width="150" height="200" fill="#fdf4ff" rx="8" stroke="#d8b4fe" stroke-width="1.5"/>
+  <text x="475" y="90" text-anchor="middle" font-size="11" font-weight="700" fill="#6b21a8">File Format</text>
+  <text x="475" y="104" text-anchor="middle" font-size="9" fill="#64748b">Parsing instructions</text>
+
+  <rect x="412" y="112" width="126" height="24" fill="#f3e8ff" rx="4" stroke="#d8b4fe" stroke-width="1"/>
+  <text x="475" y="128" text-anchor="middle" font-size="10" fill="#6b21a8">TYPE = 'CSV'</text>
+
+  <rect x="412" y="142" width="126" height="24" fill="#f3e8ff" rx="4" stroke="#d8b4fe" stroke-width="1"/>
+  <text x="475" y="158" text-anchor="middle" font-size="10" fill="#6b21a8">FIELD_DELIMITER = ','</text>
+
+  <rect x="412" y="172" width="126" height="24" fill="#f3e8ff" rx="4" stroke="#d8b4fe" stroke-width="1"/>
+  <text x="475" y="188" text-anchor="middle" font-size="10" fill="#6b21a8">SKIP_HEADER = 1</text>
+
+  <rect x="412" y="202" width="126" height="24" fill="#f3e8ff" rx="4" stroke="#d8b4fe" stroke-width="1"/>
+  <text x="475" y="218" text-anchor="middle" font-size="10" fill="#6b21a8">NULL_IF = ('NULL')</text>
+
+  <rect x="412" y="232" width="126" height="28" fill="#f3e8ff" rx="4" stroke="#d8b4fe" stroke-width="1"/>
+  <text x="475" y="248" text-anchor="middle" font-size="9" fill="#6b21a8">ON_ERROR = 'CONTINUE'</text>
+  <text x="475" y="258" text-anchor="middle" font-size="9" fill="#6b21a8">PURGE = TRUE</text>
+
+  <!-- Arrow 3 -->
+  <line x1="550" y1="170" x2="585" y2="170" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrGr)"/>
+
+  <!-- ── STEP 4: COPY INTO ── -->
+  <rect x="585" y="115" width="100" height="110" fill="#164365" rx="8"/>
+  <text x="635" y="150" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">COPY</text>
+  <text x="635" y="167" text-anchor="middle" font-size="12" font-weight="700" fill="#29b5e8">INTO</text>
+  <text x="635" y="190" text-anchor="middle" font-size="9" fill="#94a3b8">Parallel</text>
+  <text x="635" y="203" text-anchor="middle" font-size="9" fill="#94a3b8">load engine</text>
+
+  <!-- Arrow 4 -->
+  <line x1="685" y1="170" x2="720" y2="170" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrGr)"/>
+
+  <!-- ── STEP 5: Snowflake Table ── -->
+  <rect x="720" y="70" width="90" height="200" fill="#fff7ed" rx="8" stroke="#fdba74" stroke-width="1.5"/>
+  <text x="765" y="92" text-anchor="middle" font-size="11" font-weight="700" fill="#c2410c">Target</text>
+  <text x="765" y="106" text-anchor="middle" font-size="11" font-weight="700" fill="#c2410c">Table</text>
+  <!-- Table visual -->
+  <rect x="730" y="116" width="70" height="130" fill="#fef3c7" rx="4" stroke="#fbbf24" stroke-width="1"/>
+  <line x1="730" y1="132" x2="800" y2="132" stroke="#fbbf24" stroke-width="1"/>
+  <line x1="730" y1="148" x2="800" y2="148" stroke="#fde68a" stroke-width="0.5"/>
+  <line x1="730" y1="164" x2="800" y2="164" stroke="#fde68a" stroke-width="0.5"/>
+  <line x1="730" y1="180" x2="800" y2="180" stroke="#fde68a" stroke-width="0.5"/>
+  <line x1="730" y1="196" x2="800" y2="196" stroke="#fde68a" stroke-width="0.5"/>
+  <line x1="730" y1="212" x2="800" y2="212" stroke="#fde68a" stroke-width="0.5"/>
+  <line x1="766" y1="116" x2="766" y2="246" stroke="#fbbf24" stroke-width="0.5"/>
+  <text x="748" y="127" text-anchor="middle" font-size="7" fill="#92400e">ID</text>
+  <text x="783" y="127" text-anchor="middle" font-size="7" fill="#92400e">Value</text>
+  <text x="748" y="143" text-anchor="middle" font-size="7" fill="#334155">1</text><text x="783" y="143" text-anchor="middle" font-size="7" fill="#334155">abc</text>
+  <text x="748" y="159" text-anchor="middle" font-size="7" fill="#334155">2</text><text x="783" y="159" text-anchor="middle" font-size="7" fill="#334155">def</text>
+  <text x="748" y="175" text-anchor="middle" font-size="7" fill="#334155">3</text><text x="783" y="175" text-anchor="middle" font-size="7" fill="#334155">ghi</text>
+
+  <!-- Step labels -->
+  <text x="90"  y="285" text-anchor="middle" font-size="10" font-weight="700" fill="#166534">① PREPARE</text>
+  <text x="280" y="285" text-anchor="middle" font-size="10" font-weight="700" fill="#1e40af">② STAGE</text>
+  <text x="475" y="285" text-anchor="middle" font-size="10" font-weight="700" fill="#6b21a8">③ FORMAT</text>
+  <text x="635" y="285" text-anchor="middle" font-size="10" font-weight="700" fill="#0f172a">④ COPY</text>
+  <text x="765" y="285" text-anchor="middle" font-size="10" font-weight="700" fill="#c2410c">⑤ LOADED</text>
+
+  <!-- Load history note -->
+  <rect x="20" y="302" width="780" height="62" fill="#fff" rx="8" stroke="#e2e8f0" stroke-width="1.5"/>
+  <text x="410" y="320" text-anchor="middle" font-size="11" font-weight="700" fill="#0f172a">Key COPY INTO options</text>
+  <text x="50"  y="337" font-size="10" fill="#334155">FORCE = FALSE (default) — skip files already loaded · PURGE = TRUE — delete staged files after load</text>
+  <text x="50"  y="353" font-size="10" fill="#334155">PATTERN = '.*\.csv' — regex file filter · ON_ERROR = 'SKIP_FILE_5%' — skip file if &gt;5% rows fail</text>
+
+  <defs>
+    <marker id="arrGr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 Z" fill="#94a3b8"/></marker>
+  </defs>
+</svg>

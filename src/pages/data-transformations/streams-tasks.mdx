@@ -309,7 +309,7 @@ Rules for task DAGs:
   title="Task DAG Structure"
   description="The root task runs every 15 minutes on a WAREHOUSE schedule. On success, child_task_1 runs immediately after. On success of child_task_1, child_task_2 runs. Each task uses the AFTER clause to express the dependency. The DAG terminates if any task fails — subsequent dependents do not run."
   altText="Flow diagram with root_task at top feeding into child_task_1, which feeds into child_task_2. Root task has a clock icon for schedule. Arrows indicate sequential dependency flow downward."
-  imagePath="/images/diagrams/streams-pipeline.png"
+  imagePath="/images/diagrams/task-dag-structure.svg"
 />
 
 ---

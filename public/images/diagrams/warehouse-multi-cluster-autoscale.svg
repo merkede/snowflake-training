@@ -1,0 +1,120 @@
+<svg width="820" height="470" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,-apple-system,'Segoe UI',sans-serif">
+  <rect width="820" height="470" fill="#f8fafc" rx="12"/>
+
+  <text x="410" y="28" text-anchor="middle" font-size="15" font-weight="700" fill="#0f172a">Multi-Cluster Warehouse: Auto-Scale Mode (Enterprise Edition)</text>
+  <text x="410" y="46" text-anchor="middle" font-size="11" fill="#64748b">BI_WH · SCALING_POLICY = STANDARD · MIN_CLUSTER_COUNT = 1 · MAX_CLUSTER_COUNT = 3</text>
+
+  <!-- ── PERIOD 1: LOW LOAD ── -->
+  <rect x="20" y="60" width="240" height="280" fill="#f0fdf4" rx="10" stroke="#86efac" stroke-width="1.5"/>
+  <rect x="20" y="60" width="240" height="28" fill="#22c55e" rx="10"/>
+  <rect x="20" y="78" width="240" height="10" fill="#22c55e"/>
+  <text x="140" y="79" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">09:00 — Low Load</text>
+
+  <!-- Single cluster -->
+  <rect x="35" y="100" width="210" height="60" fill="#fff" rx="8" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="140" y="120" text-anchor="middle" font-size="11" font-weight="700" fill="#166534">Cluster 1</text>
+  <!-- Queries (small dots) -->
+  <circle cx="70"  cy="140" r="6" fill="#29b5e8"/><text x="70"  y="144" text-anchor="middle" font-size="7" fill="#fff">Q</text>
+  <circle cx="90"  cy="140" r="6" fill="#29b5e8"/><text x="90"  y="144" text-anchor="middle" font-size="7" fill="#fff">Q</text>
+  <circle cx="110" cy="140" r="6" fill="#29b5e8"/><text x="110" y="144" text-anchor="middle" font-size="7" fill="#fff">Q</text>
+  <circle cx="130" cy="140" r="6" fill="#29b5e8"/><text x="130" y="144" text-anchor="middle" font-size="7" fill="#fff">Q</text>
+  <circle cx="150" cy="140" r="6" fill="#29b5e8"/><text x="150" y="144" text-anchor="middle" font-size="7" fill="#fff">Q</text>
+
+  <text x="140" y="182" text-anchor="middle" font-size="10" fill="#475569">5 queries running</text>
+  <text x="140" y="196" text-anchor="middle" font-size="10" fill="#475569">Queue: 0 waiting</text>
+  <text x="140" y="212" text-anchor="middle" font-size="10" fill="#166534">✓ No queuing</text>
+
+  <!-- Credit meter -->
+  <text x="140" y="240" text-anchor="middle" font-size="10" fill="#64748b">Active clusters: 1</text>
+  <rect x="50" y="248" width="180" height="14" fill="#e2e8f0" rx="4"/>
+  <rect x="50" y="248" width="60"  height="14" fill="#22c55e" rx="4"/>
+  <text x="140" y="277" text-anchor="middle" font-size="10" fill="#166534">Credits: 4/hr (M size)</text>
+
+  <!-- ── PERIOD 2: PEAK LOAD ── -->
+  <rect x="290" y="60" width="240" height="280" fill="#fff7ed" rx="10" stroke="#fdba74" stroke-width="1.5"/>
+  <rect x="290" y="60" width="240" height="28" fill="#f97316" rx="10"/>
+  <rect x="290" y="78" width="240" height="10" fill="#f97316"/>
+  <text x="410" y="79" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">12:00 — Peak Load</text>
+
+  <!-- Cluster 1 -->
+  <rect x="305" y="96" width="210" height="52" fill="#fff" rx="6" stroke="#f97316" stroke-width="1.5"/>
+  <text x="410" y="112" text-anchor="middle" font-size="10" font-weight="700" fill="#c2410c">Cluster 1 (at capacity)</text>
+  <circle cx="330" cy="130" r="5" fill="#29b5e8"/><text x="330" cy="130" y="134" text-anchor="middle" font-size="6" fill="#fff">Q</text>
+  <circle cx="345" cy="130" r="5" fill="#29b5e8"/><circle cx="360" cy="130" r="5" fill="#29b5e8"/>
+  <circle cx="375" cy="130" r="5" fill="#29b5e8"/><circle cx="390" cy="130" r="5" fill="#29b5e8"/>
+  <circle cx="405" cy="130" r="5" fill="#29b5e8"/><circle cx="420" cy="130" r="5" fill="#29b5e8"/>
+  <circle cx="435" cy="130" r="5" fill="#29b5e8"/><circle cx="450" cy="130" r="5" fill="#29b5e8"/>
+  <circle cx="465" cy="130" r="5" fill="#ef4444"/>
+
+  <!-- Cluster 2 (auto-added) -->
+  <rect x="305" y="156" width="210" height="40" fill="#dcfce7" rx="6" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="410" y="172" text-anchor="middle" font-size="10" font-weight="700" fill="#166534">Cluster 2 (auto-provisioned)</text>
+  <circle cx="335" cy="188" r="5" fill="#29b5e8"/><circle cx="350" cy="188" r="5" fill="#29b5e8"/>
+  <circle cx="365" cy="188" r="5" fill="#29b5e8"/><circle cx="380" cy="188" r="5" fill="#29b5e8"/>
+
+  <!-- Cluster 3 (auto-added) -->
+  <rect x="305" y="202" width="210" height="40" fill="#dcfce7" rx="6" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="410" y="218" text-anchor="middle" font-size="10" font-weight="700" fill="#166534">Cluster 3 (auto-provisioned)</text>
+  <circle cx="335" cy="234" r="5" fill="#29b5e8"/><circle cx="350" cy="234" r="5" fill="#29b5e8"/>
+  <circle cx="365" cy="234" r="5" fill="#29b5e8"/>
+
+  <text x="410" y="265" text-anchor="middle" font-size="10" fill="#c2410c">30 queries, 0 in queue</text>
+  <rect x="320" y="272" width="180" height="14" fill="#e2e8f0" rx="4"/>
+  <rect x="320" y="272" width="180" height="14" fill="#f97316" rx="4"/>
+  <text x="410" y="302" text-anchor="middle" font-size="10" fill="#c2410c">Credits: 12/hr (3 × 4cr)</text>
+
+  <!-- SCALE OUT arrow -->
+  <line x1="260" y1="200" x2="286" y2="200" stroke="#f97316" stroke-width="2" stroke-dasharray="4,2" marker-end="url(#arrO2)"/>
+  <text x="273" y="192" text-anchor="middle" font-size="9" fill="#c2410c">scale</text>
+  <text x="273" y="204" text-anchor="middle" font-size="9" fill="#c2410c">out →</text>
+
+  <!-- ── PERIOD 3: SCALE IN ── -->
+  <rect x="560" y="60" width="240" height="280" fill="#eff6ff" rx="10" stroke="#93c5fd" stroke-width="1.5"/>
+  <rect x="560" y="60" width="240" height="28" fill="#3b82f6" rx="10"/>
+  <rect x="560" y="78" width="240" height="10" fill="#3b82f6"/>
+  <text x="680" y="79" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">14:00 — Load Decreasing</text>
+
+  <!-- Cluster 1 active -->
+  <rect x="575" y="96" width="210" height="52" fill="#fff" rx="6" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="680" y="112" text-anchor="middle" font-size="10" font-weight="700" fill="#1e40af">Cluster 1 (active)</text>
+  <circle cx="610" cy="130" r="5" fill="#29b5e8"/><circle cx="625" cy="130" r="5" fill="#29b5e8"/>
+  <circle cx="640" cy="130" r="5" fill="#29b5e8"/>
+
+  <!-- Cluster 2 draining -->
+  <rect x="575" y="156" width="210" height="40" fill="#fef9c3" rx="6" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <text x="680" y="172" text-anchor="middle" font-size="10" font-weight="700" fill="#92400e">Cluster 2 (draining…)</text>
+  <circle cx="610" cy="188" r="5" fill="#fbbf24"/>
+
+  <!-- Cluster 3 removed -->
+  <rect x="575" y="202" width="210" height="40" fill="#f1f5f9" rx="6" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="680" y="222" text-anchor="middle" font-size="10" fill="#94a3b8">Cluster 3 — shut down</text>
+
+  <text x="680" y="265" text-anchor="middle" font-size="10" fill="#1d4ed8">Queue: 0 · load dropping</text>
+  <rect x="590" y="272" width="180" height="14" fill="#e2e8f0" rx="4"/>
+  <rect x="590" y="272" width="90"  height="14" fill="#3b82f6" rx="4"/>
+  <text x="680" y="302" text-anchor="middle" font-size="10" fill="#1e40af">Credits: 8/hr (2 active)</text>
+
+  <!-- SCALE IN arrow -->
+  <line x1="532" y1="200" x2="557" y2="200" stroke="#3b82f6" stroke-width="2" stroke-dasharray="4,2" marker-end="url(#arrBl)"/>
+  <text x="544" y="192" text-anchor="middle" font-size="9" fill="#1e40af">scale</text>
+  <text x="544" y="204" text-anchor="middle" font-size="9" fill="#1e40af">in →</text>
+
+  <!-- Bottom: Scaling Policies -->
+  <rect x="20" y="352" width="780" height="100" fill="#fff" rx="8" stroke="#e2e8f0" stroke-width="1.5"/>
+  <text x="410" y="370" text-anchor="middle" font-size="12" font-weight="700" fill="#0f172a">Scaling Policies — How clusters are added</text>
+
+  <rect x="35" y="380" width="365" height="60" fill="#eff6ff" rx="6"/>
+  <text x="217" y="397" text-anchor="middle" font-size="11" font-weight="700" fill="#1d4ed8">STANDARD (default)</text>
+  <text x="217" y="412" text-anchor="middle" font-size="10" fill="#334155">Adds a cluster the moment a query queues.</text>
+  <text x="217" y="426" text-anchor="middle" font-size="10" fill="#334155">Best for: user-facing BI — low latency priority.</text>
+
+  <rect x="415" y="380" width="370" height="60" fill="#fef3c7" rx="6"/>
+  <text x="600" y="397" text-anchor="middle" font-size="11" font-weight="700" fill="#92400e">ECONOMY</text>
+  <text x="600" y="412" text-anchor="middle" font-size="10" fill="#334155">Waits until the cluster is fully loaded for several minutes.</text>
+  <text x="600" y="426" text-anchor="middle" font-size="10" fill="#334155">Best for: batch ETL — cost efficiency priority.</text>
+
+  <defs>
+    <marker id="arrO2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 Z" fill="#f97316"/></marker>
+    <marker id="arrBl" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 Z" fill="#3b82f6"/></marker>
+  </defs>
+</svg>
