@@ -554,6 +554,68 @@ a {
   .completion-toast { animation: none; }
 }
 
+/* ── Scroll-reveal animations ────────────────────────────────────────────── */
+[data-animate] {
+  opacity: 0;
+  transform: translateY(2rem);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+[data-animate].is-visible {
+  opacity: 1;
+  transform: none;
+}
+[data-animate][data-delay="1"] { transition-delay: 0.1s; }
+[data-animate][data-delay="2"] { transition-delay: 0.2s; }
+[data-animate][data-delay="3"] { transition-delay: 0.3s; }
+[data-animate][data-delay="4"] { transition-delay: 0.4s; }
+[data-animate][data-delay="5"] { transition-delay: 0.5s; }
+[data-animate][data-delay="6"] { transition-delay: 0.6s; }
+@media (prefers-reduced-motion: reduce) {
+  [data-animate] { opacity: 1; transform: none; transition: none; }
+}
+
+/* ── Hero word reveal (CSS-only, no IntersectionObserver needed) ─────────── */
+.hero-word {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(1.25rem);
+  animation: heroWordReveal 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.hero-word:nth-child(1) { animation-delay: 0.05s; }
+.hero-word:nth-child(2) { animation-delay: 0.2s; }
+.hero-word:nth-child(3) { animation-delay: 0.35s; }
+@keyframes heroWordReveal {
+  to { opacity: 1; transform: none; }
+}
+
+/* ── Phone mockup float animation ───────────────────────────────────────── */
+.phone-float {
+  animation: phoneFloat 5s ease-in-out infinite;
+}
+@keyframes phoneFloat {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-14px); }
+}
+
+/* ── Testimonials carousel ───────────────────────────────────────────────── */
+.testimonials-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  gap: 1.25rem;
+  padding: 0.5rem 1.5rem 1.5rem;
+  cursor: grab;
+}
+.testimonials-track:active { cursor: grabbing; }
+.testimonials-track::-webkit-scrollbar { display: none; }
+.testimonial-card {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+  width: min(340px, 80vw);
+}
+
 /* ── Pagefind search UI overrides ────────────────────────────────────────── */
 #pagefind-search .pagefind-ui__search-input {
   border-radius: 0.75rem;

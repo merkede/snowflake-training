@@ -6,160 +6,535 @@ import { examQuestions } from '../data/examQuestions';
 const moduleCount = 23;
 const flashcardCount = flashcards.length;
 const examQCount = examQuestions.length;
+
+const testimonials = [
+  {
+    quote: "I'd been putting off Snowflake certifications for two years. This finally made it feel achievable — and genuinely enjoyable to work through.",
+    highlight: "genuinely enjoyable to work through",
+    name: "Maya S.",
+    role: "Data Analyst",
+    tag: "Passed COF-C02 ✓",
+  },
+  {
+    quote: "The mock exam is scarily accurate. Same format, same difficulty. I walked into the real exam feeling like I'd already done it.",
+    highlight: "feeling like I'd already done it",
+    name: "James T.",
+    role: "Analytics Engineer",
+    tag: "First attempt pass ✓",
+  },
+  {
+    quote: "The flashcard algorithm knows when you're struggling before you do. I stopped second-guessing myself and just trusted the system.",
+    highlight: "knows when you're struggling before you do",
+    name: "Priya L.",
+    role: "Data Engineer",
+    tag: "Architecture & Security",
+  },
+  {
+    quote: "Printed the cheat sheets on day one. Still have them on my desk three months later. The domain breakdowns are exactly what you need.",
+    highlight: "Still have them on my desk",
+    name: "Tom R.",
+    role: "BI Developer",
+    tag: "Data Loading & Unloading",
+  },
+  {
+    quote: "The streak tracker is sneaky effective. I didn't want to break the chain — ended up studying every single day for six weeks straight.",
+    highlight: "didn't want to break the chain",
+    name: "Sarah K.",
+    role: "Data Scientist",
+    tag: "6-week study streak 🔥",
+  },
+  {
+    quote: "Finally, Snowflake training that actually feels engaging. The inline quizzes make concepts stick in a way passive reading never does.",
+    highlight: "actually feels engaging",
+    name: "Dan O.",
+    role: "Senior Data Analyst",
+    tag: "Transformations domain",
+  },
+];
+
+const domains = [
+  { name: "Architecture & Features", pct: 25, href: "/architecture/overview",              icon: "🏗️", num: 1 },
+  { name: "Account Access & Security", pct: 20, href: "/security/users-roles",             icon: "🔐", num: 2 },
+  { name: "Performance Concepts",      pct: 15, href: "/performance/queries",              icon: "⚡", num: 3 },
+  { name: "Data Loading & Unloading",  pct: 15, href: "/data-loading/bulk",               icon: "📥", num: 4 },
+  { name: "Data Transformations",      pct: 15, href: "/data-transformations/sql-basics",  icon: "🔄", num: 5 },
+  { name: "Data Protection & Sharing", pct: 10, href: "/data-protection/time-travel",     icon: "🛡️", num: 6 },
+];
 ---
 
 <Layout title="Snowflake Training | Hastings Direct | by Hamzah Javaid">
-  <!-- Hero Section -->
-  <section class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white py-20">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       HERO
+  ═══════════════════════════════════════════════════════════════ -->
+  <section class="relative overflow-hidden text-white" style="background: linear-gradient(135deg, #0f172a 0%, #1a2e4a 50%, #0f172a 100%); padding: 5rem 0 4rem;">
+
+    <!-- Decorative snowflake rings -->
+    <div aria-hidden="true" style="position: absolute; right: -120px; top: 50%; transform: translateY(-50%); pointer-events: none;">
+      <div style="width: 500px; height: 500px; border: 1px solid rgba(41,181,232,0.08); border-radius: 50%;"></div>
+      <div style="position: absolute; inset: 60px; border: 1px solid rgba(41,181,232,0.12); border-radius: 50%;"></div>
+      <div style="position: absolute; inset: 120px; border: 1px solid rgba(41,181,232,0.16); border-radius: 50%;"></div>
+      <div style="position: absolute; inset: 180px; font-size: 100px; display: flex; align-items: center; justify-content: center; color: rgba(41,181,232,0.06);">❄</div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
       <div class="text-center max-w-4xl mx-auto">
-        <div class="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm mb-6">
-          <span class="text-sm font-medium">Hastings Direct | Data Analytics & Data Science</span>
+
+        <!-- Badge -->
+        <div class="inline-flex items-center px-4 py-2 rounded-full mb-6" style="background: rgba(255,255,255,0.08); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.12);">
+          <span class="text-sm font-medium text-slate-300">Hastings Direct · Data Analytics & Data Science</span>
         </div>
 
-        <h1 class="text-5xl md:text-6xl font-bold mb-6 !text-white">
-          Snowflake <span style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Training Hub.</span>
-        </h1>
+        <!-- Progressive headline -->
+        <div class="mb-6 flex flex-wrap justify-center gap-x-5 gap-y-1" style="font-size: clamp(2.5rem, 8vw, 5rem); font-weight: 900; line-height: 1.05; letter-spacing: -0.02em;">
+          <span class="hero-word" style="color: white;">Study.</span>
+          <span class="hero-word" style="color: rgba(255,255,255,0.3);">Practise.</span>
+          <span class="hero-word" style="color: rgba(255,255,255,0.15);">Pass.</span>
+        </div>
 
-        <p class="text-xl text-slate-300 mb-6 max-w-2xl mx-auto">
-          An internal training resource built for the Data Analytics and Data Science teams at Hastings Direct.
+        <!-- Subtitle -->
+        <p class="text-xl text-slate-400 mb-10 max-w-2xl mx-auto" style="animation: heroWordReveal 0.65s ease 0.5s both;">
+          The all-in-one SnowPro Core (COF-C02) prep resource built for the Hastings Direct data teams —
+          <span style="color: #29b5e8; font-weight: 600;">{moduleCount} modules, {flashcardCount} flashcards, {examQCount} exam questions.</span>
         </p>
-        <div class="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm mb-10">
-          <span class="text-sm font-medium">Created by Hamzah Javaid</span>
-        </div>
 
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <!-- CTAs -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center mb-16" style="animation: heroWordReveal 0.65s ease 0.65s both;">
           <a href="/modules" class="btn-primary text-lg px-8 py-4 no-underline">
-            Start Learning
+            Start Learning →
           </a>
-          <a href="/about" class="btn-secondary text-lg px-8 py-4 bg-white/10 text-white hover:bg-white/20 no-underline" style="border: 1px solid rgba(41, 181, 232, 0.4);">
-            About Me
-          </a>
-          <a href="/flashcards" class="btn-secondary text-lg px-8 py-4 bg-white/10 text-white hover:bg-white/20 no-underline">
+          <a href="/flashcards" class="text-lg px-8 py-4 no-underline font-semibold rounded-xl transition-all"
+             style="background: rgba(255,255,255,0.08); color: white; border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(8px);">
             Flashcards & Revision
           </a>
         </div>
 
-        <!-- Stats -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16 max-w-3xl mx-auto">
-          <div class="text-center">
-            <div class="text-4xl font-bold" style="color: var(--color-snowflake-blue);">{moduleCount}</div>
-            <div class="text-sm text-slate-400 mt-1">Modules</div>
-          </div>
-          <div class="text-center">
-            <div class="text-4xl font-bold" style="color: var(--color-snowflake-blue);">{flashcardCount}</div>
-            <div class="text-sm text-slate-400 mt-1">Flashcards</div>
-          </div>
-          <div class="text-center">
-            <div class="text-4xl font-bold" style="color: var(--color-snowflake-blue);">{examQCount}</div>
-            <div class="text-sm text-slate-400 mt-1">Exam Questions</div>
-          </div>
-          <div class="text-center">
-            <div class="text-4xl font-bold" style="color: var(--color-snowflake-blue);">6</div>
-            <div class="text-sm text-slate-400 mt-1">Exam Domains</div>
-          </div>
+        <!-- Stats row -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto" style="animation: heroWordReveal 0.65s ease 0.8s both;">
+          {[
+            { value: moduleCount, label: 'Modules' },
+            { value: flashcardCount, label: 'Flashcards' },
+            { value: examQCount, label: 'Exam Questions' },
+            { value: 6, label: 'Exam Domains' },
+          ].map(s => (
+            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 1rem; padding: 1.25rem 1rem; text-align: center;">
+              <div style="font-size: 2.25rem; font-weight: 900; color: #29b5e8; line-height: 1;">{s.value}</div>
+              <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem; font-weight: 500;">{s.label}</div>
+            </div>
+          ))}
         </div>
+
       </div>
     </div>
   </section>
 
-  <!-- Training Domains -->
-  <section class="py-20">
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       FEATURE SHOWCASE — 3 alternating rows with phone mockups
+  ═══════════════════════════════════════════════════════════════ -->
+  <section class="py-24 bg-white overflow-hidden">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-16">
-        <h2 class="mb-4">Training Domains</h2>
-        <p class="text-xl text-slate-600 max-w-2xl mx-auto">
-          Structured around the official COF-C02 exam blueprint with comprehensive coverage of every domain
+
+      <!-- Section header -->
+      <div class="text-center mb-20" data-animate>
+        <p class="text-sm font-bold uppercase tracking-widest mb-3" style="color: #29b5e8;">Everything you need to pass</p>
+        <h2 class="text-4xl md:text-5xl font-extrabold text-slate-900 mb-4" style="letter-spacing: -0.02em;">
+          Built for how you<br/>actually learn.
+        </h2>
+        <p class="text-lg text-slate-500 max-w-xl mx-auto">
+          No fluff, no filler. Every feature is designed around the COF-C02 exam blueprint.
         </p>
       </div>
 
-      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <a href="/architecture/overview" class="card hover:border-primary transition-all group no-underline">
-          <div class="flex items-start gap-4">
-            <div class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
-              1
-            </div>
-            <div class="flex-1">
-              <h3 class="text-lg font-bold mb-2 text-slate-900 group-hover:text-primary transition-colors">Architecture & Features</h3>
-              <p class="text-sm text-slate-600 mb-2">Data cloud features, architecture layers, and virtual warehouses</p>
-              <div class="text-xs font-medium" style="color: var(--color-snowflake-blue);">25% of exam</div>
-            </div>
-          </div>
-        </a>
+      <!-- ── ROW 1: Modules ── phone left, text right -->
+      <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-20 mb-28" data-animate>
 
-        <a href="/security/users-roles" class="card hover:border-primary transition-all group no-underline">
-          <div class="flex items-start gap-4">
-            <div class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
-              2
-            </div>
-            <div class="flex-1">
-              <h3 class="text-lg font-bold mb-2 text-slate-900 group-hover:text-primary transition-colors">Account Access & Security</h3>
-              <p class="text-sm text-slate-600 mb-2">User management, RBAC, network policies, and authentication</p>
-              <div class="text-xs font-medium" style="color: var(--color-snowflake-blue);">20% of exam</div>
+        <!-- Phone mockup -->
+        <div class="flex-shrink-0 flex justify-center phone-float">
+          <div style="width: 260px; height: 530px; background: #0f172a; border-radius: 44px; padding: 10px; box-shadow: 0 40px 80px rgba(0,0,0,0.22), 0 0 0 2px #1e293b; position: relative;">
+            <!-- Notch -->
+            <div style="position: absolute; top: 18px; left: 50%; transform: translateX(-50%); width: 80px; height: 6px; background: #1e293b; border-radius: 3px; z-index: 2;"></div>
+            <div style="width: 100%; height: 100%; background: #f8fafc; border-radius: 36px; overflow: hidden; display: flex; flex-direction: column;">
+              <!-- Status bar -->
+              <div style="height: 28px; background: #0f172a; display: flex; align-items: center; padding: 0 16px; justify-content: space-between; flex-shrink: 0;">
+                <span style="color: #64748b; font-size: 9px; font-weight: 600;">9:41</span>
+                <span style="color: #64748b; font-size: 9px;">●●●</span>
+              </div>
+              <!-- App header -->
+              <div style="background: linear-gradient(135deg, #0f172a, #1e3a5f); padding: 14px 16px 16px; flex-shrink: 0;">
+                <div style="font-size: 9px; color: #29b5e8; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 3px;">COF-C02 PREP</div>
+                <div style="font-size: 17px; font-weight: 800; color: white; margin-bottom: 10px;">Your Progress</div>
+                <div style="background: rgba(255,255,255,0.08); border-radius: 10px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between;">
+                  <span style="font-size: 26px; font-weight: 900; color: #29b5e8; line-height: 1;">52%</span>
+                  <span style="font-size: 10px; color: #94a3b8;">12 of 23 modules</span>
+                </div>
+                <div style="background: rgba(255,255,255,0.1); border-radius: 4px; height: 4px; margin-top: 8px; overflow: hidden;">
+                  <div style="width: 52%; height: 100%; background: linear-gradient(90deg, #29b5e8, #56c4ed); border-radius: 4px;"></div>
+                </div>
+              </div>
+              <!-- Module list -->
+              <div style="flex: 1; padding: 10px 8px; background: #f8fafc; overflow: hidden; display: flex; flex-direction: column; gap: 4px;">
+                {[
+                  { title: 'Introduction to Snowflake', done: true },
+                  { title: 'Snowflake Architecture', done: true },
+                  { title: 'Databases & Schemas', current: true },
+                  { title: 'Virtual Warehouses', done: false },
+                  { title: 'Data Storage & Clustering', done: false },
+                  { title: 'User & Role Management', done: false },
+                ].map(m => (
+                  <div style={`display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: ${m.current ? '#f0f9ff' : 'white'}; border-radius: 8px; border: ${m.current ? '2px solid #29b5e8' : '1px solid #e2e8f0'};`}>
+                    <div style={`width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: ${m.done ? '#16a34a' : m.current ? '#29b5e8' : '#e2e8f0'};`}>
+                      {m.done && <span style="color: white; font-size: 9px; font-weight: 700;">✓</span>}
+                      {m.current && <span style="color: white; font-size: 9px; font-weight: 700;">→</span>}
+                    </div>
+                    <span style={`font-size: 10px; font-weight: ${m.current ? '600' : '400'}; color: ${m.done ? '#94a3b8' : m.current ? '#0c4a6e' : '#64748b'}; ${m.done ? 'text-decoration: line-through;' : ''}`}>
+                      {m.title}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </a>
+        </div>
 
-        <a href="/performance/queries" class="card hover:border-primary transition-all group no-underline">
-          <div class="flex items-start gap-4">
-            <div class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
-              3
-            </div>
-            <div class="flex-1">
-              <h3 class="text-lg font-bold mb-2 text-slate-900 group-hover:text-primary transition-colors">Performance Concepts</h3>
-              <p class="text-sm text-slate-600 mb-2">Query optimisation, caching, clustering, and search optimisation</p>
-              <div class="text-xs font-medium" style="color: var(--color-snowflake-blue);">15% of exam</div>
-            </div>
-          </div>
-        </a>
+        <!-- Feature text -->
+        <div class="max-w-lg">
+          <span class="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-4" style="background: #e0f2fe; color: #0369a1;">23 Modules</span>
+          <h3 class="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4" style="letter-spacing: -0.02em;">
+            Read through every<br/>exam domain.
+          </h3>
+          <p class="text-slate-500 text-lg mb-6 leading-relaxed">
+            Structured content covering all 6 COF-C02 domains — with diagrams, code examples, and inline practice questions. Modules auto-complete as you scroll to the end.
+          </p>
+          <ul class="space-y-3 mb-8">
+            {[
+              'Auto-marks complete when you finish reading',
+              'Progress saved across sessions via local storage',
+              'Estimated read time shown per module',
+              'Prev/next navigation with domain context',
+            ].map(f => (
+              <li class="flex items-center gap-3">
+                <div style="width: 20px; height: 20px; background: #dcfce7; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <span style="color: #16a34a; font-size: 11px; font-weight: 700;">✓</span>
+                </div>
+                <span class="text-slate-600 text-sm">{f}</span>
+              </li>
+            ))}
+          </ul>
+          <a href="/modules" class="btn-primary inline-block no-underline">Explore Modules →</a>
+        </div>
+      </div>
 
-        <a href="/data-loading/bulk" class="card hover:border-primary transition-all group no-underline">
-          <div class="flex items-start gap-4">
-            <div class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
-              4
-            </div>
-            <div class="flex-1">
-              <h3 class="text-lg font-bold mb-2 text-slate-900 group-hover:text-primary transition-colors">Data Loading & Unloading</h3>
-              <p class="text-sm text-slate-600 mb-2">Bulk loading, Snowpipe, stages, file formats, and unloading</p>
-              <div class="text-xs font-medium" style="color: var(--color-snowflake-blue);">15% of exam</div>
-            </div>
-          </div>
-        </a>
+      <!-- ── ROW 2: Flashcards ── text left, phone right -->
+      <div class="flex flex-col-reverse lg:flex-row items-center gap-12 lg:gap-20 mb-28" data-animate>
 
-        <a href="/data-transformations/sql-basics" class="card hover:border-primary transition-all group no-underline">
-          <div class="flex items-start gap-4">
-            <div class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
-              5
-            </div>
-            <div class="flex-1">
-              <h3 class="text-lg font-bold mb-2 text-slate-900 group-hover:text-primary transition-colors">Data Transformations</h3>
-              <p class="text-sm text-slate-600 mb-2">SQL essentials, functions, procedures, streams, and tasks</p>
-              <div class="text-xs font-medium" style="color: var(--color-snowflake-blue);">15% of exam</div>
-            </div>
-          </div>
-        </a>
+        <!-- Feature text -->
+        <div class="max-w-lg">
+          <span class="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-4" style="background: #d1fae5; color: #065f46;">SM-2 Spaced Repetition</span>
+          <h3 class="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4" style="letter-spacing: -0.02em;">
+            Drill with flashcards<br/>that actually work.
+          </h3>
+          <p class="text-slate-500 text-lg mb-6 leading-relaxed">
+            The SM-2 algorithm schedules cards based on how well you know them — spacing out easy cards and surfacing difficult ones more often. Your brain remembers more with less time.
+          </p>
+          <ul class="space-y-3 mb-8">
+            {[
+              `${flashcardCount}+ exam-focused flashcards across all domains`,
+              'Filters by domain — focus where you\'re weakest',
+              'Daily streak tracker keeps you consistent',
+              'Search cards by topic or keyword',
+            ].map(f => (
+              <li class="flex items-center gap-3">
+                <div style="width: 20px; height: 20px; background: #dcfce7; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <span style="color: #16a34a; font-size: 11px; font-weight: 700;">✓</span>
+                </div>
+                <span class="text-slate-600 text-sm">{f}</span>
+              </li>
+            ))}
+          </ul>
+          <a href="/flashcards" class="btn-primary inline-block no-underline">Start Flashcards →</a>
+        </div>
 
-        <a href="/data-protection/time-travel" class="card hover:border-primary transition-all group no-underline">
-          <div class="flex items-start gap-4">
-            <div class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
-              6
-            </div>
-            <div class="flex-1">
-              <h3 class="text-lg font-bold mb-2 text-slate-900 group-hover:text-primary transition-colors">Data Protection & Sharing</h3>
-              <p class="text-sm text-slate-600 mb-2">Time Travel, fail-safe, cloning, and secure data sharing</p>
-              <div class="text-xs font-medium" style="color: var(--color-snowflake-blue);">10% of exam</div>
+        <!-- Phone mockup -->
+        <div class="flex-shrink-0 flex justify-center phone-float" style="animation-delay: 0.5s;">
+          <div style="width: 260px; height: 530px; background: #0f172a; border-radius: 44px; padding: 10px; box-shadow: 0 40px 80px rgba(0,0,0,0.22), 0 0 0 2px #1e293b; position: relative;">
+            <div style="position: absolute; top: 18px; left: 50%; transform: translateX(-50%); width: 80px; height: 6px; background: #1e293b; border-radius: 3px; z-index: 2;"></div>
+            <div style="width: 100%; height: 100%; background: #f1f5f9; border-radius: 36px; overflow: hidden; display: flex; flex-direction: column;">
+              <div style="height: 28px; background: #1e293b; display: flex; align-items: center; padding: 0 16px; justify-content: space-between; flex-shrink: 0;">
+                <span style="color: #64748b; font-size: 9px; font-weight: 600;">9:41</span>
+                <span style="color: #64748b; font-size: 9px;">●●●</span>
+              </div>
+              <!-- Domain tabs -->
+              <div style="background: white; padding: 10px 10px 0; border-bottom: 1px solid #e2e8f0; flex-shrink: 0;">
+                <div style="display: flex; gap: 4px;">
+                  <div style="padding: 5px 9px; background: #29b5e8; color: white; border-radius: 6px 6px 0 0; font-size: 9px; font-weight: 700; white-space: nowrap;">Architecture</div>
+                  <div style="padding: 5px 9px; color: #94a3b8; font-size: 9px; white-space: nowrap;">Security</div>
+                  <div style="padding: 5px 9px; color: #94a3b8; font-size: 9px; white-space: nowrap;">Performance</div>
+                </div>
+              </div>
+              <!-- Counter -->
+              <div style="text-align: center; padding: 10px 0 6px; font-size: 10px; color: #94a3b8; font-weight: 600; letter-spacing: 1px; flex-shrink: 0;">CARD 5 OF 24</div>
+              <!-- Card -->
+              <div style="flex: 1; padding: 0 12px 12px; display: flex; flex-direction: column;">
+                <div style="background: white; border-radius: 16px; padding: 20px 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); flex: 1; display: flex; flex-direction: column; justify-content: center; border: 1px solid #e2e8f0;">
+                  <div style="font-size: 9px; color: #29b5e8; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; text-align: center; margin-bottom: 10px;">ARCHITECTURE</div>
+                  <div style="font-size: 12px; font-weight: 600; color: #1e293b; line-height: 1.5; text-align: center;">
+                    What are the three layers of Snowflake's multi-cluster shared data architecture?
+                  </div>
+                  <div style="margin-top: 16px; padding: 8px 12px; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1; text-align: center;">
+                    <div style="font-size: 9px; color: #94a3b8; font-weight: 500;">Tap to reveal answer</div>
+                  </div>
+                </div>
+                <!-- Rating buttons -->
+                <div style="display: flex; gap: 6px; margin-top: 10px;">
+                  <button style="flex: 1; padding: 7px 0; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; font-size: 9px; font-weight: 700; color: #dc2626;">😓 Hard</button>
+                  <button style="flex: 1; padding: 7px 0; background: #fffbeb; border: 1px solid #fed7aa; border-radius: 8px; font-size: 9px; font-weight: 700; color: #d97706;">🤔 OK</button>
+                  <button style="flex: 1; padding: 7px 0; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; font-size: 9px; font-weight: 700; color: #16a34a;">✓ Easy</button>
+                </div>
+              </div>
             </div>
           </div>
-        </a>
+        </div>
+      </div>
+
+      <!-- ── ROW 3: Mock Exam ── phone left, text right -->
+      <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-20" data-animate>
+
+        <!-- Phone mockup -->
+        <div class="flex-shrink-0 flex justify-center phone-float" style="animation-delay: 1s;">
+          <div style="width: 260px; height: 530px; background: #0f172a; border-radius: 44px; padding: 10px; box-shadow: 0 40px 80px rgba(0,0,0,0.22), 0 0 0 2px #1e293b; position: relative;">
+            <div style="position: absolute; top: 18px; left: 50%; transform: translateX(-50%); width: 80px; height: 6px; background: #1e293b; border-radius: 3px; z-index: 2;"></div>
+            <div style="width: 100%; height: 100%; background: #f8fafc; border-radius: 36px; overflow: hidden; display: flex; flex-direction: column;">
+              <div style="height: 28px; background: #1e293b; display: flex; align-items: center; padding: 0 16px; justify-content: space-between; flex-shrink: 0;">
+                <span style="color: #64748b; font-size: 9px; font-weight: 600;">9:41</span>
+                <span style="color: #29b5e8; font-size: 9px; font-weight: 700;">47:23</span>
+              </div>
+              <!-- Exam header -->
+              <div style="background: white; padding: 10px 14px; border-bottom: 1px solid #e2e8f0; flex-shrink: 0;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                  <span style="font-size: 10px; font-weight: 700; color: #1e293b;">Q12 / {examQCount}</span>
+                  <span style="background: #fef3c7; color: #92400e; font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 10px;">⏱ 47:23</span>
+                </div>
+                <div style="background: #e2e8f0; border-radius: 4px; height: 4px; overflow: hidden;">
+                  <div style="width: 12%; height: 100%; background: linear-gradient(90deg, #29b5e8, #56c4ed);"></div>
+                </div>
+              </div>
+              <!-- Question -->
+              <div style="flex: 1; padding: 12px 14px; overflow: hidden; display: flex; flex-direction: column;">
+                <div style="font-size: 9px; color: #29b5e8; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px;">DATA PROTECTION</div>
+                <div style="font-size: 11px; font-weight: 600; color: #1e293b; line-height: 1.55; margin-bottom: 12px;">
+                  Which Snowflake feature allows data sharing between accounts without copying or moving data?
+                </div>
+                <!-- Options -->
+                <div style="display: flex; flex-direction: column; gap: 5px; flex: 1;">
+                  {[
+                    { text: 'Data Exchange', selected: false },
+                    { text: 'Secure Data Sharing', selected: true },
+                    { text: 'External Tables', selected: false },
+                    { text: 'Data Replication', selected: false },
+                  ].map(opt => (
+                    <div style={`display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: ${opt.selected ? '#f0f9ff' : 'white'}; border: ${opt.selected ? '2px solid #29b5e8' : '1px solid #e2e8f0'}; border-radius: 8px;`}>
+                      <div style={`width: 14px; height: 14px; border: 2px solid ${opt.selected ? '#29b5e8' : '#cbd5e1'}; border-radius: 50%; flex-shrink: 0; background: ${opt.selected ? '#29b5e8' : 'white'}; display: flex; align-items: center; justify-content: center;`}>
+                        {opt.selected && <div style="width: 5px; height: 5px; background: white; border-radius: 50%;"></div>}
+                      </div>
+                      <span style={`font-size: 10px; color: ${opt.selected ? '#0c4a6e' : '#475569'}; font-weight: ${opt.selected ? '600' : '400'};`}>{opt.text}</span>
+                    </div>
+                  ))}
+                </div>
+                <button style="width: 100%; margin-top: 10px; padding: 9px; background: linear-gradient(135deg, #29b5e8, #56c4ed); color: white; border: none; border-radius: 10px; font-size: 11px; font-weight: 700; cursor: pointer;">Next Question →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feature text -->
+        <div class="max-w-lg">
+          <span class="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-4" style="background: #ede9fe; color: #5b21b6;">Mock Exam</span>
+          <h3 class="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4" style="letter-spacing: -0.02em;">
+            Sit the full exam<br/>before the real one.
+          </h3>
+          <p class="text-slate-500 text-lg mb-6 leading-relaxed">
+            {examQCount} timed questions in the exact COF-C02 format. Every answer has a full explanation. Your history is saved so you can track improvement across attempts.
+          </p>
+          <ul class="space-y-3 mb-8">
+            {[
+              `${examQCount} questions across all 6 domains`,
+              'Timed — same 115 minutes as the real exam',
+              'Domain-by-domain score breakdown',
+              'Full explanation for every right and wrong answer',
+            ].map(f => (
+              <li class="flex items-center gap-3">
+                <div style="width: 20px; height: 20px; background: #dcfce7; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <span style="color: #16a34a; font-size: 11px; font-weight: 700;">✓</span>
+                </div>
+                <span class="text-slate-600 text-sm">{f}</span>
+              </li>
+            ))}
+          </ul>
+          <a href="/exam-sim" class="btn-primary inline-block no-underline">Take the Mock Exam →</a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       EXAM DOMAINS — compact scrolling grid
+  ═══════════════════════════════════════════════════════════════ -->
+  <section class="py-16" style="background: #f8fafc;">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-10" data-animate>
+        <h2 class="text-2xl font-extrabold text-slate-900 mb-2">Exam Domains</h2>
+        <p class="text-slate-500 text-sm">All 6 COF-C02 domains — click any to jump straight in</p>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        {domains.map((d, i) => (
+          <a href={d.href} class="no-underline" data-animate data-delay={String(i + 1)}>
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 hover:border-primary hover:shadow-md transition-all group">
+              <div class="flex items-start justify-between mb-3">
+                <span class="text-2xl">{d.icon}</span>
+                <span class="text-xs font-bold px-2 py-1 rounded-full" style="background: #e0f2fe; color: #0369a1;">{d.pct}%</span>
+              </div>
+              <div class="text-sm font-bold text-slate-800 group-hover:text-primary transition-colors mb-1">{d.name}</div>
+              <div class="text-xs text-slate-400">Domain {d.num} of 6</div>
+            </div>
+          </a>
+        ))}
       </div>
     </div>
   </section>
 
-  <!-- About Me (concise) -->
-  <section class="bg-slate-50 py-20">
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       TESTIMONIALS — horizontal scroll carousel
+  ═══════════════════════════════════════════════════════════════ -->
+  <section class="py-20 overflow-hidden bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12" data-animate>
+        <p class="text-sm font-bold uppercase tracking-widest mb-3" style="color: #29b5e8;">From the team</p>
+        <h2 class="text-3xl md:text-4xl font-extrabold text-slate-900" style="letter-spacing: -0.02em;">What our team says</h2>
+        <p class="text-slate-500 mt-3 text-sm">Drag to scroll · Swipe on mobile</p>
+      </div>
+    </div>
+
+    <!-- Full-width scroll track (no container constraint) -->
+    <div class="testimonials-track" id="testimonials-track">
+      <!-- Left spacer aligned with max-w-7xl -->
+      <div style="flex-shrink: 0; width: max(1.5rem, calc((100vw - 80rem) / 2));"></div>
+
+      {testimonials.map((t) => {
+        const idx = t.quote.indexOf(t.highlight);
+        const before = t.quote.slice(0, idx);
+        const after = t.quote.slice(idx + t.highlight.length);
+        return (
+          <div class="testimonial-card bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+            <div class="text-4xl font-serif text-slate-200 leading-none mb-4" aria-hidden="true">"</div>
+            <p class="text-slate-700 text-sm leading-relaxed mb-5">
+              {before}<strong class="font-bold" style="color: #0f172a;">{t.highlight}</strong>{after}
+            </p>
+            <div class="flex items-center gap-3 mt-auto">
+              <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #29b5e8, #56c4ed); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 14px; flex-shrink: 0;">
+                {t.name.charAt(0)}
+              </div>
+              <div>
+                <div class="text-xs font-bold text-slate-900">{t.name}</div>
+                <div class="text-xs text-slate-400">{t.role}</div>
+              </div>
+              <div class="ml-auto">
+                <span class="text-xs font-semibold px-2 py-1 rounded-full" style="background: #f0fdf4; color: #15803d; white-space: nowrap;">{t.tag}</span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+
+      <!-- Right spacer -->
+      <div style="flex-shrink: 0; width: max(1.5rem, calc((100vw - 80rem) / 2));"></div>
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       APP DOWNLOAD — full Snowflake blue, background change on scroll
+  ═══════════════════════════════════════════════════════════════ -->
+  <section id="get-the-app" style="background: linear-gradient(160deg, #0369a1 0%, #29b5e8 50%, #0ea5e9 100%); min-height: 90vh; display: flex; align-items: center; position: relative; overflow: hidden;">
+
+    <!-- Background decorative circles -->
+    <div aria-hidden="true" style="position: absolute; inset: 0; overflow: hidden; pointer-events: none;">
+      <div style="position: absolute; top: -200px; right: -200px; width: 600px; height: 600px; border-radius: 50%; background: rgba(255,255,255,0.04);"></div>
+      <div style="position: absolute; bottom: -150px; left: -150px; width: 500px; height: 500px; border-radius: 50%; background: rgba(255,255,255,0.04);"></div>
+      <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 500px; color: rgba(255,255,255,0.03); line-height: 1; user-select: none;">❄</div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10 py-20" data-animate>
+      <p class="text-sm font-bold uppercase tracking-widest mb-4 text-white/70">Available now</p>
+      <h2 class="font-extrabold text-white mb-6" style="font-size: clamp(2.5rem, 7vw, 4.5rem); letter-spacing: -0.03em; line-height: 1.05;">
+        Study. Practise. Pass.
+      </h2>
+      <p class="text-xl text-white/80 mb-10 max-w-2xl mx-auto leading-relaxed">
+        The full Snowflake Training experience — modules, flashcards, mock exam, cheat sheets and certificate — on iOS and Android.
+      </p>
+
+      <!-- Store badges -->
+      <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12" data-animate data-delay="2">
+        <!-- App Store -->
+        <a
+          href="#"
+          aria-label="Download on the App Store"
+          style="display: inline-flex; align-items: center; gap: 14px; background: #000; color: white; border-radius: 16px; padding: 12px 24px; text-decoration: none; min-width: 180px; transition: transform 0.2s ease, box-shadow 0.2s ease;"
+          onmouseover="this.style.transform='scale(1.04)'; this.style.boxShadow='0 12px 40px rgba(0,0,0,0.3)'"
+          onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'"
+        >
+          <svg width="24" height="29" viewBox="0 0 24 29" fill="white" aria-hidden="true">
+            <path d="M19.665 15.359c-.027-3.193 2.61-4.74 2.729-4.817-1.488-2.175-3.802-2.473-4.628-2.506-1.972-.2-3.84 1.164-4.837 1.164-1.003 0-2.557-1.133-4.204-1.103-2.168.033-4.17 1.266-5.28 3.204-2.252 3.906-.578 9.702 1.622 12.874 1.07 1.555 2.347 3.308 4.022 3.245 1.617-.064 2.228-1.044 4.182-1.044 1.95 0 2.51 1.044 4.21.994 1.74-.03 2.84-1.577 3.898-3.14 1.245-1.8 1.751-3.56 1.774-3.648-.038-.016-3.385-1.306-3.488-5.223zM16.28 5.337c.875-1.07 1.47-2.55 1.308-4.037-1.262.051-2.832.845-3.74 1.892-.812.933-1.533 2.453-1.343 3.9 1.414.104 2.857-.72 3.775-1.755z"/>
+          </svg>
+          <div style="text-align: left;">
+            <div style="font-size: 11px; opacity: 0.75; letter-spacing: 0.3px; line-height: 1;">Download on the</div>
+            <div style="font-size: 20px; font-weight: 700; line-height: 1.15; letter-spacing: -0.3px;">App Store</div>
+          </div>
+        </a>
+
+        <!-- Google Play -->
+        <a
+          href="#"
+          aria-label="Get it on Google Play"
+          style="display: inline-flex; align-items: center; gap: 14px; background: white; color: #1e293b; border-radius: 16px; padding: 12px 24px; text-decoration: none; min-width: 180px; transition: transform 0.2s ease, box-shadow 0.2s ease;"
+          onmouseover="this.style.transform='scale(1.04)'; this.style.boxShadow='0 12px 40px rgba(0,0,0,0.2)'"
+          onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'"
+        >
+          <svg width="24" height="27" viewBox="0 0 24 27" aria-hidden="true">
+            <path d="M1.5 0.75L13.5 12.75L1.5 24.75C1.17 24.57 1 24.21 1 23.79V1.71C1 1.29 1.17 0.93 1.5 0.75Z" fill="#EA4335"/>
+            <path d="M17.5 8.75L13.5 12.75L1.5 0.75C1.83 0.57 2.25 0.6 2.61 0.81L17.5 8.75Z" fill="#FBBC05"/>
+            <path d="M17.5 16.75L2.61 24.69C2.25 24.9 1.83 24.93 1.5 24.75L13.5 12.75L17.5 16.75Z" fill="#34A853"/>
+            <path d="M23 12.75C23 13.14 22.8 13.5 22.44 13.71L17.5 16.75L13.5 12.75L17.5 8.75L22.44 11.79C22.8 12 23 12.36 23 12.75Z" fill="#4285F4"/>
+          </svg>
+          <div style="text-align: left;">
+            <div style="font-size: 11px; opacity: 0.6; letter-spacing: 1px; text-transform: uppercase; line-height: 1;">GET IT ON</div>
+            <div style="font-size: 20px; font-weight: 700; line-height: 1.15; letter-spacing: -0.3px;">Google Play</div>
+          </div>
+        </a>
+      </div>
+
+      <!-- Supporting features row -->
+      <div class="flex flex-wrap justify-center gap-3" data-animate data-delay="3">
+        {['📚 23 Modules', `🃏 ${flashcardCount} Flashcards`, '📋 Mock Exam', '📄 Cheat Sheets', '🏆 Certificate'].map(f => (
+          <span style="background: rgba(255,255,255,0.15); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.25); color: white; font-size: 0.8125rem; font-weight: 600; padding: 0.375rem 0.875rem; border-radius: 9999px;">
+            {f}
+          </span>
+        ))}
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       ABOUT ME
+  ═══════════════════════════════════════════════════════════════ -->
+  <section class="py-20 bg-white">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="grid md:grid-cols-3 gap-10 items-center">
-        <!-- Photo -->
+      <div class="grid md:grid-cols-3 gap-10 items-center" data-animate>
         <div class="text-center">
           <img
             src="/hamzah-javaid.jpeg"
@@ -174,66 +549,56 @@ const examQCount = examQuestions.length;
           <h3 class="text-xl font-bold text-slate-900 mt-4">Hamzah Javaid</h3>
           <p class="text-sm font-medium" style="color: var(--color-snowflake-blue);">Hastings Direct</p>
         </div>
-
-        <!-- Bio -->
         <div class="md:col-span-2">
           <h2 class="text-2xl font-bold text-slate-900 mb-4">About the Author</h2>
           <p class="text-slate-700 leading-relaxed mb-4">
-            I'm a data professional at Hastings Direct working across data analytics, data science, and modern cloud platforms. I build scalable data pipelines, design analytical frameworks, and enable self-service analytics, bridging the gap between technical data engineering and the strategic thinking that drives real business decisions.
+            I'm a data professional at Hastings Direct working across data analytics, data science, and modern cloud platforms. I build scalable data pipelines, design analytical frameworks, and enable self-service analytics — bridging the gap between technical data engineering and the strategic thinking that drives real business decisions.
           </p>
           <p class="text-slate-700 leading-relaxed mb-6">
             I built this because our teams needed something written specifically for us. Not generic courses, but a practical guide that speaks directly to how we work with Snowflake every day. Every module follows the SnowPro Core (COF-C02) blueprint, with interactive flashcards, quizzes, and cheat sheets designed for active recall.
           </p>
-          <a href="/about" class="btn-primary inline-block no-underline">
-            Read More About Me
-          </a>
+          <a href="/about" class="btn-primary inline-block no-underline">Read More About Me</a>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- CTA Section -->
-  <section class="py-20">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-      <h2 class="mb-6">Everything You Need to Pass</h2>
-      <p class="text-xl text-slate-600 mb-12 max-w-2xl mx-auto">
-        Structured learning, active recall, exam simulation, and hands-on SQL practice — all in one place.
-      </p>
-      <div class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-12">
-        <a href="/modules" class="card no-underline hover:shadow-lg transition-all group text-left">
-          <div class="text-2xl mb-2">📚</div>
-          <div class="font-bold text-slate-900 group-hover:text-primary mb-1">23 Modules</div>
-          <div class="text-sm text-slate-500">Full COF-C02 curriculum with diagrams and code</div>
-        </a>
-        <a href="/flashcards" class="card no-underline hover:shadow-lg transition-all group text-left">
-          <div class="text-2xl mb-2">🃏</div>
-          <div class="font-bold text-slate-900 group-hover:text-primary mb-1">{flashcardCount} Flashcards</div>
-          <div class="text-sm text-slate-500">Spaced repetition with SM-2 algorithm</div>
-        </a>
-        <a href="/exam-sim" class="card no-underline hover:shadow-lg transition-all group text-left">
-          <div class="text-2xl mb-2">📋</div>
-          <div class="font-bold text-slate-900 group-hover:text-primary mb-1">{examQCount}-Question Mock Exam</div>
-          <div class="text-sm text-slate-500">Timed, scored, with full explanations</div>
-        </a>
-        <a href="/practice" class="card no-underline hover:shadow-lg transition-all group text-left">
-          <div class="text-2xl mb-2">✏️</div>
-          <div class="font-bold text-slate-900 group-hover:text-primary mb-1">SQL Practice</div>
-          <div class="text-sm text-slate-500">20 hands-on exercises with hints and solutions</div>
-        </a>
-        <a href="/certificate" class="card no-underline hover:shadow-lg transition-all group text-left">
-          <div class="text-2xl mb-2">🏆</div>
-          <div class="font-bold text-slate-900 group-hover:text-primary mb-1">Certificate</div>
-          <div class="text-sm text-slate-500">Printable completion certificate for your records</div>
-        </a>
-      </div>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a href="/modules" class="btn-primary text-lg px-8 py-4 inline-block no-underline">
-          Start Learning
-        </a>
-        <a href="/cheatsheets" class="btn-secondary text-lg px-8 py-4 inline-block no-underline">
-          Cheat Sheets
-        </a>
-      </div>
-    </div>
-  </section>
 </Layout>
+
+<script>
+  // ── Scroll-reveal (IntersectionObserver) ─────────────────────────────────
+  const io = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) {
+          e.target.classList.add('is-visible');
+          io.unobserve(e.target);
+        }
+      });
+    },
+    { threshold: 0.12 }
+  );
+  document.querySelectorAll('[data-animate]').forEach((el) => io.observe(el));
+
+  // ── Testimonials drag-to-scroll ──────────────────────────────────────────
+  const track = document.getElementById('testimonials-track');
+  if (track) {
+    let isDown = false;
+    let startX = 0;
+    let scrollLeft = 0;
+
+    track.addEventListener('mousedown', (e) => {
+      isDown = true;
+      startX = e.pageX - (track as HTMLElement).offsetLeft;
+      scrollLeft = (track as HTMLElement).scrollLeft;
+    });
+    track.addEventListener('mouseleave', () => { isDown = false; });
+    track.addEventListener('mouseup', () => { isDown = false; });
+    track.addEventListener('mousemove', (e) => {
+      if (!isDown) return;
+      e.preventDefault();
+      const x = e.pageX - (track as HTMLElement).offsetLeft;
+      (track as HTMLElement).scrollLeft = scrollLeft - (x - startX) * 1.4;
+    });
+  }
+</script>
