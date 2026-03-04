@@ -134,22 +134,11 @@ const domains = [
   ═══════════════════════════════════════════════════════════════ -->
   <section id="section-features" style="background: #f0f9ff; transition: background-color 0.7s ease; padding: 5rem 0 4rem;">
 
-    <!-- Section header -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center mb-14" data-animate>
-      <p class="text-sm font-bold uppercase tracking-widest mb-3" style="color: #29b5e8;">Everything you need to pass</p>
-      <h2 class="text-4xl md:text-5xl font-extrabold text-slate-900 mb-4" style="letter-spacing: -0.02em;">
-        Built for how you<br/>actually learn.
-      </h2>
-      <p class="text-lg text-slate-500 max-w-xl mx-auto">
-        No fluff, no filler. Every feature is designed around the COF-C02 exam blueprint.
-      </p>
-    </div>
-
-    <!-- DESKTOP: text left, phone fan right -->
+    <!-- DESKTOP: phone fan left, text right -->
     <div class="hidden lg:flex max-w-7xl mx-auto px-8 items-center gap-16" style="min-height: 520px;">
 
-      <!-- Text panels (stacked, fade in/out) -->
-      <div style="flex: 1; position: relative; height: 400px;">
+      <!-- Text panels (right) -->
+      <div style="flex: 1; position: relative; height: 400px; order: 2;">
 
         <!-- Panel 0: Modules -->
         <div class="feature-text-panel fs-active" data-feat-panel="0">
@@ -199,8 +188,8 @@ const domains = [
 
       </div>
 
-      <!-- Phone fan: 3 phones always visible, cascade to the right -->
-      <div id="feat-fan" style="position:relative;width:430px;height:510px;flex-shrink:0;">
+      <!-- Phone fan (left) -->
+      <div id="feat-fan" style="position:relative;width:430px;height:510px;flex-shrink:0;order:1;">
 
         <!-- Phone 0: Modules -->
         <div class="feat-phone" data-feat-phone="0">
@@ -333,31 +322,6 @@ const domains = [
 
 
 
-  <!-- ═══════════════════════════════════════════════════════════════
-       EXAM DOMAINS — compact scrolling grid
-  ═══════════════════════════════════════════════════════════════ -->
-  <section class="py-16" style="background: #f8fafc;">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-10" data-animate>
-        <h2 class="text-2xl font-extrabold text-slate-900 mb-2">Exam Domains</h2>
-        <p class="text-slate-500 text-sm">All 6 COF-C02 domains — click any to jump straight in</p>
-      </div>
-      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {domains.map((d, i) => (
-          <a href={d.href} class="no-underline" data-animate data-delay={String(i + 1)}>
-            <div class="bg-white rounded-2xl p-5 border border-slate-200 hover:border-primary hover:shadow-md transition-all group">
-              <div class="flex items-start justify-between mb-3">
-                <span class="text-2xl">{d.icon}</span>
-                <span class="text-xs font-bold px-2 py-1 rounded-full" style="background: #e0f2fe; color: #0369a1;">{d.pct}%</span>
-              </div>
-              <div class="text-sm font-bold text-slate-800 group-hover:text-primary transition-colors mb-1">{d.name}</div>
-              <div class="text-xs text-slate-400">Domain {d.num} of 6</div>
-            </div>
-          </a>
-        ))}
-      </div>
-    </div>
-  </section>
 
 
   <!-- ═══════════════════════════════════════════════════════════════
@@ -479,39 +443,6 @@ const domains = [
   </section>
 
 
-  <!-- ═══════════════════════════════════════════════════════════════
-       ABOUT ME
-  ═══════════════════════════════════════════════════════════════ -->
-  <section class="py-20 bg-white">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="grid md:grid-cols-3 gap-10 items-center" data-animate>
-        <div class="text-center">
-          <img
-            src="/hamzah-javaid.jpeg"
-            alt="Hamzah Javaid"
-            width="160"
-            height="160"
-            loading="lazy"
-            decoding="async"
-            class="w-40 h-40 rounded-2xl object-cover mx-auto shadow-lg"
-            style="border: 3px solid var(--color-snowflake-blue);"
-          />
-          <h3 class="text-xl font-bold text-slate-900 mt-4">Hamzah Javaid</h3>
-          <p class="text-sm font-medium" style="color: var(--color-snowflake-blue);">Hastings Direct</p>
-        </div>
-        <div class="md:col-span-2">
-          <h2 class="text-2xl font-bold text-slate-900 mb-4">About the Author</h2>
-          <p class="text-slate-700 leading-relaxed mb-4">
-            I'm a data professional at Hastings Direct working across data analytics, data science, and modern cloud platforms. I build scalable data pipelines, design analytical frameworks, and enable self-service analytics — bridging the gap between technical data engineering and the strategic thinking that drives real business decisions.
-          </p>
-          <p class="text-slate-700 leading-relaxed mb-6">
-            I built this because our teams needed something written specifically for us. Not generic courses, but a practical guide that speaks directly to how we work with Snowflake every day. Every module follows the SnowPro Core (COF-C02) blueprint, with interactive flashcards, quizzes, and cheat sheets designed for active recall.
-          </p>
-          <a href="/about" class="btn-primary inline-block no-underline">Read More About Me</a>
-        </div>
-      </div>
-    </div>
-  </section>
 
 </Layout>
 
