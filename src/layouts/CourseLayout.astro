@@ -1,6 +1,7 @@
 ---
 import Layout from './Layout.astro';
 import ProgressTracker from '../components/ProgressTracker';
+import ReadingProgress from '../components/ReadingProgress';
 
 interface Props {
   title: string;
@@ -55,6 +56,7 @@ const nextModule  = currentIdx < allModules.length - 1 ? allModules[currentIdx +
 ---
 
 <Layout title={title} description={description}>
+  <ReadingProgress client:load moduleId={moduleId} moduleTitle={title} />
   <div class="bg-gradient-to-b from-slate-50 to-white py-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <!-- Breadcrumb -->
@@ -89,6 +91,9 @@ const nextModule  = currentIdx < allModules.length - 1 ? allModules[currentIdx +
       <!-- Main Content -->
       <article class="prose prose-slate max-w-none">
         <slot />
+
+        <!-- ── Scroll completion sentinel ─────────────────────────── -->
+        <div id="article-end" aria-hidden="true" />
 
         <!-- ── Prev / Next navigation ──────────────────────────────── -->
         <nav

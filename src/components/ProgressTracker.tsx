@@ -23,6 +23,14 @@ export default function ProgressTracker({ modules, currentModuleId }: ProgressTr
     if (saved) {
       setCompletedModules(new Set(JSON.parse(saved)));
     }
+
+    // Refresh when ReadingProgress auto-completes a module (same tab)
+    const onProgressUpdate = () => {
+      const latest = localStorage.getItem('snowflake-training-progress');
+      setCompletedModules(new Set(latest ? JSON.parse(latest) : []));
+    };
+    window.addEventListener('snowflake:progress-update', onProgressUpdate);
+    return () => window.removeEventListener('snowflake:progress-update', onProgressUpdate);
   }, []);
 
   const toggleModule = (moduleId: string) => {
