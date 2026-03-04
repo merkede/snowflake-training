@@ -3,6 +3,7 @@ import Layout from './Layout.astro';
 import ProgressTracker from '../components/ProgressTracker';
 import ReadingProgress from '../components/ReadingProgress';
 import ModuleFooter from '../components/ModuleFooter';
+import MobileProgressBar from '../components/MobileProgressBar';
 
 interface Props {
   title: string;
@@ -117,6 +118,14 @@ const nextModule  = currentIdx < allModules.length - 1 ? allModules[currentIdx +
       </aside>
     </div>
   </div>
+
+  <!-- Mobile sticky progress bar (lg:hidden handled inside component) -->
+  <MobileProgressBar
+    client:load
+    modules={allModules}
+    currentModuleId={moduleId}
+    totalModules={allModules.length}
+  />
 </Layout>
 
 <script>
