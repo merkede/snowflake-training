@@ -70,14 +70,15 @@ const nextModule  = currentIdx < allModules.length - 1 ? allModules[currentIdx +
         </ol>
       </nav>
 
-      <!-- Domain Badge + module counter -->
-      <div class="flex items-center gap-3 mb-4">
+      <!-- Domain Badge + module counter + read time -->
+      <div class="flex items-center gap-3 mb-4 flex-wrap">
         <span class="exam-badge">{domain}</span>
         {currentIdx >= 0 && (
           <span class="text-xs text-slate-400 font-medium">
             Module {currentIdx + 1} of {allModules.length}
           </span>
         )}
+        <span id="read-time" class="text-xs text-slate-400 font-medium" aria-label="Estimated reading time"></span>
       </div>
 
       <!-- Page Title -->
@@ -159,3 +160,15 @@ const nextModule  = currentIdx < allModules.length - 1 ? allModules[currentIdx +
     </div>
   </div>
 </Layout>
+
+<script>
+  // Estimate read time from article word count (200 wpm average)
+  (function () {
+    const article = document.querySelector('article');
+    const el = document.getElementById('read-time');
+    if (!article || !el) return;
+    const words = (article.textContent ?? '').trim().split(/\s+/).length;
+    const mins = Math.max(1, Math.round(words / 200));
+    el.textContent = `· ~${mins} min read`;
+  })();
+</script>
