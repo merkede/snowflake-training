@@ -434,10 +434,38 @@ function ExamSimulatorInner() {
         {setupTab === 'history' && (
           <div>
             {history.length === 0 ? (
-              <div className="text-center py-16" style={{ color: 'var(--text-muted)' }}>
-                <div className="text-4xl mb-3" aria-hidden="true">📊</div>
-                <p className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>No exam history yet</p>
-                <p className="text-sm">Complete your first exam to start tracking your progress.</p>
+              <div style={{
+                textAlign: 'center', padding: '3rem 1.5rem',
+                border: '2px dashed var(--surface-border)',
+                borderRadius: '1rem', background: 'var(--surface-card-2)',
+              }}>
+                {/* Inline SVG illustration */}
+                <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ margin: '0 auto 1.25rem' }}>
+                  <rect width="80" height="80" rx="40" fill="#eff6ff" />
+                  <rect x="18" y="48" width="10" height="18" rx="2" fill="#bfdbfe" />
+                  <rect x="34" y="36" width="10" height="30" rx="2" fill="#93c5fd" />
+                  <rect x="50" y="26" width="10" height="40" rx="2" fill="#29b5e8" />
+                  <path d="M16 22 L30 16 L46 20 L62 12" stroke="#29b5e8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="4 3" />
+                  <circle cx="62" cy="12" r="3" fill="#29b5e8" />
+                </svg>
+                <p style={{ margin: '0 0 0.375rem', fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>
+                  No exam attempts yet
+                </p>
+                <p style={{ margin: '0 0 1.5rem', fontSize: '0.875rem', color: 'var(--text-muted)', maxWidth: '280px', marginLeft: 'auto', marginRight: 'auto' }}>
+                  Take your first mock exam to benchmark your readiness and track domain-by-domain performance.
+                </p>
+                <button
+                  onClick={() => setSetupTab('new')}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                    padding: '0.625rem 1.5rem', borderRadius: '0.5rem',
+                    fontWeight: 700, fontSize: '0.875rem',
+                    background: 'linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky))',
+                    color: '#fff', border: 'none', cursor: 'pointer',
+                  }}
+                >
+                  Start your first exam →
+                </button>
               </div>
             ) : (
               <div className="space-y-3">
