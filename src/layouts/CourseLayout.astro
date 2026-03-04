@@ -2,6 +2,7 @@
 import Layout from './Layout.astro';
 import ProgressTracker from '../components/ProgressTracker';
 import ReadingProgress from '../components/ReadingProgress';
+import ModuleFooter from '../components/ModuleFooter';
 
 interface Props {
   title: string;
@@ -96,61 +97,18 @@ const nextModule  = currentIdx < allModules.length - 1 ? allModules[currentIdx +
         <!-- ── Scroll completion sentinel ─────────────────────────── -->
         <div id="article-end" aria-hidden="true" />
 
-        <!-- ── Prev / Next navigation ──────────────────────────────── -->
-        <nav
-          class="not-prose mt-16 pt-8 border-t border-slate-200 grid sm:grid-cols-2 gap-4"
-          aria-label="Module navigation"
-        >
-          {prevModule ? (
-            <a
-              href={`/${prevModule.slug}`}
-              class="group flex items-center gap-3 p-4 rounded-xl border border-slate-200 hover:border-primary hover:bg-slate-50 no-underline transition-all"
-              rel="prev"
-            >
-              <svg class="w-5 h-5 text-slate-400 group-hover:text-primary flex-shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-              </svg>
-              <div class="min-w-0">
-                <div class="text-xs text-slate-400 font-medium mb-0.5">Previous</div>
-                <div class="text-sm font-semibold text-slate-700 group-hover:text-primary transition-colors truncate">{prevModule.title}</div>
-                <div class="text-xs text-slate-400">{prevModule.domain}</div>
-              </div>
-            </a>
-          ) : (
-            <div />
-          )}
-
-          {nextModule ? (
-            <a
-              href={`/${nextModule.slug}`}
-              class="group flex items-center gap-3 p-4 rounded-xl border border-slate-200 hover:border-primary hover:bg-slate-50 no-underline transition-all text-right sm:flex-row-reverse"
-              rel="next"
-            >
-              <svg class="w-5 h-5 text-slate-400 group-hover:text-primary flex-shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-              <div class="min-w-0">
-                <div class="text-xs text-slate-400 font-medium mb-0.5">Next</div>
-                <div class="text-sm font-semibold text-slate-700 group-hover:text-primary transition-colors truncate">{nextModule.title}</div>
-                <div class="text-xs text-slate-400">{nextModule.domain}</div>
-              </div>
-            </a>
-          ) : (
-            <a
-              href="/exam-sim"
-              class="group flex items-center gap-3 p-4 rounded-xl border-2 hover:shadow-md no-underline transition-all text-right sm:flex-row-reverse"
-              style="border-color: #22c55e; background: #f0fdf4;"
-            >
-              <svg class="w-5 h-5 flex-shrink-0" style="color: #22c55e;" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div class="min-w-0">
-                <div class="text-xs font-medium mb-0.5" style="color: #166534;">All modules complete!</div>
-                <div class="text-sm font-semibold" style="color: #166534;">Take the Mock Exam →</div>
-              </div>
-            </a>
-          )}
-        </nav>
+        <!-- ── Flashcard CTA + Prev/Next (reactive) ────────────────── -->
+        <ModuleFooter
+          client:load
+          moduleId={moduleId}
+          moduleTitle={title}
+          nextSlug={nextModule?.slug ?? null}
+          nextTitle={nextModule?.title ?? null}
+          nextDomain={nextModule?.domain ?? null}
+          prevSlug={prevModule?.slug ?? null}
+          prevTitle={prevModule?.title ?? null}
+          prevDomain={prevModule?.domain ?? null}
+        />
       </article>
 
       <!-- Sidebar with Progress Tracker -->
