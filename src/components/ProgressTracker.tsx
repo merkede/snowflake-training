@@ -90,9 +90,10 @@ export default function ProgressTracker({ modules, currentModuleId }: ProgressTr
               <button
                 onClick={() => toggleModule(module.id)}
                 className="flex-shrink-0 mt-0.5 transition-transform hover:scale-110"
+                aria-label={isCompleted ? `Mark ${module.title} incomplete` : `Mark ${module.title} complete`}
               >
                 {isCompleted ? (
-                  <CheckCircle2 className="w-5 h-5" style={{ color: 'var(--color-accent)' }} />
+                  <CheckCircle2 className="w-5 h-5 animate-check-pop" style={{ color: 'var(--color-accent)' }} />
                 ) : (
                   <Circle className="w-5 h-5 text-slate-300" />
                 )}
@@ -100,7 +101,7 @@ export default function ProgressTracker({ modules, currentModuleId }: ProgressTr
               <a
                 href={`/${module.slug}`}
                 className={`text-sm flex-1 ${
-                  isCompleted ? 'text-slate-500 line-through' : 'text-slate-700'
+                  isCompleted ? 'text-slate-400' : 'text-slate-700'
                 } hover:no-underline`}
               >
                 {module.title}
