@@ -51,6 +51,11 @@
   --text-primary:      #0f172a;
   --text-secondary:    #334155;
   --text-muted:        #64748b;
+  --ux-bg-1: 15, 23, 42;
+  --ux-bg-2: 30, 58, 95;
+  --ux-bg-3: 8, 47, 73;
+  --ux-accent: 41, 181, 232;
+  --scroll-progress: 0%;
 }
 
 /* ── Dark mode surface tokens ────────────────────────────────────────────── */
@@ -69,12 +74,53 @@
 
 /* ── Base ────────────────────────────────────────────────────────────────── */
 body {
-  background-color: var(--surface-bg);
+  background-color: rgb(var(--ux-bg-1));
   color: var(--text-primary);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.2s, color 0.2s;
+  transition: color 0.2s;
+  position: relative;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(1200px 600px at -10% -10%, rgba(var(--ux-accent), 0.26), transparent 64%),
+    radial-gradient(900px 560px at 110% 22%, rgba(var(--ux-bg-2), 0.38), transparent 68%),
+    radial-gradient(820px 500px at 50% 115%, rgba(var(--ux-bg-3), 0.3), transparent 70%),
+    linear-gradient(170deg, rgb(var(--ux-bg-1)) 0%, rgb(var(--ux-bg-2)) 48%, rgb(var(--ux-bg-3)) 100%);
+  transition: background 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.045;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.55) 0.5px, transparent 0.8px),
+    radial-gradient(circle at 75% 80%, rgba(255, 255, 255, 0.6) 0.5px, transparent 0.8px);
+  background-size: 3px 3px, 4px 4px;
+}
+
+#scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: var(--scroll-progress);
+  z-index: 120;
+  background: linear-gradient(90deg, rgba(var(--ux-accent), 0.95), rgba(86, 196, 237, 0.95));
+  box-shadow: 0 0 20px rgba(var(--ux-accent), 0.5);
+  transition: width 0.08s linear;
 }
 
 /* ── Typography ──────────────────────────────────────────────────────────── */
@@ -477,6 +523,15 @@ a {
 
 /* ── Accessibility: reduced motion ───────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
+  body::before,
+  body::after {
+    display: none;
+  }
+
+  #scroll-progress {
+    transition: none;
+  }
+
   *,
   *::before,
   *::after {

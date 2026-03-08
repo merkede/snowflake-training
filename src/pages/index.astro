@@ -67,7 +67,16 @@ const domains = [
   <!-- ═══════════════════════════════════════════════════════════════
        HERO
   ═══════════════════════════════════════════════════════════════ -->
-  <section class="relative overflow-hidden text-white" style="background: linear-gradient(135deg, #0f172a 0%, #1a2e4a 50%, #0f172a 100%); padding: 5rem 0 4rem;">
+  <section
+    class="relative overflow-hidden text-white"
+    data-bg-theme
+    data-bg1="12,28,52"
+    data-bg2="18,54,84"
+    data-bg3="10,88,112"
+    data-accent="56,189,248"
+    style="padding: 5rem 0 4rem;"
+  >
+    <div aria-hidden="true" style="position:absolute;inset:0;background:linear-gradient(135deg, rgba(15,23,42,0.66) 0%, rgba(30,46,74,0.5) 45%, rgba(15,23,42,0.68) 100%);"></div>
 
     <!-- Decorative snowflake rings -->
     <div aria-hidden="true" style="position: absolute; right: -120px; top: 50%; transform: translateY(-50%); pointer-events: none;">
@@ -132,7 +141,15 @@ const domains = [
   <!-- ═══════════════════════════════════════════════════════════════
        FEATURE SHOWCASE — phone fan, auto-rotating
   ═══════════════════════════════════════════════════════════════ -->
-  <section id="section-features" style="background: #f0f9ff; transition: background-color 0.7s ease; padding: 5rem 0 4rem;">
+  <section
+    id="section-features"
+    data-bg-theme
+    data-bg1="6,78,110"
+    data-bg2="18,104,130"
+    data-bg3="7,89,125"
+    data-accent="56,189,248"
+    style="background: rgba(240, 249, 255, 0.5); transition: background-color 0.7s ease; padding: 5rem 0 4rem;"
+  >
 
     <!-- DESKTOP: phone fan left, text right -->
     <div class="hidden lg:flex max-w-7xl mx-auto px-8 items-center gap-16" style="min-height: 520px;">
@@ -327,7 +344,15 @@ const domains = [
   <!-- ═══════════════════════════════════════════════════════════════
        TESTIMONIALS — infinite auto-scrolling marquee
   ═══════════════════════════════════════════════════════════════ -->
-  <section class="py-20 bg-white">
+  <section
+    class="py-20"
+    data-bg-theme
+    data-bg1="14,79,120"
+    data-bg2="36,120,170"
+    data-bg3="12,93,130"
+    data-accent="125,211,252"
+    style="background: rgba(255,255,255,0.82); backdrop-filter: blur(2px);"
+  >
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="text-center mb-12" data-animate>
         <p class="text-sm font-bold uppercase tracking-widest mb-3" style="color: #29b5e8;">From the team</p>
@@ -372,7 +397,16 @@ const domains = [
   <!-- ═══════════════════════════════════════════════════════════════
        APP DOWNLOAD — full Snowflake blue, background change on scroll
   ═══════════════════════════════════════════════════════════════ -->
-  <section id="get-the-app" style="background: linear-gradient(160deg, #0369a1 0%, #29b5e8 50%, #0ea5e9 100%); min-height: 90vh; display: flex; align-items: center; position: relative; overflow: hidden;">
+  <section
+    id="get-the-app"
+    data-bg-theme
+    data-bg1="2,74,122"
+    data-bg2="13,148,198"
+    data-bg3="8,145,178"
+    data-accent="186,230,253"
+    style="min-height: 90vh; display: flex; align-items: center; position: relative; overflow: hidden;"
+  >
+    <div aria-hidden="true" style="position:absolute;inset:0;background:linear-gradient(160deg, rgba(3,105,161,0.75) 0%, rgba(41,181,232,0.58) 50%, rgba(14,165,233,0.72) 100%);"></div>
 
     <!-- Background decorative circles -->
     <div aria-hidden="true" style="position: absolute; inset: 0; overflow: hidden; pointer-events: none;">
@@ -469,7 +503,7 @@ const domains = [
     const phones = Array.from(fan.querySelectorAll<HTMLElement>('[data-feat-phone]'));
     const panels = Array.from(document.querySelectorAll<HTMLElement>('[data-feat-panel]'));
     const dots   = Array.from(document.querySelectorAll<HTMLElement>('[data-feat-dot]'));
-    const bgs    = ['#f0f9ff', '#f0fdf4', '#faf5ff'];
+    const bgs    = ['rgba(240,249,255,0.5)', 'rgba(240,253,244,0.5)', 'rgba(250,245,255,0.5)'];
 
     // Fan slot definitions: [active/front, middle, back-peek]
     const SLOTS = [
