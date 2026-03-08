@@ -73,24 +73,21 @@ const { title, description = 'Master Snowflake with comprehensive training for t
       <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Main navigation">
         <div class="flex justify-between items-center h-16">
           <!-- Logo -->
-          <a href="/" class="flex items-center gap-3 hover:opacity-80 transition-opacity no-underline" aria-label="Snowflake Training — Home">
+          <a href="/" class="flex items-center gap-3 hover:opacity-80 transition-opacity no-underline flex-shrink-0" aria-label="Snowflake Training — Home">
             <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
               <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
               </svg>
             </div>
-            <div>
+            <div class="leading-snug">
               <div class="font-bold text-lg text-slate-900">Snowflake Training</div>
-              <div class="text-xs" style="color: var(--color-snowflake-blue);">by Hamzah Javaid</div>
+              <div class="text-xs mt-0.5" style="color: var(--color-snowflake-blue);">by Hamzah Javaid</div>
             </div>
           </a>
 
           <!-- Desktop Navigation -->
           <div class="hidden md:flex items-center gap-1">
             <a href="/" data-nav-link class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">Home</a>
-            <a href="/#section-features" data-nav-link data-home-section="section-features" class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">Features</a>
-            <a href="/#section-testimonials" data-nav-link data-home-section="section-testimonials" class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">Testimonials</a>
-            <a href="/#get-the-app" data-nav-link data-home-section="get-the-app" class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">Get App</a>
             <a href="/modules" data-nav-link class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">Modules</a>
             <a href="/flashcards" data-nav-link class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">Flashcards</a>
             <a href="/cheatsheets" data-nav-link class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">Cheat Sheets</a>
@@ -166,9 +163,6 @@ const { title, description = 'Master Snowflake with comprehensive training for t
       <div id="mobile-menu" class="hidden md:hidden border-t border-slate-100 bg-white shadow-lg" role="navigation" aria-label="Mobile navigation">
         <nav class="max-w-7xl mx-auto px-4 py-3 space-y-1">
           <a href="/" data-nav-link class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">Home</a>
-          <a href="/#section-features" data-nav-link data-home-section="section-features" class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">Features</a>
-          <a href="/#section-testimonials" data-nav-link data-home-section="section-testimonials" class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">Testimonials</a>
-          <a href="/#get-the-app" data-nav-link data-home-section="get-the-app" class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">Get App</a>
           <a href="/about" data-nav-link class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">About</a>
           <a href="/modules" data-nav-link class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">Modules</a>
           <a href="/flashcards" data-nav-link class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">Flashcards</a>
@@ -230,9 +224,9 @@ const { title, description = 'Master Snowflake with comprehensive training for t
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                 </svg>
               </div>
-              <div>
+              <div class="leading-snug">
                 <div class="font-bold text-white">Snowflake Training</div>
-                <div class="text-xs" style="color: var(--color-snowflake-blue);">by Hamzah Javaid</div>
+                <div class="text-xs mt-0.5" style="color: var(--color-snowflake-blue);">by Hamzah Javaid</div>
               </div>
             </div>
             <p class="text-sm text-slate-400">Hamzah Javaid 2026</p>
@@ -306,38 +300,11 @@ const { title, description = 'Master Snowflake with comprehensive training for t
             if (!href) return;
             var url = new URL(href, window.location.origin);
             var targetPath = normalizePath(url.pathname);
-            var sectionId = link.getAttribute('data-home-section');
-
-            if (sectionId && currentPath === '/') return;
-            if (targetPath === currentPath && !sectionId) link.classList.add('nav-active');
-          });
-        }
-
-        function setHomeSectionActive(sectionId) {
-          if (normalizePath(window.location.pathname) !== '/') return;
-          links.forEach(function(link) {
-            var homeSection = link.getAttribute('data-home-section');
-            var href = link.getAttribute('href');
-            if (href === '/') link.classList.remove('nav-active');
-            if (!homeSection) return;
-            if (homeSection === sectionId) link.classList.add('nav-active');
-            else link.classList.remove('nav-active');
+            if (targetPath === currentPath) link.classList.add('nav-active');
           });
         }
 
         setActiveLink();
-
-        if (normalizePath(window.location.pathname) === '/') {
-          var sections = Array.from(document.querySelectorAll('[id][data-bg-theme]'));
-          if (sections.length) {
-            var io = new IntersectionObserver(function(entries) {
-              entries.forEach(function(entry) {
-                if (entry.isIntersecting) setHomeSectionActive(entry.target.id);
-              });
-            }, { threshold: 0.4 });
-            sections.forEach(function(section) { io.observe(section); });
-          }
-        }
 
         if (isReduced || isCoarse) return;
         var magneticTargets = Array.from(document.querySelectorAll('[data-magnetic], .btn-primary'));
