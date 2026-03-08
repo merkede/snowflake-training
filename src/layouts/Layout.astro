@@ -87,12 +87,15 @@ const { title, description = 'Master Snowflake with comprehensive training for t
 
           <!-- Desktop Navigation -->
           <div class="hidden md:flex items-center gap-1">
-            <a href="/" class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">Home</a>
-            <a href="/modules" class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">Modules</a>
-            <a href="/flashcards" class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">Flashcards</a>
-            <a href="/cheatsheets" class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">Cheat Sheets</a>
-            <a href="/exam-sim" class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">Mock Exam</a>
-            <a href="/practice" class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">SQL Practice</a>
+            <a href="/" data-nav-link class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">Home</a>
+            <a href="/#section-features" data-nav-link data-home-section="section-features" class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">Features</a>
+            <a href="/#section-testimonials" data-nav-link data-home-section="section-testimonials" class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">Testimonials</a>
+            <a href="/#get-the-app" data-nav-link data-home-section="get-the-app" class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">Get App</a>
+            <a href="/modules" data-nav-link class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">Modules</a>
+            <a href="/flashcards" data-nav-link class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">Flashcards</a>
+            <a href="/cheatsheets" data-nav-link class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">Cheat Sheets</a>
+            <a href="/exam-sim" data-nav-link class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">Mock Exam</a>
+            <a href="/practice" data-nav-link class="px-3 py-2 text-slate-700 hover:text-primary font-medium transition-colors no-underline rounded-lg hover:bg-slate-50 text-sm">SQL Practice</a>
 
             <!-- Dark mode toggle -->
             <button
@@ -162,14 +165,17 @@ const { title, description = 'Master Snowflake with comprehensive training for t
       <!-- Mobile menu dropdown -->
       <div id="mobile-menu" class="hidden md:hidden border-t border-slate-100 bg-white shadow-lg" role="navigation" aria-label="Mobile navigation">
         <nav class="max-w-7xl mx-auto px-4 py-3 space-y-1">
-          <a href="/" class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">Home</a>
-          <a href="/about" class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">About</a>
-          <a href="/modules" class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">Modules</a>
-          <a href="/flashcards" class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">Flashcards</a>
-          <a href="/cheatsheets" class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">Cheat Sheets</a>
-          <a href="/exam-sim" class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">Mock Exam</a>
-          <a href="/practice" class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">SQL Practice</a>
-          <a href="/certificate" class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">🏆 Certificate</a>
+          <a href="/" data-nav-link class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">Home</a>
+          <a href="/#section-features" data-nav-link data-home-section="section-features" class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">Features</a>
+          <a href="/#section-testimonials" data-nav-link data-home-section="section-testimonials" class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">Testimonials</a>
+          <a href="/#get-the-app" data-nav-link data-home-section="get-the-app" class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">Get App</a>
+          <a href="/about" data-nav-link class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">About</a>
+          <a href="/modules" data-nav-link class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">Modules</a>
+          <a href="/flashcards" data-nav-link class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">Flashcards</a>
+          <a href="/cheatsheets" data-nav-link class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">Cheat Sheets</a>
+          <a href="/exam-sim" data-nav-link class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">Mock Exam</a>
+          <a href="/practice" data-nav-link class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">SQL Practice</a>
+          <a href="/certificate" data-nav-link class="block px-4 py-3 rounded-lg text-slate-700 hover:bg-slate-50 font-medium no-underline text-sm">🏆 Certificate</a>
         </nav>
       </div>
     </header>
@@ -216,9 +222,9 @@ const { title, description = 'Master Snowflake with comprehensive training for t
     <!-- Footer -->
     <footer class="bg-slate-900 text-slate-300 mt-24" role="contentinfo">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div>
-          <div>
-            <div class="flex items-center gap-3 mb-2">
+        <div class="flex items-center justify-center text-center">
+          <div class="flex flex-col items-center">
+            <div class="flex items-center justify-center gap-3 mb-2">
               <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, var(--color-snowflake-blue), var(--color-snowflake-sky));">
                 <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
@@ -277,6 +283,83 @@ const { title, description = 'Master Snowflake with comprehensive training for t
         ['theme-toggle','mobile-theme-toggle'].forEach(function(id) {
           var btn = document.getElementById(id);
           if (btn) btn.addEventListener('click', function() { setTheme(!isDark()); });
+        });
+      })();
+    </script>
+
+    <!-- Active navigation + magnetic CTA interactions -->
+    <script is:inline>
+      (function() {
+        var links = Array.from(document.querySelectorAll('[data-nav-link]'));
+        var isReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var isCoarse = window.matchMedia('(pointer: coarse)').matches;
+
+        function normalizePath(path) {
+          return path.replace(/\/+$/, '') || '/';
+        }
+
+        function setActiveLink() {
+          var currentPath = normalizePath(window.location.pathname);
+          links.forEach(function(link) {
+            link.classList.remove('nav-active');
+            var href = link.getAttribute('href') || '';
+            if (!href) return;
+            var url = new URL(href, window.location.origin);
+            var targetPath = normalizePath(url.pathname);
+            var sectionId = link.getAttribute('data-home-section');
+
+            if (sectionId && currentPath === '/') return;
+            if (targetPath === currentPath && !sectionId) link.classList.add('nav-active');
+          });
+        }
+
+        function setHomeSectionActive(sectionId) {
+          if (normalizePath(window.location.pathname) !== '/') return;
+          links.forEach(function(link) {
+            var homeSection = link.getAttribute('data-home-section');
+            var href = link.getAttribute('href');
+            if (href === '/') link.classList.remove('nav-active');
+            if (!homeSection) return;
+            if (homeSection === sectionId) link.classList.add('nav-active');
+            else link.classList.remove('nav-active');
+          });
+        }
+
+        setActiveLink();
+
+        if (normalizePath(window.location.pathname) === '/') {
+          var sections = Array.from(document.querySelectorAll('[id][data-bg-theme]'));
+          if (sections.length) {
+            var io = new IntersectionObserver(function(entries) {
+              entries.forEach(function(entry) {
+                if (entry.isIntersecting) setHomeSectionActive(entry.target.id);
+              });
+            }, { threshold: 0.4 });
+            sections.forEach(function(section) { io.observe(section); });
+          }
+        }
+
+        if (isReduced || isCoarse) return;
+        var magneticTargets = Array.from(document.querySelectorAll('[data-magnetic], .btn-primary'));
+        magneticTargets.forEach(function(el) {
+          el.classList.add('magnetic-ready');
+          el.addEventListener('pointermove', function(e) {
+            var rect = el.getBoundingClientRect();
+            var x = e.clientX - rect.left;
+            var y = e.clientY - rect.top;
+            var dx = (x / rect.width - 0.5) * 10;
+            var dy = (y / rect.height - 0.5) * 8;
+            el.style.transform = 'translate3d(' + dx.toFixed(2) + 'px,' + dy.toFixed(2) + 'px,0)';
+          });
+          el.addEventListener('pointerdown', function() {
+            el.style.transform = 'translate3d(0,0,0) scale(0.98)';
+          });
+          el.addEventListener('pointerleave', function() {
+            el.style.transform = 'translate3d(0,0,0)';
+          });
+          el.addEventListener('pointerup', function() {
+            el.style.transform = 'translate3d(0,0,0)';
+          });
         });
       })();
     </script>

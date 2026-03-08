@@ -109,10 +109,10 @@ const domains = [
 
         <!-- CTAs -->
         <div class="flex flex-col sm:flex-row gap-4 justify-center mb-16" style="animation: heroWordReveal 0.65s ease 0.65s both;">
-          <a href="/modules" class="btn-primary text-lg px-8 py-4 no-underline">
+          <a href="/modules" data-magnetic class="btn-primary text-lg px-8 py-4 no-underline">
             Start Learning →
           </a>
-          <a href="/flashcards" class="text-lg px-8 py-4 no-underline font-semibold rounded-xl transition-all"
+          <a href="/flashcards" data-magnetic class="text-lg px-8 py-4 no-underline font-semibold rounded-xl transition-all"
              style="background: rgba(255,255,255,0.08); color: white; border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(8px);">
             Flashcards & Revision
           </a>
@@ -345,6 +345,7 @@ const domains = [
        TESTIMONIALS — infinite auto-scrolling marquee
   ═══════════════════════════════════════════════════════════════ -->
   <section
+    id="section-testimonials"
     class="py-20"
     data-bg-theme
     data-bg1="14,79,120"
@@ -429,10 +430,9 @@ const domains = [
         <!-- App Store -->
         <a
           href="#"
+          data-magnetic
           aria-label="Download on the App Store"
           style="display: inline-flex; align-items: center; gap: 14px; background: #000; color: white; border-radius: 16px; padding: 12px 24px; text-decoration: none; min-width: 180px; transition: transform 0.2s ease, box-shadow 0.2s ease;"
-          onmouseover="this.style.transform='scale(1.04)'; this.style.boxShadow='0 12px 40px rgba(0,0,0,0.3)'"
-          onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'"
         >
           <svg width="24" height="29" viewBox="0 0 24 29" fill="white" aria-hidden="true">
             <path d="M19.665 15.359c-.027-3.193 2.61-4.74 2.729-4.817-1.488-2.175-3.802-2.473-4.628-2.506-1.972-.2-3.84 1.164-4.837 1.164-1.003 0-2.557-1.133-4.204-1.103-2.168.033-4.17 1.266-5.28 3.204-2.252 3.906-.578 9.702 1.622 12.874 1.07 1.555 2.347 3.308 4.022 3.245 1.617-.064 2.228-1.044 4.182-1.044 1.95 0 2.51 1.044 4.21.994 1.74-.03 2.84-1.577 3.898-3.14 1.245-1.8 1.751-3.56 1.774-3.648-.038-.016-3.385-1.306-3.488-5.223zM16.28 5.337c.875-1.07 1.47-2.55 1.308-4.037-1.262.051-2.832.845-3.74 1.892-.812.933-1.533 2.453-1.343 3.9 1.414.104 2.857-.72 3.775-1.755z"/>
@@ -446,10 +446,9 @@ const domains = [
         <!-- Google Play -->
         <a
           href="#"
+          data-magnetic
           aria-label="Get it on Google Play"
           style="display: inline-flex; align-items: center; gap: 14px; background: white; color: #1e293b; border-radius: 16px; padding: 12px 24px; text-decoration: none; min-width: 180px; transition: transform 0.2s ease, box-shadow 0.2s ease;"
-          onmouseover="this.style.transform='scale(1.04)'; this.style.boxShadow='0 12px 40px rgba(0,0,0,0.2)'"
-          onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'"
         >
           <svg width="24" height="27" viewBox="0 0 24 27" aria-hidden="true">
             <path d="M1.5 0.75L13.5 12.75L1.5 24.75C1.17 24.57 1 24.21 1 23.79V1.71C1 1.29 1.17 0.93 1.5 0.75Z" fill="#EA4335"/>
