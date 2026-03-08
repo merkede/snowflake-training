@@ -314,6 +314,7 @@ cd android
 7. Use staged rollout for production release.
 
 Detailed runbook: `docs/PLAY_STORE_LAUNCH_CHECKLIST.md`
+Play Console form draft: `docs/PLAY_CONSOLE_RESPONSE_TEMPLATE.md`
 
 ## 📝 License
 
