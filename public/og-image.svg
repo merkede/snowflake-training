@@ -25,7 +25,7 @@
   <text x="116" y="130" font-family="Arial" font-size="40" fill="white" text-anchor="middle">❄</text>
 
   <!-- Brand label -->
-  <text x="80" y="210" font-family="Inter, Arial, sans-serif" font-size="18" fill="#29b5e8" font-weight="600" letter-spacing="2">SNOWFLAKE TRAINING · HASTINGS DIRECT</text>
+  <text x="80" y="210" font-family="Inter, Arial, sans-serif" font-size="18" fill="#29b5e8" font-weight="600" letter-spacing="2">SNOWFLAKE TRAINING · SNOWPRO CORE</text>
 
   <!-- Main headline -->
   <text x="80" y="310" font-family="Inter, Arial, sans-serif" font-size="72" fill="white" font-weight="800">Snowflake</text>

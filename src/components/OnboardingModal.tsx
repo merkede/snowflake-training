@@ -122,7 +122,7 @@ export default function OnboardingModal() {
             Welcome to Snowflake Training
           </h2>
           <p style={{ color: '#94a3b8', fontSize: '0.875rem', marginTop: '0.375rem', marginBottom: 0 }}>
-            Your COF-C02 exam prep resource — built for Hastings Direct
+            Your COF-C02 exam prep resource
           </p>
         </div>
 

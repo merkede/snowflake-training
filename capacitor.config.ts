@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.hastingsdirect.snowflaketraining',
+  appId: 'com.hamzahjavaid.snowflaketraining',
   appName: 'Snowflake Training',
   webDir: 'dist',
   server: {

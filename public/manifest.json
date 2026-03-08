@@ -1,7 +1,7 @@
 {
   "name": "Snowflake Training Hub",
   "short_name": "SF Training",
-  "description": "Snowflake SnowPro Core (COF-C02) certification prep for Hastings Direct. Modules, flashcards, mock exam, SQL practice, and cheat sheets.",
+  "description": "Snowflake SnowPro Core (COF-C02) certification prep. Modules, flashcards, mock exam, SQL practice, and cheat sheets.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
