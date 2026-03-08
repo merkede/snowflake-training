@@ -347,6 +347,54 @@ a {
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
 }
 
+.hero-cta {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.hero-cta::before {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  border-radius: 1rem;
+  z-index: -1;
+  background: radial-gradient(circle at center, rgba(86, 196, 237, 0.52) 0%, rgba(86, 196, 237, 0) 68%);
+  filter: blur(8px);
+  opacity: 0.14;
+  animation: heroCtaPulse 7s ease-in-out infinite;
+}
+
+.hero-cta::after {
+  content: "";
+  position: absolute;
+  top: -120%;
+  left: -35%;
+  width: 32%;
+  height: 340%;
+  transform: rotate(20deg);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.46) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  pointer-events: none;
+  animation: heroCtaSweep 6.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+@keyframes heroCtaPulse {
+  0%, 100% { opacity: 0.1; transform: scale(0.98); }
+  45% { opacity: 0.45; transform: scale(1.03); }
+}
+
+@keyframes heroCtaSweep {
+  0%, 74% { transform: translateX(0) rotate(20deg); opacity: 0; }
+  78% { opacity: 0.22; }
+  92% { transform: translateX(520%) rotate(20deg); opacity: 0.45; }
+  100% { transform: translateX(560%) rotate(20deg); opacity: 0; }
+}
+
 .magnetic-ready {
   will-change: transform;
   transition: transform 0.18s ease, box-shadow 0.2s ease, opacity 0.2s ease;
@@ -638,6 +686,8 @@ a {
 [data-animate][data-delay="6"] { transition-delay: 0.6s; }
 @media (prefers-reduced-motion: reduce) {
   [data-animate] { opacity: 1; transform: none; transition: none; }
+  .hero-cta::before,
+  .hero-cta::after { animation: none !important; opacity: 0 !important; }
 }
 
 /* ── Hero word reveal (CSS-only, no IntersectionObserver needed) ─────────── */
@@ -701,6 +751,17 @@ a {
   .magnetic-ready {
     transform: none !important;
     transition: opacity 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .hero-cta::before {
+    opacity: 0.08;
+    filter: blur(4px);
+    animation-duration: 9.5s;
+  }
+
+  .hero-cta::after {
+    animation-duration: 9.5s;
+    opacity: 0.16;
   }
 
   [style*="backdrop-filter"] {
