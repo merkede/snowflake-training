@@ -1,0 +1,72 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const updatedOn = '8 March 2026';
+---
+
+<Layout
+  title="Privacy Policy | Snowflake Training"
+  description="Privacy Policy for the Snowflake Training app and website."
+>
+  <section class="py-14 md:py-20">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+      <p class="text-xs font-semibold uppercase tracking-widest mb-3" style="color: var(--color-snowflake-blue);">Legal</p>
+      <h1 class="mb-3">Privacy Policy</h1>
+      <p class="text-sm text-slate-500 mb-10">Last updated: {updatedOn}</p>
+
+      <div class="prose prose-slate max-w-none">
+        <p>
+          This Privacy Policy explains how Snowflake Training handles information when you use the website and mobile app.
+        </p>
+
+        <h2>Summary</h2>
+        <p>
+          Snowflake Training is an educational app. It does not require user account sign-in and does not intentionally collect personal data for sale.
+        </p>
+
+        <h2>Data We Process</h2>
+        <p>We store study progress data locally on your device so app features work as expected, including:</p>
+        <ul>
+          <li>module completion progress</li>
+          <li>flashcard study state and streak data</li>
+          <li>mock exam history and certificate name field (if entered)</li>
+          <li>theme and display preferences</li>
+        </ul>
+        <p>
+          This data is stored in your device/browser local storage and is not designed as a cloud account profile.
+        </p>
+
+        <h2>Data Sharing</h2>
+        <p>
+          We do not sell personal information. We do not share your local study data with third-party advertisers.
+        </p>
+
+        <h2>Permissions</h2>
+        <p>
+          The Android app currently requests internet access so app content can load and be updated.
+        </p>
+
+        <h2>Your Controls</h2>
+        <ul>
+          <li>You can clear local app/browser storage from your device settings to reset saved progress and preferences.</li>
+          <li>If the app is uninstalled, locally stored app data may be removed by the operating system.</li>
+        </ul>
+
+        <h2>Children</h2>
+        <p>
+          This app is intended for general professional education and is not specifically directed to children.
+        </p>
+
+        <h2>Changes To This Policy</h2>
+        <p>
+          We may update this policy over time. The latest version is always available at <code>/privacy</code>.
+        </p>
+
+        <h2>Contact</h2>
+        <p>
+          For privacy questions, use the project contact details listed on the About page.
+        </p>
+      </div>
+    </div>
+  </section>
+</Layout>

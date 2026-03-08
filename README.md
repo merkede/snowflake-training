@@ -264,6 +264,57 @@ This is an internal training resource. To add content:
 - [Snowflake Community](https://community.snowflake.com)
 - [Snowflake University](https://learn.snowflake.com)
 
+## 📱 Android Release Workflow
+
+### Build + Sync
+
+```bash
+npm run android:sync
+```
+
+### Open Android Studio
+
+```bash
+npm run android:open
+```
+
+### Generate Release AAB
+
+```bash
+npm run android:bundle:release
+```
+
+### Versioning
+
+`android/app/build.gradle` supports CI or local version overrides:
+
+```bash
+cd android
+./gradlew bundleRelease -PAPP_VERSION_CODE=3 -PAPP_VERSION_NAME=1.0.2
+```
+
+## ✅ Google Play Pre-Submission Checklist
+
+1. Verify `targetSdkVersion` is current policy-compliant.
+2. Upload a signed `.aab` (not debug APK) to internal testing first.
+3. Complete Play Console sections:
+   - Data Safety
+   - App Content
+   - Content Rating
+   - App Access (if any gated content exists)
+4. Add store assets:
+   - app icon
+   - feature graphic
+   - screenshots
+   - short/full description
+5. Publish and link a valid privacy policy:
+   - In-app route: `/privacy`
+   - Play Store listing privacy URL should match deployed page.
+6. Run pre-launch report and resolve crashes/ANRs/layout issues before production rollout.
+7. Use staged rollout for production release.
+
+Detailed runbook: `docs/PLAY_STORE_LAUNCH_CHECKLIST.md`
+
 ## 📝 License
 
 Internal training material. Not for redistribution.

@@ -6,6 +6,8 @@ import { examQuestions } from '../data/examQuestions';
 const moduleCount = 23;
 const flashcardCount = flashcards.length;
 const examQCount = examQuestions.length;
+const iosAppUrl = '';
+const androidAppUrl = '';
 
 const testimonials = [
   {
@@ -424,8 +426,9 @@ const domains = [
       <!-- Store badges -->
       <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12" data-animate data-delay="2">
         <!-- App Store -->
+        {iosAppUrl ? (
         <a
-          href="#"
+          href={iosAppUrl}
           data-magnetic
           aria-label="Download on the App Store"
           style="display: inline-flex; align-items: center; gap: 14px; background: #000; color: white; border-radius: 16px; padding: 12px 24px; text-decoration: none; min-width: 180px; transition: transform 0.2s ease, box-shadow 0.2s ease;"
@@ -438,10 +441,25 @@ const domains = [
             <div style="font-size: 20px; font-weight: 700; line-height: 1.15; letter-spacing: -0.3px;">App Store</div>
           </div>
         </a>
+        ) : (
+        <div
+          aria-label="App Store listing coming soon"
+          style="display: inline-flex; align-items: center; gap: 14px; background: rgba(2,6,23,0.75); color: white; border-radius: 16px; padding: 12px 24px; min-width: 180px; opacity: 0.9; border: 1px solid rgba(255,255,255,0.18);"
+        >
+          <svg width="24" height="29" viewBox="0 0 24 29" fill="white" aria-hidden="true">
+            <path d="M19.665 15.359c-.027-3.193 2.61-4.74 2.729-4.817-1.488-2.175-3.802-2.473-4.628-2.506-1.972-.2-3.84 1.164-4.837 1.164-1.003 0-2.557-1.133-4.204-1.103-2.168.033-4.17 1.266-5.28 3.204-2.252 3.906-.578 9.702 1.622 12.874 1.07 1.555 2.347 3.308 4.022 3.245 1.617-.064 2.228-1.044 4.182-1.044 1.95 0 2.51 1.044 4.21.994 1.74-.03 2.84-1.577 3.898-3.14 1.245-1.8 1.751-3.56 1.774-3.648-.038-.016-3.385-1.306-3.488-5.223zM16.28 5.337c.875-1.07 1.47-2.55 1.308-4.037-1.262.051-2.832.845-3.74 1.892-.812.933-1.533 2.453-1.343 3.9 1.414.104 2.857-.72 3.775-1.755z"/>
+          </svg>
+          <div style="text-align: left;">
+            <div style="font-size: 11px; opacity: 0.75; letter-spacing: 0.3px; line-height: 1;">iOS app</div>
+            <div style="font-size: 20px; font-weight: 700; line-height: 1.15; letter-spacing: -0.3px;">Coming soon</div>
+          </div>
+        </div>
+        )}
 
         <!-- Google Play -->
+        {androidAppUrl ? (
         <a
-          href="#"
+          href={androidAppUrl}
           data-magnetic
           aria-label="Get it on Google Play"
           style="display: inline-flex; align-items: center; gap: 14px; background: white; color: #1e293b; border-radius: 16px; padding: 12px 24px; text-decoration: none; min-width: 180px; transition: transform 0.2s ease, box-shadow 0.2s ease;"
@@ -457,6 +475,23 @@ const domains = [
             <div style="font-size: 20px; font-weight: 700; line-height: 1.15; letter-spacing: -0.3px;">Google Play</div>
           </div>
         </a>
+        ) : (
+        <div
+          aria-label="Google Play listing coming soon"
+          style="display: inline-flex; align-items: center; gap: 14px; background: rgba(255,255,255,0.85); color: #1e293b; border-radius: 16px; padding: 12px 24px; min-width: 180px; border: 1px solid rgba(15,23,42,0.14);"
+        >
+          <svg width="24" height="27" viewBox="0 0 24 27" aria-hidden="true">
+            <path d="M1.5 0.75L13.5 12.75L1.5 24.75C1.17 24.57 1 24.21 1 23.79V1.71C1 1.29 1.17 0.93 1.5 0.75Z" fill="#EA4335"/>
+            <path d="M17.5 8.75L13.5 12.75L1.5 0.75C1.83 0.57 2.25 0.6 2.61 0.81L17.5 8.75Z" fill="#FBBC05"/>
+            <path d="M17.5 16.75L2.61 24.69C2.25 24.9 1.83 24.93 1.5 24.75L13.5 12.75L17.5 16.75Z" fill="#34A853"/>
+            <path d="M23 12.75C23 13.14 22.8 13.5 22.44 13.71L17.5 16.75L13.5 12.75L17.5 8.75L22.44 11.79C22.8 12 23 12.36 23 12.75Z" fill="#4285F4"/>
+          </svg>
+          <div style="text-align: left;">
+            <div style="font-size: 11px; opacity: 0.6; letter-spacing: 1px; text-transform: uppercase; line-height: 1;">ANDROID APP</div>
+            <div style="font-size: 20px; font-weight: 700; line-height: 1.15; letter-spacing: -0.3px;">Coming soon</div>
+          </div>
+        </div>
+        )}
       </div>
 
       <!-- Supporting features row -->
@@ -467,6 +502,13 @@ const domains = [
           </span>
         ))}
       </div>
+
+      <p class="text-xs text-white/75 mt-6">
+        Privacy and app info:
+        <a href="/privacy" class="underline text-white/90 hover:text-white">Privacy Policy</a>
+        &nbsp;·&nbsp;
+        <a href="/about" class="underline text-white/90 hover:text-white">About</a>
+      </p>
 
     </div>
   </section>
